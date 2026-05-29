@@ -891,7 +891,7 @@ class _ScheduleAdherenceCard extends StatelessWidget {
                   scheduled: _fmtScheduleTime(arrivalTimeStr),
                   actual: arrivedAt != null ? _fmtIso(arrivedAt) : null,
                   isMissed: status == 'in_progress' &&
-                      _isOverdue(trip['trip_date'] as String? ?? '', arrivalTimeStr),
+                      _isOverdue(trip['trip_date'] as String? ?? '', arrivalTimeStr, departureTimeStr: departureTimeStr),
                 ),
               ),
             ],
@@ -926,12 +926,20 @@ class _ScheduleAdherenceCard extends StatelessWidget {
     }
   }
 
-  static bool _isOverdue(String dateStr, String timeStr) {
+  static bool _isOverdue(String dateStr, String timeStr, {String? departureTimeStr}) {
     try {
       final parts = timeStr.split(':');
       final d = DateTime.parse(dateStr);
-      final planned = DateTime(d.year, d.month, d.day,
+      var planned = DateTime(d.year, d.month, d.day,
           int.parse(parts[0]), int.parse(parts[1]));
+      if (departureTimeStr != null) {
+        final depParts = departureTimeStr.split(':');
+        final depTotalMinutes = int.parse(depParts[0]) * 60 + int.parse(depParts[1]);
+        final arrTotalMinutes = int.parse(parts[0]) * 60 + int.parse(parts[1]);
+        if (arrTotalMinutes < depTotalMinutes) {
+          planned = planned.add(const Duration(days: 1));
+        }
+      }
       return DateTime.now().isAfter(planned.add(const Duration(minutes: 5)));
     } catch (_) {
       return false;

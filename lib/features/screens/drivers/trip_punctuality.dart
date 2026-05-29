@@ -100,7 +100,7 @@ class TripPunctuality {
 
         // Check if currently running past scheduled arrival
         if (arrivalTimeStr != null) {
-          final plannedArrival = _parsePlannedDateTime(tripDateStr, arrivalTimeStr);
+          final plannedArrival = _parsePlannedDateTime(tripDateStr, arrivalTimeStr, departureTimeStr: departureTimeStr);
           final now = DateTime.now();
           if (now.isAfter(plannedArrival)) {
             final arrDiff = now.difference(plannedArrival).inMinutes;
@@ -149,7 +149,7 @@ class TripPunctuality {
           );
         }
 
-        final plannedArrival = _parsePlannedDateTime(tripDateStr, arrivalTimeStr);
+        final plannedArrival = _parsePlannedDateTime(tripDateStr, arrivalTimeStr, departureTimeStr: departureTimeStr);
         final arrDiff = actualArrival.difference(plannedArrival).inMinutes;
 
         String arrMessage;
@@ -202,14 +202,29 @@ class TripPunctuality {
   }
 
   /// Parses schedule time string (like "14:30:00" or "14:30") and combines it with trip date.
-  static DateTime _parsePlannedDateTime(String dateStr, String timeStr) {
+  /// If [departureTimeStr] is provided, it handles midnight crossing by shifting the arrival date.
+  static DateTime _parsePlannedDateTime(String dateStr, String timeStr, {String? departureTimeStr}) {
     try {
       final cleanTime = timeStr.trim().split(' ')[0]; // Split optional AM/PM if any
       final parts = cleanTime.split(':');
       final hour = int.parse(parts[0]);
       final minute = int.parse(parts[1]);
       final date = DateTime.parse(dateStr);
-      return DateTime(date.year, date.month, date.day, hour, minute);
+      var dt = DateTime(date.year, date.month, date.day, hour, minute);
+
+      if (departureTimeStr != null) {
+        final cleanDepTime = departureTimeStr.trim().split(' ')[0];
+        final depParts = cleanDepTime.split(':');
+        final depHour = int.parse(depParts[0]);
+        final depMinute = int.parse(depParts[1]);
+
+        final depTotalMinutes = depHour * 60 + depMinute;
+        final arrTotalMinutes = hour * 60 + minute;
+        if (arrTotalMinutes < depTotalMinutes) {
+          dt = dt.add(const Duration(days: 1));
+        }
+      }
+      return dt;
     } catch (_) {
       return DateTime.parse(dateStr);
     }

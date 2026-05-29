@@ -33,18 +33,35 @@ class SupabaseConfig {
         if (schedule == null) continue;
 
         final tripDateStr = trip['trip_date'] as String;
+        final departureTimeStr = schedule['departure_time'] as String?;
         final arrivalTimeStr = schedule['arrival_time'] as String;
 
         try {
-          final parts = arrivalTimeStr.split(':');
+          final arrivalParts = arrivalTimeStr.split(':');
           final tripDate = DateTime.parse(tripDateStr);
-          final plannedArrival = DateTime(
+          var plannedArrival = DateTime(
             tripDate.year,
             tripDate.month,
             tripDate.day,
-            int.parse(parts[0]),
-            int.parse(parts[1]),
+            int.parse(arrivalParts[0]),
+            int.parse(arrivalParts[1]),
           );
+
+          if (departureTimeStr != null) {
+            final depParts = departureTimeStr.split(':');
+            final depHours = int.parse(depParts[0]);
+            final depMins = int.parse(depParts[1]);
+            final arrHours = int.parse(arrivalParts[0]);
+            final arrMins = int.parse(arrivalParts[1]);
+
+            final depTotalMinutes = depHours * 60 + depMins;
+            final arrTotalMinutes = arrHours * 60 + arrMins;
+
+            if (arrTotalMinutes < depTotalMinutes) {
+              // Crossed midnight, arrival is on the next day
+              plannedArrival = plannedArrival.add(const Duration(days: 1));
+            }
+          }
 
           // If the current time is past the planned arrival time, auto-end the trip
           if (now.isAfter(plannedArrival)) {

@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../supabase_config.dart';
 
@@ -15,8 +18,12 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
   String _selectedType = 'delay';
   bool _isLoading = false;
   List<Map<String, dynamic>> _pastIncidents = [];
+  
+  Position? _currentPosition;
+  String _detectedLocationName = 'Detecting location...';
+  bool _isGeolocating = false;
 
-  final _types = [
+  final List<Map<String, dynamic>> _types = [
     {
       'value': 'delay',
       'label': 'Delay',
@@ -47,6 +54,98 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
   void initState() {
     super.initState();
     _loadPastIncidents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _detectLocation();
+    });
+  }
+
+  Future<void> _detectLocation() async {
+    if (_isGeolocating) return;
+    setState(() {
+      _isGeolocating = true;
+      _detectedLocationName = 'Accessing GPS...';
+    });
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        setState(() {
+          _detectedLocationName = 'GPS Permission Denied';
+          _isGeolocating = false;
+        });
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 5),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _currentPosition = pos;
+        _detectedLocationName = 'Resolving address...';
+      });
+
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.latitude}&lon=${pos.longitude}&zoom=14',
+      );
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'BusExpressDriverApp/1.0.0'},
+      ).timeout(const Duration(seconds: 4));
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final address = data['address'] as Map<String, dynamic>?;
+        
+        String name = '';
+        if (address != null) {
+          final parts = <String>[];
+          final village = address['village'] as String?;
+          final town = address['town'] as String?;
+          final city = address['city'] as String?;
+          final county = address['county'] as String?;
+          final state = address['state'] as String?;
+          
+          final primary = village ?? town ?? city ?? county;
+          if (primary != null) parts.add(primary);
+          if (state != null) parts.add(state);
+          
+          name = parts.isNotEmpty ? parts.join(', ') : (data['display_name'] as String? ?? '');
+        } else {
+          name = data['display_name'] as String? ?? 'Unknown Location';
+        }
+        
+        setState(() {
+          _detectedLocationName = name.trim();
+          _isGeolocating = false;
+        });
+      } else {
+        setState(() {
+          _detectedLocationName = 'Location: ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
+          _isGeolocating = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      if (_currentPosition != null) {
+        setState(() {
+          _detectedLocationName = '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}';
+          _isGeolocating = false;
+        });
+      } else {
+        setState(() {
+          _detectedLocationName = 'Failed to detect location';
+          _isGeolocating = false;
+        });
+      }
+    }
   }
 
   @override
@@ -79,11 +178,22 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
       final user = SupabaseConfig.client.auth.currentUser;
       if (user == null) throw Exception('Not logged in');
 
+      String finalDesc = _descriptionController.text.trim();
+      if (_currentPosition != null &&
+          _detectedLocationName.isNotEmpty &&
+          _detectedLocationName != 'GPS Permission Denied' &&
+          _detectedLocationName != 'Failed to detect location' &&
+          _detectedLocationName != 'Detecting location...' &&
+          _detectedLocationName != 'Accessing GPS...' &&
+          _detectedLocationName != 'Resolving address...') {
+        finalDesc = '[Location: $_detectedLocationName] $finalDesc';
+      }
+
       await SupabaseConfig.client.from('incidents').insert({
         'trip_id': widget.tripId,
         'reported_by': user.id,
         'type': _selectedType,
-        'description': _descriptionController.text.trim(),
+        'description': finalDesc,
         'created_at': DateTime.now().toIso8601String(),
       });
 
@@ -91,6 +201,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
 
       _descriptionController.clear();
       await _loadPastIncidents();
+      if (!mounted) return;
 
       showDialog(
         context: context,
@@ -277,6 +388,92 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                   ),
                 );
               }).toList(),
+            ),
+            const SizedBox(height: 24),
+
+            // Incident Location Card
+            const Text(
+              'Incident Location',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _isGeolocating 
+                          ? const Color(0xFFEFF6FF) 
+                          : (_currentPosition != null ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2)),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isGeolocating 
+                          ? Icons.location_searching_rounded 
+                          : (_currentPosition != null ? Icons.my_location_rounded : Icons.location_off_rounded),
+                      color: _isGeolocating 
+                          ? const Color(0xFF3B82F6) 
+                          : (_currentPosition != null ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _isGeolocating 
+                              ? 'Auto-detecting Location...' 
+                              : (_currentPosition != null ? 'Auto-detected Location' : 'Location Service'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: _isGeolocating 
+                                ? const Color(0xFF3B82F6) 
+                                : (_currentPosition != null ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _detectedLocationName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_isGeolocating)
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded, color: Color(0xFF4B5563)),
+                      onPressed: _detectLocation,
+                      tooltip: 'Refresh Location',
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
 

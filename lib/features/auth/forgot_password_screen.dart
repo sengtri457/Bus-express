@@ -185,7 +185,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -208,14 +208,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_rounded,
-            color: Color(0xFF111827),
+            color: Color(0xFF0F172A),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -223,7 +223,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           child: _step == 0 ? _buildEmailStep() : _buildResetStep(),
         ),
       ),
@@ -236,78 +237,112 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (_emailSent) return _buildEmailSentView();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
         // Icon
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Icon(
-            Icons.lock_reset_rounded,
-            size: 34,
-            color: Color(0xFF1A73E8),
+        Center(
+          child: Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFDBEAFE), width: 1.5),
+            ),
+            child: const Icon(
+              Icons.lock_reset_rounded,
+              size: 38,
+              color: Color(0xFF2563EB),
+            ),
           ),
         ),
         const SizedBox(height: 28),
 
         const Text(
           'Forgot password?',
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
-            letterSpacing: -0.5,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.8,
           ),
         ),
         const SizedBox(height: 10),
         const Text(
           "No worries! Enter your email and we'll send you a reset link.",
-          style: TextStyle(fontSize: 15, color: Color(0xFF6B7280), height: 1.5),
-        ),
-        const SizedBox(height: 40),
-
-        AuthTextField(
-          label: 'Email Address',
-          hint: 'you@example.com',
-          icon: Icons.email_outlined,
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 15,
+            color: Color(0xFF64748B),
+            height: 1.5,
+            fontWeight: FontWeight.w400,
+          ),
         ),
         const SizedBox(height: 32),
 
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _sendResetEmail,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF93C5FD),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        // Beautiful Form Card
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AuthTextField(
+                label: 'Email Address',
+                hint: 'you@example.com',
+                icon: Icons.email_outlined,
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _sendResetEmail,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: const Color(0xFF93C5FD),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  )
-                : const Text(
-                    'Send Reset Link',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Send Reset Link',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 32),
@@ -321,13 +356,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Icon(
                   Icons.arrow_back_rounded,
                   size: 16,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF64748B),
                 ),
                 SizedBox(width: 6),
                 Text(
                   'Back to Login',
                   style: TextStyle(
-                    color: Color(0xFF6B7280),
+                    color: Color(0xFF64748B),
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
@@ -336,6 +371,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -344,32 +380,37 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget _buildEmailSentView() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 40),
+        const SizedBox(height: 20),
 
         // Animated envelope icon
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(50),
-          ),
-          child: const Icon(
-            Icons.mark_email_read_rounded,
-            size: 52,
-            color: Color(0xFF1A73E8),
+        Center(
+          child: Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(45),
+              border: Border.all(color: const Color(0xFFDBEAFE), width: 1.5),
+            ),
+            child: const Icon(
+              Icons.mark_email_read_rounded,
+              size: 44,
+              color: Color(0xFF2563EB),
+            ),
           ),
         ),
         const SizedBox(height: 28),
 
         const Text(
           'Check your email',
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.8,
           ),
         ),
         const SizedBox(height: 12),
@@ -378,36 +419,63 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           text: TextSpan(
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF6B7280),
+              color: Color(0xFF64748B),
               height: 1.6,
+              fontFamily: 'Inter',
             ),
             children: [
               const TextSpan(text: 'We sent a password reset link to\n'),
               TextSpan(
                 text: _emailController.text.trim(),
                 style: const TextStyle(
-                  color: Color(0xFF111827),
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 32),
 
-        // Steps info
-        _InfoStep(number: '1', text: 'Open the email we sent you'),
-        const SizedBox(height: 16),
-        _InfoStep(number: '2', text: 'Click the "Reset Password" link'),
-        const SizedBox(height: 16),
-        _InfoStep(number: '3', text: 'Create a new strong password'),
+        // Steps info inside Card
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _InfoStep(number: '1', text: 'Open the email we sent you'),
+              const SizedBox(height: 16),
+              _InfoStep(number: '2', text: 'Click the "Reset Password" link'),
+              const SizedBox(height: 16),
+              _InfoStep(number: '3', text: 'Create a new strong password'),
+            ],
+          ),
+        ),
 
-        const SizedBox(height: 48),
+        const SizedBox(height: 36),
 
         // Resend
-        Text(
-          "Didn't receive the email?",
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        Center(
+          child: Text(
+            "Didn't receive the email?",
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -416,12 +484,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: OutlinedButton(
             onPressed: _canResend ? _sendResetEmail : null,
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1A73E8),
-              disabledForegroundColor: const Color(0xFF9CA3AF),
+              foregroundColor: const Color(0xFF2563EB),
+              disabledForegroundColor: const Color(0xFF94A3B8),
               side: BorderSide(
                 color: _canResend
-                    ? const Color(0xFF1A73E8)
-                    : const Color(0xFFE5E7EB),
+                    ? const Color(0xFF2563EB)
+                    : const Color(0xFFE2E8F0),
+                width: 1.5,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -433,133 +502,169 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
 
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.arrow_back_rounded,
-                size: 16,
-                color: Color(0xFF6B7280),
-              ),
-              SizedBox(width: 6),
-              Text(
-                'Back to Login',
-                style: TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
+        Center(
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.arrow_back_rounded,
+                  size: 16,
+                  color: Color(0xFF64748B),
                 ),
-              ),
-            ],
+                SizedBox(width: 6),
+                Text(
+                  'Back to Login',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 20),
       ],
     );
   }
 
   // ─── Step 1: Reset Password Form ────────────────────────────────────────────
-  // This step is shown when user returns via deep link (Supabase handles token)
 
   Widget _buildResetStep() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Icon(
-            Icons.key_rounded,
-            size: 34,
-            color: Color(0xFF1A73E8),
+        Center(
+          child: Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFDBEAFE), width: 1.5),
+            ),
+            child: const Icon(
+              Icons.key_rounded,
+              size: 38,
+              color: Color(0xFF2563EB),
+            ),
           ),
         ),
         const SizedBox(height: 28),
 
         const Text(
           'Set new password',
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
-            letterSpacing: -0.5,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.8,
           ),
         ),
         const SizedBox(height: 10),
         const Text(
           'Your new password must be different from your previous password.',
-          style: TextStyle(fontSize: 15, color: Color(0xFF6B7280), height: 1.5),
-        ),
-        const SizedBox(height: 40),
-
-        AuthTextField(
-          label: 'New Password',
-          hint: '••••••••',
-          icon: Icons.lock_outline_rounded,
-          controller: _newPasswordController,
-          isPassword: true,
-          validator: (v) {
-            if (v == null || v.isEmpty) return 'Password is required';
-            if (v.length < 8) return 'At least 8 characters';
-            return null;
-          },
-        ),
-        const SizedBox(height: 20),
-
-        AuthTextField(
-          label: 'Confirm New Password',
-          hint: '••••••••',
-          icon: Icons.lock_outline_rounded,
-          controller: _confirmPasswordController,
-          isPassword: true,
-          validator: (v) {
-            if (v != _newPasswordController.text) {
-              return 'Passwords do not match';
-            }
-            return null;
-          },
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 15,
+            color: Color(0xFF64748B),
+            height: 1.5,
+            fontWeight: FontWeight.w400,
+          ),
         ),
         const SizedBox(height: 32),
 
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _updatePassword,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF93C5FD),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        // Beautiful Form Card
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AuthTextField(
+                label: 'New Password',
+                hint: '••••••••',
+                icon: Icons.lock_outline_rounded,
+                controller: _newPasswordController,
+                isPassword: true,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Password is required';
+                  if (v.length < 8) return 'At least 8 characters';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              AuthTextField(
+                label: 'Confirm New Password',
+                hint: '••••••••',
+                icon: Icons.lock_outline_rounded,
+                controller: _confirmPasswordController,
+                isPassword: true,
+                validator: (v) {
+                  if (v != _newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 28),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _updatePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: const Color(0xFF93C5FD),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  )
-                : const Text(
-                    'Reset Password',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Reset Password',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -581,13 +686,14 @@ class _InfoStep extends StatelessWidget {
           height: 32,
           decoration: BoxDecoration(
             color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(50),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFDBEAFE)),
           ),
           child: Center(
             child: Text(
               number,
               style: const TextStyle(
-                color: Color(0xFF1A73E8),
+                color: Color(0xFF2563EB),
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
               ),
@@ -598,7 +704,11 @@ class _InfoStep extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF374151)),
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF334155),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],

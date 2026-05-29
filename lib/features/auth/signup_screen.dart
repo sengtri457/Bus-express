@@ -126,7 +126,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -181,14 +181,14 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_rounded,
-            color: Color(0xFF111827),
+            color: Color(0xFF0F172A),
             size: 20,
           ),
           onPressed: () {
@@ -202,28 +202,35 @@ class _SignupScreenState extends State<SignupScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 8),
 
                 // Title
                 const Text(
                   'Create account',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
-                    letterSpacing: -0.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.8,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Join us and book your rides easily',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF6B7280)),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15, 
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
                 const SizedBox(height: 32),
 
@@ -231,211 +238,235 @@ class _SignupScreenState extends State<SignupScreen> {
                 _StepIndicator(currentStep: _currentStep),
                 const SizedBox(height: 32),
 
-                // Step 1: Personal Info
-                if (_currentStep == 0) ...[
-                  AuthTextField(
-                    label: 'Full Name',
-                    hint: 'John Doe',
-                    icon: Icons.person_outline_rounded,
-                    controller: _nameController,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) {
-                        return 'Full name is required';
-                      }
-                      if (v.length < 2) return 'Name too short';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  AuthTextField(
-                    label: 'Phone Number',
-                    hint: '+855 12 345 678',
-                    icon: Icons.phone_outlined,
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Phone is required';
-                      if (v.length < 8) return 'Enter a valid phone number';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _nextStep,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A73E8),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                // Elegant Form Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Continue',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_rounded, size: 18),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
-                ],
-
-                // Step 2: Credentials
-                if (_currentStep == 1) ...[
-                  AuthTextField(
-                    label: 'Email Address',
-                    hint: 'you@example.com',
-                    icon: Icons.email_outlined,
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Email is required';
-                      if (!RegExp(
-                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                      ).hasMatch(v)) {
-                        return 'Enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  AuthTextField(
-                    label: 'Password',
-                    hint: '••••••••',
-                    icon: Icons.lock_outline_rounded,
-                    controller: _passwordController,
-                    isPassword: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Password is required';
-                      if (v.length < 8) return 'At least 8 characters';
-                      if (!v.contains(RegExp(r'[A-Z]'))) {
-                        return 'Include at least one uppercase letter';
-                      }
-                      if (!v.contains(RegExp(r'[0-9]'))) {
-                        return 'Include at least one number';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  AuthTextField(
-                    label: 'Confirm Password',
-                    hint: '••••••••',
-                    icon: Icons.lock_outline_rounded,
-                    controller: _confirmPasswordController,
-                    isPassword: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) {
-                        return 'Please confirm your password';
-                      }
-                      if (v != _passwordController.text) {
-                        return 'Passwords do not match';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Password strength
-                  _PasswordStrengthIndicator(
-                    password: _passwordController.text,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Terms checkbox
-                  Row(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Checkbox(
-                        value: _agreedToTerms,
-                        onChanged: (v) =>
-                            setState(() => _agreedToTerms = v ?? false),
-                        activeColor: const Color(0xFF1A73E8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                      // Step 1: Personal Info
+                      if (_currentStep == 0) ...[
+                        AuthTextField(
+                          label: 'Full Name',
+                          hint: 'John Doe',
+                          icon: Icons.person_outline_rounded,
+                          controller: _nameController,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Full name is required';
+                            }
+                            if (v.length < 2) return 'Name too short';
+                            return null;
+                          },
                         ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: RichText(
-                            text: const TextSpan(
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF6B7280),
+                        const SizedBox(height: 20),
+                        AuthTextField(
+                          label: 'Phone Number',
+                          hint: '+855 12 345 678',
+                          icon: Icons.phone_outlined,
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Phone is required';
+                            if (v.length < 8) return 'Enter a valid phone number';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _nextStep,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                TextSpan(text: 'I agree to the '),
-                                TextSpan(
-                                  text: 'Terms & Conditions',
+                                Text(
+                                  'Continue',
                                   style: TextStyle(
-                                    color: Color(0xFF1A73E8),
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                TextSpan(text: ' and '),
-                                TextSpan(
-                                  text: 'Privacy Policy',
-                                  style: TextStyle(
-                                    color: Color(0xFF1A73E8),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward_rounded, size: 18),
                               ],
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
+                      ],
 
-                  // Sign up button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _signup,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A73E8),
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFF93C5FD),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      // Step 2: Credentials
+                      if (_currentStep == 1) ...[
+                        AuthTextField(
+                          label: 'Email Address',
+                          hint: 'you@example.com',
+                          icon: Icons.email_outlined,
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Email is required';
+                            if (!RegExp(
+                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                            ).hasMatch(v)) {
+                              return 'Enter a valid email';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Create Account',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                        const SizedBox(height: 20),
+                        AuthTextField(
+                          label: 'Password',
+                          hint: '••••••••',
+                          icon: Icons.lock_outline_rounded,
+                          controller: _passwordController,
+                          isPassword: true,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Password is required';
+                            if (v.length < 8) return 'At least 8 characters';
+                            if (!v.contains(RegExp(r'[A-Z]'))) {
+                              return 'Include at least one uppercase letter';
+                            }
+                            if (!v.contains(RegExp(r'[0-9]'))) {
+                              return 'Include at least one number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        AuthTextField(
+                          label: 'Confirm Password',
+                          hint: '••••••••',
+                          icon: Icons.lock_outline_rounded,
+                          controller: _confirmPasswordController,
+                          isPassword: true,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Please confirm your password';
+                            }
+                            if (v != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Password strength
+                        _PasswordStrengthIndicator(
+                          password: _passwordController.text,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Terms checkbox
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                onChanged: (v) =>
+                                    setState(() => _agreedToTerms = v ?? false),
+                                activeColor: const Color(0xFF2563EB),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                               ),
                             ),
-                    ),
-                  ),
-                ],
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF64748B),
+                                    height: 1.4,
+                                    fontFamily: 'Inter',
+                                  ),
+                                  children: [
+                                    TextSpan(text: 'I agree to the '),
+                                    TextSpan(
+                                      text: 'Terms & Conditions',
+                                      style: TextStyle(
+                                        color: Color(0xFF2563EB),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    TextSpan(text: ' and '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: TextStyle(
+                                        color: Color(0xFF2563EB),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
 
+                        // Sign up button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _signup,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: const Color(0xFF93C5FD),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Create Account',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 32),
 
                 // Login link
@@ -446,8 +477,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       const Text(
                         'Already have an account? ',
                         style: TextStyle(
-                          color: Color(0xFF6B7280),
+                          color: Color(0xFF64748B),
                           fontSize: 15,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       GestureDetector(
@@ -460,7 +492,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         child: const Text(
                           'Sign In',
                           style: TextStyle(
-                            color: Color(0xFF1A73E8),
+                            color: Color(0xFF2563EB),
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
                           ),
@@ -494,8 +526,8 @@ class _StepIndicator extends StatelessWidget {
           child: Container(
             height: 2,
             color: currentStep >= 1
-                ? const Color(0xFF1A73E8)
-                : const Color(0xFFE5E7EB),
+                ? const Color(0xFF2563EB)
+                : const Color(0xFFE2E8F0),
           ),
         ),
         _StepDot(step: 1, currentStep: currentStep, label: 'Account'),
@@ -523,7 +555,7 @@ class _StepDot extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF1A73E8) : const Color(0xFFE5E7EB),
+            color: isActive ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
             borderRadius: BorderRadius.circular(50),
           ),
           child: Center(
@@ -532,7 +564,7 @@ class _StepDot extends StatelessWidget {
                 : Text(
                     '${step + 1}',
                     style: TextStyle(
-                      color: isActive ? Colors.white : const Color(0xFF9CA3AF),
+                      color: isActive ? Colors.white : const Color(0xFF94A3B8),
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
@@ -544,7 +576,7 @@ class _StepDot extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 11,
-            color: isActive ? const Color(0xFF1A73E8) : const Color(0xFF9CA3AF),
+            color: isActive ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),

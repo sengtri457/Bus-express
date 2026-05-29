@@ -168,7 +168,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -193,7 +193,16 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A73E8),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -388,12 +397,12 @@ class _TicketGroupCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: isHighlighted
-              ? Border.all(color: const Color(0xFF1A73E8), width: 2)
+              ? Border.all(color: const Color(0xFF2563EB), width: 2)
               : null,
           boxShadow: [
             BoxShadow(
               color: isHighlighted
-                  ? const Color(0xFF1A73E8).withOpacity(0.15)
+                  ? const Color(0xFF2563EB).withOpacity(0.15)
                   : Colors.black.withOpacity(0.06),
               blurRadius: 12,
               offset: const Offset(0, 3),
@@ -423,7 +432,7 @@ class _TicketGroupCard extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.fiber_new_rounded,
-                            color: Color(0xFF1A73E8),
+                            color: Color(0xFF2563EB),
                             size: 14,
                           ),
                           SizedBox(width: 4),
@@ -431,7 +440,7 @@ class _TicketGroupCard extends StatelessWidget {
                             'New Booking',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF1A73E8),
+                              color: Color(0xFF2563EB),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -467,7 +476,7 @@ class _TicketGroupCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF1A73E8),
+                              color: Color(0xFF2563EB),
                             ),
                           ),
                         )
@@ -520,7 +529,7 @@ class _TicketGroupCard extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1A73E8),
+                                      color: Color(0xFF2563EB),
                                     ),
                                   ),
                                 ),
@@ -560,7 +569,7 @@ class _TicketGroupCard extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isLive
                               ? const Color(0xFF10B981)
-                              : const Color(0xFF1A73E8),
+                              : const Color(0xFF2563EB),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -1024,7 +1033,7 @@ class _TicketGroupDetailSheetState extends State<_TicketGroupDetailSheet>
                           '${widget.bookings.length} seat${widget.bookings.length > 1 ? 's' : ''}',
                           style: const TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF1A73E8),
+                            color: Color(0xFF2563EB),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1038,7 +1047,7 @@ class _TicketGroupDetailSheetState extends State<_TicketGroupDetailSheet>
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A73E8),
+                            color: Color(0xFF2563EB),
                           ),
                         ),
                       ],
@@ -1069,7 +1078,7 @@ class _TicketGroupDetailSheetState extends State<_TicketGroupDetailSheet>
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _isLive
                               ? const Color(0xFF10B981)
-                              : const Color(0xFF1A73E8),
+                              : const Color(0xFF2563EB),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(

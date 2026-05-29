@@ -29,6 +29,8 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   LatLng? _busPosition;
   String _tripStatus = 'scheduled';
   String? _departedAt;
+  String? _scheduledDeparture;
+  String? _scheduledArrival;
   bool _isLoading = true;
   bool _followBus = true;
   bool _mapReady = false;
@@ -37,6 +39,8 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   List<LatLng> _routePoints = [];
   LatLng? _originLatLng;
   LatLng? _destinationLatLng;
+
+  List<Map<String, dynamic>> _activeIncidents = [];
 
   // Default center: Phnom Penh
   static const LatLng _defaultCenter = LatLng(11.5564, 104.9282);
@@ -184,20 +188,55 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     super.dispose();
   }
 
-  Future<void> _loadInitialData() async {
+  Future<List<Map<String, dynamic>>> _fetchIncidents() async {
     try {
       final data = await SupabaseConfig.client
-          .from('trips')
-          .select('latitude, longitude, status, departed_at')
-          .eq('id', widget.tripId)
-          .maybeSingle();
+          .from('incidents')
+          .select('type, description, created_at')
+          .eq('trip_id', widget.tripId)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (e) {
+      debugPrint('[Live Tracking] Error fetching incidents: $e');
+      return [];
+    }
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final results = await Future.wait<dynamic>([
+        SupabaseConfig.client
+            .from('trips')
+            .select('''
+              latitude, longitude, status, departed_at,
+              schedules (
+                departure_time,
+                arrival_time
+              )
+            ''')
+            .eq('id', widget.tripId)
+            .maybeSingle(),
+        _fetchIncidents(),
+      ]);
+
+      final data = results[0] as Map<String, dynamic>?;
+      final incidents = results[1] as List<Map<String, dynamic>>;
+
+      if (mounted) {
+        setState(() {
+          _activeIncidents = incidents;
+        });
+      }
 
       if (mounted && data != null) {
         final lat = data['latitude'];
         final lng = data['longitude'];
+        final schedule = data['schedules'] as Map<String, dynamic>?;
         setState(() {
           _tripStatus = data['status'] ?? 'scheduled';
           _departedAt = data['departed_at'];
+          _scheduledDeparture = schedule?['departure_time'] as String?;
+          _scheduledArrival = schedule?['arrival_time'] as String?;
           if (lat != null && lng != null) {
             _busPosition = LatLng(
               (lat as num).toDouble(),
@@ -232,21 +271,42 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
       if (!mounted) return;
       try {
-        final data = await SupabaseConfig.client
-            .from('trips')
-            .select('latitude, longitude, status, departed_at')
-            .eq('id', widget.tripId)
-            .maybeSingle();
+        final results = await Future.wait<dynamic>([
+          SupabaseConfig.client
+              .from('trips')
+              .select('''
+                latitude, longitude, status, departed_at,
+                schedules (
+                  departure_time,
+                  arrival_time
+                )
+              ''')
+              .eq('id', widget.tripId)
+              .maybeSingle(),
+          _fetchIncidents(),
+        ]);
+
+        final data = results[0] as Map<String, dynamic>?;
+        final incidents = results[1] as List<Map<String, dynamic>>;
+
+        if (mounted) {
+          setState(() {
+            _activeIncidents = incidents;
+          });
+        }
 
         if (data != null && mounted) {
           final lat = data['latitude'];
           final lng = data['longitude'];
+          final schedule = data['schedules'] as Map<String, dynamic>?;
 
           final oldBusPosition = _busPosition;
 
           setState(() {
             _tripStatus = data['status'] ?? _tripStatus;
             _departedAt = data['departed_at'] ?? _departedAt;
+            _scheduledDeparture = schedule?['departure_time'] as String? ?? _scheduledDeparture;
+            _scheduledArrival = schedule?['arrival_time'] as String? ?? _scheduledArrival;
             if (lat != null && lng != null) {
               _busPosition = LatLng(
                 (lat as num).toDouble(),
@@ -269,6 +329,54 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
         debugPrint('[Live Tracking] Polling error: $e');
       }
     });
+  }
+
+  int get _totalDelayMinutes {
+    int total = 0;
+    for (final incident in _activeIncidents) {
+      final type = incident['type'] as String? ?? 'other';
+      if (type == 'breakdown') {
+        total += 30; // Breakdown: around 30 mins delay
+      } else if (type == 'accident') {
+        total += 45; // Accident: around 45 mins delay
+      } else if (type == 'delay') {
+        total += 20; // Traffic delay: around 20 mins
+      } else {
+        total += 15; // Other: around 15 mins
+      }
+    }
+    return total;
+  }
+
+  String get _estimatedArrivalTime {
+    if (_scheduledArrival == null) return '—';
+    try {
+      final parts = _scheduledArrival!.split(':');
+      final schedHours = int.parse(parts[0]);
+      final schedMinutes = int.parse(parts[1]);
+
+      // Create a dummy DateTime today with scheduled arrival time
+      final now = DateTime.now();
+      var arrivalDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        schedHours,
+        schedMinutes,
+      );
+
+      // Add the total delay minutes
+      arrivalDateTime = arrivalDateTime.add(Duration(minutes: _totalDelayMinutes));
+
+      // Format to readable 12-hour AM/PM string
+      final h = arrivalDateTime.hour;
+      final m = arrivalDateTime.minute.toString().padLeft(2, '0');
+      final period = h >= 12 ? 'PM' : 'AM';
+      final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+      return '$dh:$m $period';
+    } catch (_) {
+      return _scheduledArrival!;
+    }
   }
 
   @override
@@ -440,20 +548,30 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                   ],
                 ),
 
-                // ── STATUS CARD (top overlay) ─────────────────────────
+                // ── STATUS & INCIDENT CARDS (top overlay) ────────────────
                 Positioned(
                   top: 16,
                   left: 16,
                   right: 16,
-                  child: _StatusOverlayCard(
-                    status: _tripStatus,
-                    departedAt: _departedAt,
-                    busPosition: _busPosition,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _StatusOverlayCard(
+                        status: _tripStatus,
+                        departedAt: _departedAt,
+                        busPosition: _busPosition,
+                      ),
+                      if (_activeIncidents.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _IncidentAlertBanner(incidents: _activeIncidents),
+                      ],
+                    ],
                   ),
                 ),
 
-                // ── NO GPS message ────────────────────────────────────
-                if (_busPosition == null)
+
+                // ── TRIP NOT STARTED overlay (scheduled only) ─────────
+                if (_busPosition == null && _tripStatus == 'scheduled')
                   Center(
                     child: Container(
                       margin: const EdgeInsets.all(32),
@@ -471,30 +589,26 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.location_off_rounded,
+                        children: const [
+                          Icon(
+                            Icons.schedule_rounded,
                             size: 48,
                             color: Color(0xFF9CA3AF),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           Text(
-                            _tripStatus == 'scheduled'
-                                ? 'Trip Not Started Yet'
-                                : 'Waiting for GPS signal...',
-                            style: const TextStyle(
+                            'Trip Not Started Yet',
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF374151),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Text(
-                            _tripStatus == 'scheduled'
-                                ? 'The bus will appear on the map once the driver starts the trip.'
-                                : 'Location will update automatically.',
+                            'The bus will appear on the map once the driver starts the trip.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF9CA3AF),
                               height: 1.5,
@@ -504,6 +618,18 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                       ),
                     ),
                   ),
+
+                // ── LOCATING BUS chip (in_progress but no GPS yet) ───
+                if (_busPosition == null && _tripStatus == 'in_progress')
+                  Positioned(
+                    bottom: 130,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: _LocatingBusChip(),
+                    ),
+                  ),
+
 
                 // ── FOLLOW BUS button (bottom right) ─────────────────
                 if (_busPosition != null && !_followBus)
@@ -536,6 +662,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                     destination: widget.destination,
                     busPosition: _busPosition,
                     tripStatus: _tripStatus,
+                    scheduledDeparture: _scheduledDeparture,
+                    scheduledArrival: _scheduledArrival,
+                    estimatedArrival: _estimatedArrivalTime,
+                    totalDelay: _totalDelayMinutes,
                   ),
                 ),
               ],
@@ -740,13 +870,34 @@ class _BottomInfoCard extends StatelessWidget {
   final String destination;
   final LatLng? busPosition;
   final String tripStatus;
+  final String? scheduledDeparture;
+  final String? scheduledArrival;
+  final String? estimatedArrival;
+  final int totalDelay;
 
   const _BottomInfoCard({
     required this.origin,
     required this.destination,
     required this.busPosition,
     required this.tripStatus,
+    this.scheduledDeparture,
+    this.scheduledArrival,
+    this.estimatedArrival,
+    this.totalDelay = 0,
   });
+
+  String _formatTime(String t) {
+    if (t.isEmpty) return '—';
+    try {
+      final p = t.split(':');
+      final h = int.parse(p[0]);
+      final period = h >= 12 ? 'PM' : 'AM';
+      final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+      return '$dh:${p[1]} $period';
+    } catch (_) {
+      return t;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -864,7 +1015,90 @@ class _BottomInfoCard extends StatelessWidget {
             ],
           ),
 
+          // Schedule & ETA Section
+          const SizedBox(height: 20),
+          const Divider(color: Color(0xFFF3F4F6), height: 1),
           const SizedBox(height: 16),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Scheduled Schedule',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule_rounded, size: 14, color: Color(0xFF4B5563)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${scheduledDeparture != null ? _formatTime(scheduledDeparture!) : '—'} → ${scheduledArrival != null ? _formatTime(scheduledArrival!) : '—'}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF374151),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Estimated Arrival',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (totalDelay > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFFCA5A5)),
+                          ),
+                          child: Text(
+                            '+$totalDelay min',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFDC2626),
+                            ),
+                          ),
+                        ),
+                      Text(
+                        estimatedArrival ?? '—',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: totalDelay > 0 ? const Color(0xFFDC2626) : const Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
 
           // Update notice
           Container(
@@ -886,7 +1120,7 @@ class _BottomInfoCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   tripStatus == 'in_progress'
-                      ? 'Location updates every 15 seconds'
+                      ? 'Location updates every 5 seconds'
                       : 'Tracking starts when driver departs',
                   style: const TextStyle(
                     fontSize: 12,
@@ -897,6 +1131,330 @@ class _BottomInfoCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Incident Alert Banner ───────────────────────────────────────────────────
+
+class _IncidentAlertBanner extends StatefulWidget {
+  final List<Map<String, dynamic>> incidents;
+  const _IncidentAlertBanner({required this.incidents});
+
+  @override
+  State<_IncidentAlertBanner> createState() => _IncidentAlertBannerState();
+}
+
+class _IncidentAlertBannerState extends State<_IncidentAlertBanner> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.incidents.isEmpty) return const SizedBox();
+
+    final latest = widget.incidents.first;
+    final type = latest['type'] as String? ?? 'other';
+    final desc = latest['description'] as String? ?? '';
+    final createdAt = latest['created_at'] as String? ?? '';
+
+    // Color configurations
+    final colorConfigs = {
+      'delay': [const Color(0xFFD97706), const Color(0xFFFEF3C7), Icons.timer_off_rounded],
+      'breakdown': [const Color(0xFFDC2626), const Color(0xFFFEE2E2), Icons.build_rounded],
+      'accident': [const Color(0xFFB91C1C), const Color(0xFFFEE2E2), Icons.car_crash_rounded],
+      'other': [const Color(0xFF4B5563), const Color(0xFFF3F4F6), Icons.warning_amber_rounded],
+    };
+
+    final config = colorConfigs[type] ?? colorConfigs['other']!;
+    final primaryColor = config[0] as Color;
+    final bgColor = config[1] as Color;
+    final icon = config[2] as IconData;
+
+    return GestureDetector(
+      onTap: () {
+        if (widget.incidents.length > 1) {
+          setState(() => _isExpanded = !_isExpanded);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: primaryColor.withOpacity(0.3), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Pulsing Icon
+                _PulsingIcon(icon: icon, color: primaryColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${type[0].toUpperCase()}${type.substring(1)} Reported',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: primaryColor,
+                            ),
+                          ),
+                          Text(
+                            _formatTimestamp(createdAt),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: primaryColor.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        desc,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF374151),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.incidents.length > 1)
+                  Icon(
+                    _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    color: primaryColor,
+                    size: 20,
+                  ),
+              ],
+            ),
+            if (_isExpanded && widget.incidents.length > 1) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Divider(color: Color(0x1F000000), height: 1),
+              ),
+              ...widget.incidents.skip(1).map((inc) {
+                final iType = inc['type'] as String? ?? 'other';
+                final iDesc = inc['description'] as String? ?? '';
+                final iTime = inc['created_at'] as String? ?? '';
+                final iConfig = colorConfigs[iType] ?? colorConfigs['other']!;
+                final iColor = iConfig[0] as Color;
+                final iIcon = iConfig[2] as IconData;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(iIcon, size: 16, color: iColor),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${iType[0].toUpperCase()}${iType.substring(1)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: iColor,
+                                  ),
+                                ),
+                                Text(
+                                  _formatTimestamp(iTime),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF9CA3AF),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              iDesc,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF4B5563),
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTimestamp(String ts) {
+    if (ts.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(ts).toLocal();
+      final h = dt.hour;
+      final period = h >= 12 ? 'PM' : 'AM';
+      final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+      return '$dh:${dt.minute.toString().padLeft(2, '0')} $period';
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+// ─── Pulsing Icon ────────────────────────────────────────────────────────────
+
+class _PulsingIcon extends StatefulWidget {
+  final IconData icon;
+  final Color color;
+  const _PulsingIcon({required this.icon, required this.color});
+
+  @override
+  State<_PulsingIcon> createState() => _PulsingIconState();
+}
+
+class _PulsingIconState extends State<_PulsingIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.85, end: 1.15).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (_, child) => Transform.scale(
+        scale: _animation.value,
+        child: child,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: widget.color.withOpacity(0.15),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          widget.icon,
+          color: widget.color,
+          size: 20,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Locating Bus Chip ───────────────────────────────────────────────────────
+
+class _LocatingBusChip extends StatefulWidget {
+  const _LocatingBusChip();
+
+  @override
+  State<_LocatingBusChip> createState() => _LocatingBusChipState();
+}
+
+class _LocatingBusChipState extends State<_LocatingBusChip>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A73E8),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1A73E8).withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 10),
+            Text(
+              'Locating bus...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

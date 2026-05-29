@@ -140,13 +140,22 @@ class _RouteListScreenState extends State<RouteListScreen> {
             int.parse(departureParts[1]),
           );
           
-          final plannedArrival = DateTime(
+          var plannedArrival = DateTime(
             widget.date.year,
             widget.date.month,
             widget.date.day,
             int.parse(arrivalParts[0]),
             int.parse(arrivalParts[1]),
           );
+
+          final depHours = int.parse(departureParts[0]);
+          final depMins = int.parse(departureParts[1]);
+          final arrHours = int.parse(arrivalParts[0]);
+          final arrMins = int.parse(arrivalParts[1]);
+
+          if (arrHours * 60 + arrMins < depHours * 60 + depMins) {
+            plannedArrival = plannedArrival.add(const Duration(days: 1));
+          }
 
           // If the searched date has already passed the arrival/departure time,
           // it is "Time over", so we do NOT show it on the route list
@@ -202,7 +211,16 @@ class _RouteListScreenState extends State<RouteListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A73E8),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Column(
@@ -263,7 +281,11 @@ class _RouteListScreenState extends State<RouteListScreen> {
           // Content
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF2563EB),
+                    ),
+                  )
                 : _error != null
                 ? _ErrorView(error: _error!, onRetry: _loadSchedules)
                 : _sortedSchedules.isEmpty
@@ -272,7 +294,7 @@ class _RouteListScreenState extends State<RouteListScreen> {
                     destination: widget.destination,
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                     itemCount: _sortedSchedules.length,
                     itemBuilder: (context, index) {
                       return _ScheduleCard(
@@ -327,7 +349,7 @@ class _SortChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1A73E8) : const Color(0xFFF3F4F6),
+          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -335,7 +357,7 @@ class _SortChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF6B7280),
+            color: isSelected ? Colors.white : const Color(0xFF64748B),
           ),
         ),
       ),
@@ -365,198 +387,284 @@ class _ScheduleCard extends StatelessWidget {
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: Column(
-          children: [
-            // Top: Logo and Price
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo
-                if (operator != null)
-                  Container(
-                    width: 70,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      image:
-                          operator['logo_url'] != null &&
-                              operator['logo_url'].toString().startsWith('http')
-                          ? DecorationImage(
-                              image: NetworkImage(operator['logo_url']),
-                              fit: BoxFit.contain,
-                            )
-                          : null,
+                // Left accent bar
+                Container(
+                  width: 4,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
-                    child:
-                        operator['logo_url'] == null ||
-                            !operator['logo_url'].toString().startsWith('http')
-                        ? Center(
-                            child: Text(
-                              operator['name'] != null &&
-                                      operator['name'].toString().isNotEmpty
-                                  ? operator['name'].toString()[0].toUpperCase()
-                                  : 'O',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF1A73E8),
-                                fontSize: 18,
-                              ),
-                            ),
-                          )
-                        : null,
-                  )
-                else
-                  const SizedBox(),
-
-                // Price
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'USD ${schedule['price']}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Middle: Timeline
-            Row(
-              children: [
-                // Departure
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _formatTime(schedule['departure_time']),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      route['origin'],
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Duration line
+                // Main card content
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Text(
-                          _formatDuration(route['duration_min'] as int),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF9CA3AF),
-                          ),
+                        // Top: Operator Logo and Price
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Operator Logo / Initial
+                            if (operator != null)
+                              Container(
+                                width: 60,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0F7FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  image:
+                                      operator['logo_url'] != null &&
+                                          operator['logo_url'].toString().startsWith('http')
+                                      ? DecorationImage(
+                                          image: NetworkImage(operator['logo_url']),
+                                          fit: BoxFit.contain,
+                                        )
+                                      : null,
+                                ),
+                                child:
+                                    operator['logo_url'] == null ||
+                                        !operator['logo_url'].toString().startsWith('http')
+                                    ? Center(
+                                        child: Text(
+                                          operator['name'] != null &&
+                                                  operator['name'].toString().isNotEmpty
+                                              ? operator['name'].toString()[0].toUpperCase()
+                                              : 'O',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF2563EB),
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              )
+                            else
+                              const SizedBox(),
+
+                            // Price badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F7FF),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '\$${schedule['price']}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF2563EB),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Container(height: 1.5, color: const Color(0xFFE5E7EB)),
+                        const SizedBox(height: 16),
+
+                        // Middle: Timeline with animated line
+                        Row(
+                          children: [
+                            // Departure
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _formatTime(schedule['departure_time']),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  route['origin'],
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // Duration line
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      _formatDuration(route['duration_min'] as int),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          height: 1.5,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                const Color(0xFF2563EB).withOpacity(0.3),
+                                                const Color(0xFF2563EB),
+                                                const Color(0xFF2563EB).withOpacity(0.3),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: const Icon(
+                                            Icons.directions_bus_rounded,
+                                            size: 14,
+                                            color: Color(0xFF2563EB),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Arrival
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _formatTime(schedule['arrival_time']),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  route['destination'],
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Bottom: Operator Name & Book Now
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.business_rounded,
+                                    size: 13,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      operator != null ? operator['name'] : 'Standard Bus',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  size: 13,
+                                  color: Color(0xFF10B981),
+                                ),
+                                const SizedBox(width: 3),
+                                const Text(
+                                  '4.7',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF10B981),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2563EB),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Book',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ),
-
-                // Arrival
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      _formatTime(schedule['arrival_time']),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      route['destination'],
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
-            const SizedBox(height: 20),
-
-            // Bottom: Operator Name & Rating
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    operator != null ? operator['name'] : 'Standard Bus',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF4B5563),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981), // Green rating badge
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.star_rounded, size: 14, color: Colors.white),
-                      SizedBox(width: 4),
-                      Text(
-                        '4.7',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -595,16 +703,16 @@ class _EmptyView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(50),
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(44),
               ),
               child: const Icon(
                 Icons.search_off_rounded,
-                size: 40,
-                color: Color(0xFF9CA3AF),
+                size: 44,
+                color: Color(0xFF2563EB),
               ),
             ),
             const SizedBox(height: 20),
@@ -630,8 +738,8 @@ class _EmptyView extends StatelessWidget {
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1A73E8),
-                side: const BorderSide(color: Color(0xFF1A73E8)),
+                foregroundColor: const Color(0xFF2563EB),
+                side: const BorderSide(color: Color(0xFF2563EB)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -689,7 +797,7 @@ class _ErrorView extends StatelessWidget {
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A73E8),
+                backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(

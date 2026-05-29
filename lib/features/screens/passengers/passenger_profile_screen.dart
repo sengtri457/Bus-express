@@ -238,7 +238,16 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF1A73E8),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: widget.isTab
             ? null
@@ -254,7 +263,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A73E8)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
               ),
             )
           : SingleChildScrollView(
@@ -266,9 +275,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                       ),
                       borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(32),
@@ -400,7 +409,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                         ? null
                                         : _updateProfile,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1A73E8),
+                                      backgroundColor: const Color(0xFF2563EB),
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
@@ -665,7 +674,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: Color(0xFF1A73E8),
+                color: Color(0xFF2563EB),
                 width: 1.5,
               ),
             ),

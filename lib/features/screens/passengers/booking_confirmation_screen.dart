@@ -193,7 +193,16 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A73E8),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -254,7 +263,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                 const Icon(
                                   Icons.directions_bus_rounded,
                                   size: 16,
-                                  color: Color(0xFF1A73E8),
+                                  color: Color(0xFF2563EB),
                                 ),
                               ],
                             ),
@@ -330,7 +339,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1A73E8),
+                                  color: Color(0xFF2563EB),
                                 ),
                               ),
                             );
@@ -465,7 +474,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF1A73E8),
+                              color: Color(0xFF2563EB),
                             ),
                           ),
                           if (widget.seatNumbers.length > 1)
@@ -537,7 +546,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           child: ElevatedButton(
             onPressed: _isLoading ? null : _confirmBooking,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8),
+              backgroundColor: const Color(0xFF2563EB),
               foregroundColor: Colors.white,
               disabledBackgroundColor: const Color(0xFF93C5FD),
               elevation: 0,
@@ -634,7 +643,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: const Color(0xFF1A73E8), size: 18),
+              Icon(icon, color: const Color(0xFF2563EB), size: 18),
               const SizedBox(width: 8),
               Text(
                 title,

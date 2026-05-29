@@ -156,7 +156,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                     widget.onCancelled();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(

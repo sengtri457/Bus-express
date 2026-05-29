@@ -111,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+            colors: [Color(0xFF1E3A8A), Color(0xFF0F172A)],
           ),
         ),
         child: Center(
@@ -123,44 +123,57 @@ class _SplashScreenState extends State<SplashScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 100,
-                    height: 100,
+                    width: 110,
+                    height: 110,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(28),
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
                     child: const Icon(
                       Icons.directions_bus_rounded,
-                      size: 56,
+                      size: 60,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   const Text(
-                    'Bus Booking',
+                    'Bus Express',
                     style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      letterSpacing: -0.5,
+                      letterSpacing: -0.8,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your journey starts here',
+                    'Premium Travel Made Simple',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.8),
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withOpacity(0.75),
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 80),
                   SizedBox(
-                    width: 32,
-                    height: 32,
+                    width: 28,
+                    height: 28,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
+                      strokeWidth: 2.0,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white.withOpacity(0.7),
+                        Colors.white.withOpacity(0.6),
                       ),
                     ),
                   ),

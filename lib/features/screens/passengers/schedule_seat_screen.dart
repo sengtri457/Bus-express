@@ -30,13 +30,25 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
 
     try {
       final arrivalParts = (widget.schedule['arrival_time'] as String).split(':');
-      final arrival = DateTime(
+      final departureParts = (widget.schedule['departure_time'] as String).split(':');
+      
+      var arrival = DateTime(
         widget.date.year,
         widget.date.month,
         widget.date.day,
         int.parse(arrivalParts[0]),
         int.parse(arrivalParts[1]),
       );
+
+      final depHours = int.parse(departureParts[0]);
+      final depMins = int.parse(departureParts[1]);
+      final arrHours = int.parse(arrivalParts[0]);
+      final arrMins = int.parse(arrivalParts[1]);
+
+      if (arrHours * 60 + arrMins < depHours * 60 + depMins) {
+        arrival = arrival.add(const Duration(days: 1));
+      }
+
       if (DateTime.now().isAfter(arrival)) return true;
     } catch (_) {}
 
@@ -169,7 +181,16 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A73E8),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -181,7 +202,13 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
         children: [
           // Trip info header
           Container(
-            color: const Color(0xFF1A73E8),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -255,7 +282,11 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
 
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF2563EB),
+                    ),
+                  )
                 : SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -270,7 +301,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                             ),
                             const SizedBox(width: 20),
                             _LegendItem(
-                              color: const Color(0xFF1A73E8),
+                              color: const Color(0xFF2563EB),
                               label: 'Selected',
                             ),
                             const SizedBox(width: 20),
@@ -377,14 +408,14 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF6FF),
+                                      color: const Color(0xFFF0F7FF),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
                                       '${_capacity - _bookedSeats.length} seats left',
                                       style: const TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF1A73E8),
+                                        color: Color(0xFF2563EB),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -492,7 +523,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A73E8),
+                        color: Color(0xFF2563EB),
                       ),
                     ),
                     if (_selectedSeats.length > 1) ...[
@@ -516,7 +547,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                 child: ElevatedButton(
                   onPressed: _isExpired ? null : _proceedToBooking,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: const Color(0xFFE5E7EB),
                     elevation: 0,
@@ -576,9 +607,9 @@ class _SeatWidget extends StatelessWidget {
         textColor = const Color(0xFF374151);
         borderColor = const Color(0xFFE5E7EB);
       case SeatStatus.selected:
-        bgColor = const Color(0xFF1A73E8);
+        bgColor = const Color(0xFF2563EB);
         textColor = Colors.white;
-        borderColor = const Color(0xFF1A73E8);
+        borderColor = const Color(0xFF2563EB);
       case SeatStatus.booked:
         bgColor = const Color(0xFFFEF2F2);
         textColor = const Color(0xFFEF4444);

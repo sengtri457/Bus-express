@@ -46,13 +46,13 @@ class _AuthTextFieldState extends State<AuthTextField> {
           obscureText: widget.isPassword ? _obscureText : false,
           keyboardType: widget.keyboardType,
           validator: widget.validator,
-          style: const TextStyle(fontSize: 15, color: Color(0xFF111827)),
+          style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
             prefixIcon: Icon(
               widget.icon,
-              color: const Color(0xFF6B7280),
+              color: const Color(0xFF94A3B8),
               size: 20,
             ),
             suffixIcon: widget.isPassword
@@ -61,7 +61,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                       _obscureText
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: const Color(0xFF6B7280),
+                      color: const Color(0xFF94A3B8),
                       size: 20,
                     ),
                     onPressed: () =>
@@ -69,18 +69,18 @@ class _AuthTextFieldState extends State<AuthTextField> {
                   )
                 : null,
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
+            fillColor: const Color(0xFFF8FAFC),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -88,7 +88,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
