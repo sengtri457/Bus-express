@@ -26,13 +26,32 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   String? _userPhone;
   String? _userEmail;
 
+  // Promo code state
+  final TextEditingController _promoCodeController = TextEditingController();
+  String? _appliedPromoCode;
+  String? _appliedPromotionId;
+  double _discountAmount = 0;
+  String _discountLabel = '';
+  bool _isPromoApplied = false;
+  bool _isValidatingPromo = false;
+  String? _promoError;
+
   double get _pricePerSeat => (widget.schedule['price'] as num).toDouble();
   double get _totalPrice => _pricePerSeat * widget.seatNumbers.length;
+  double get _finalPrice => _totalPrice - _discountAmount;
+  double get _discountPerSeat =>
+      widget.seatNumbers.isEmpty ? 0 : _discountAmount / widget.seatNumbers.length;
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+  }
+
+  @override
+  void dispose() {
+    _promoCodeController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserInfo() async {
@@ -52,6 +71,134 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _validatePromoCode() async {
+    final code = _promoCodeController.text.trim();
+    if (code.isEmpty) {
+      setState(() => _promoError = 'Please enter a promo code');
+      return;
+    }
+
+    setState(() {
+      _isValidatingPromo = true;
+      _promoError = null;
+    });
+
+    try {
+      final promo = await SupabaseConfig.client
+          .from('promotions')
+          .select()
+          .ilike('code', code)
+          .maybeSingle();
+
+      if (promo == null) {
+        setState(() {
+          _isValidatingPromo = false;
+          _promoError = 'Invalid promo code';
+        });
+        return;
+      }
+
+      final isActive = promo['is_active'] as bool? ?? true;
+      if (!isActive) {
+        setState(() {
+          _isValidatingPromo = false;
+          _promoError = 'This promo code is no longer active';
+        });
+        return;
+      }
+
+      final expiresAt = promo['expires_at'] as String?;
+      if (expiresAt != null && DateTime.now().isAfter(DateTime.parse(expiresAt))) {
+        setState(() {
+          _isValidatingPromo = false;
+          _promoError = 'This promo code has expired';
+        });
+        return;
+      }
+
+      final minPurchase = (promo['min_purchase'] as num?)?.toDouble();
+      if (minPurchase != null && _totalPrice < minPurchase) {
+        setState(() {
+          _isValidatingPromo = false;
+          _promoError =
+              'Minimum purchase of \$${minPurchase.toStringAsFixed(2)} required';
+        });
+        return;
+      }
+
+      final maxUsage = promo['max_usage'] as int?;
+      final usedCount = promo['used_count'] as int? ?? 0;
+      if (maxUsage != null && usedCount >= maxUsage) {
+        setState(() {
+          _isValidatingPromo = false;
+          _promoError = 'This promo code has reached its usage limit';
+        });
+        return;
+      }
+
+      // Per-account usage limit
+      final maxPerUser = promo['max_per_user'] as int?;
+      if (maxPerUser != null) {
+        final userId = SupabaseConfig.client.auth.currentUser?.id;
+        if (userId != null) {
+          final promoId = promo['id'] as String;
+          final userUsage = await SupabaseConfig.client
+              .from('promotion_usages')
+              .select('id')
+              .eq('promotion_id', promoId)
+              .eq('user_id', userId);
+          final userCount = (userUsage as List).length;
+          if (userCount >= maxPerUser) {
+            setState(() {
+              _isValidatingPromo = false;
+              _promoError =
+                  'You have used this promo code $userCount out of $maxPerUser times';
+            });
+            return;
+          }
+        }
+      }
+
+      final discountType = promo['discount_type'] as String;
+      final discountValue = (promo['discount_value'] as num).toDouble();
+      double discountAmount;
+      String discountLabel;
+
+      if (discountType == 'percentage') {
+        discountAmount = _totalPrice * (discountValue / 100);
+        discountLabel = '${discountValue.toStringAsFixed(0)}% OFF';
+      } else {
+        discountAmount = discountValue.clamp(0, _totalPrice);
+        discountLabel = '\$${discountValue.toStringAsFixed(2)} OFF';
+      }
+
+      setState(() {
+        _isPromoApplied = true;
+        _appliedPromoCode = promo['code'] as String;
+        _appliedPromotionId = promo['id'] as String;
+        _discountAmount = discountAmount;
+        _discountLabel = discountLabel;
+        _promoError = null;
+      });
+    } catch (_) {
+      setState(() => _promoError = 'Failed to validate promo code');
+    } finally {
+      if (mounted) setState(() => _isValidatingPromo = false);
+    }
+  }
+
+  void _removePromoCode() {
+    setState(() {
+      _isPromoApplied = false;
+      _appliedPromoCode = null;
+      _appliedPromotionId = null;
+      _discountAmount = 0;
+      _discountLabel = '';
+      _promoError = null;
+      _promoCodeController.clear();
+    });
   }
 
   Future<void> _confirmBooking() async {
@@ -137,7 +284,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         // Step 3: Payment per seat (cash)
         await SupabaseConfig.client.from('payments').insert({
           'booking_id': bookingId,
-          'amount': _pricePerSeat,
+          'amount': _pricePerSeat - _discountPerSeat,
           'method': 'cash',
           'status': 'pending',
         });
@@ -150,6 +297,26 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           'qr_code': qrCode,
           'status': 'valid',
         });
+      }
+
+      // Step 5: Track promo usage
+      if (_isPromoApplied && _appliedPromotionId != null) {
+        final promo = await SupabaseConfig.client
+            .from('promotions')
+            .select('used_count')
+            .eq('id', _appliedPromotionId!)
+            .maybeSingle();
+        if (promo != null) {
+          final current = promo['used_count'] as int? ?? 0;
+          await SupabaseConfig.client
+              .from('promotions')
+              .update({'used_count': current + 1})
+              .eq('id', _appliedPromotionId!);
+          await SupabaseConfig.client.from('promotion_usages').insert({
+            'promotion_id': _appliedPromotionId,
+            'user_id': user.id,
+          });
+        }
       }
 
       if (!mounted) return;
@@ -440,6 +607,209 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Promo Code
+                  if (_isPromoApplied)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD1FAE5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.discount_rounded,
+                              color: Color(0xFF10B981),
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _discountLabel,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF065F46),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _appliedPromoCode!,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF059669),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _removePromoCode,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFFD1FAE5),
+                                ),
+                              ),
+                              child: const Text(
+                                'Remove',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFEF4444),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _promoCodeController,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.5,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Promo code',
+                                    hintStyle: TextStyle(
+                                      color: const Color(0xFF9CA3AF),
+                                      fontSize: 14,
+                                      letterSpacing: 0,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    filled: true,
+                                    fillColor: const Color(0xFFF9FAFB),
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF2563EB),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              SizedBox(
+                                height: 44,
+                                child: ElevatedButton(
+                                  onPressed: _isValidatingPromo
+                                      ? null
+                                      : _validatePromoCode,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        const Color(0xFF2563EB),
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor:
+                                        const Color(0xFF93C5FD),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                    ),
+                                  ),
+                                  child: _isValidatingPromo
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child:
+                                              CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Apply',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_promoError != null)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(top: 8, left: 2),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline_rounded,
+                                    size: 14,
+                                    color: Color(0xFFEF4444),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _promoError!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFFEF4444),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   _InfoRow(
                     icon: Icons.confirmation_number_outlined,
                     label: 'Price per seat',
@@ -451,6 +821,15 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     label: 'Number of seats',
                     value: '${widget.seatNumbers.length}',
                   ),
+                  if (_isPromoApplied) ...[
+                    const SizedBox(height: 10),
+                    _InfoRow(
+                      icon: Icons.discount_rounded,
+                      label: 'Discount',
+                      value: '-\$${_discountAmount.toStringAsFixed(2)}',
+                      valueColor: const Color(0xFF10B981),
+                    ),
+                  ],
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Divider(color: Color(0xFFE5E7EB)),
@@ -469,12 +848,24 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
+                          if (_isPromoApplied)
+                            Text(
+                              '\$${_totalPrice.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF9CA3AF),
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
                           Text(
-                            '\$${_totalPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 20,
+                            '\$${_finalPrice.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: _isPromoApplied ? 20 : 20,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2563EB),
+                              color: _isPromoApplied
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFF2563EB),
                             ),
                           ),
                           if (widget.seatNumbers.length > 1)
