@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/animations.dart';
 import '../route_list_screen.dart';
 import 'passenger_profile_screen.dart';
+import 'see_all_promotions_screen.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   final VoidCallback? onProfileTap;
@@ -124,118 +126,121 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: [
-          // App Bar
-          SliverAppBar(
-            expandedHeight: 180,
-            floating: false,
-            pinned: true,
-            backgroundColor: const Color(0xFF2563EB),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    "assets/images/HomeBanner.webp",
-                    fit: BoxFit.cover,
-                    alignment: Alignment.bottomCenter,
-                    width: double.infinity,
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          const Color(0xFF2563EB).withValues(alpha: 0.6),
-                          const Color(0xFF1D4ED8).withValues(alpha: 0.85),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Hello, ${_userName.split(' ').first} 👋',
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Where are you going today?',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.85,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  if (widget.onProfileTap != null) {
-                                    widget.onProfileTap!();
-                                  } else {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PassengerProfileScreen(),
-                                      ),
-                                    ).then((_) => _loadUserName());
-                                  }
-                                },
-                                child: CircleAvatar(
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  child: Text(
-                                    _userName.isNotEmpty
-                                        ? _userName[0].toUpperCase()
-                                        : 'P',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      body: Stack(
+        children: [
+          // Background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/blueKhmer.jpg',
+              fit: BoxFit.cover,
             ),
           ),
+          // Semi-transparent overlay for readability
+          Positioned.fill(
+            child: Container(color: Colors.white.withValues(alpha: 0.85)),
+          ),
+          // Content
+          CustomScrollView(
+            slivers: [
+              // App Bar
+              SliverAppBar(
+                expandedHeight: 120,
+                floating: false,
+                pinned: true,
+                backgroundColor: const Color(0xFF2563EB),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        "assets/images/HomeBanner.webp",
+                        fit: BoxFit.cover,
+                        alignment: Alignment.bottomCenter,
+                        width: double.infinity,
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              const Color(0xFF2563EB).withValues(alpha: 0.6),
+                              const Color(0xFF1D4ED8).withValues(alpha: 0.85),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                title: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hello, ${_userName.split(' ').first} 👋',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Where are you going today?',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          if (widget.onProfileTap != null) {
+                            widget.onProfileTap!();
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PassengerProfileScreen(),
+                              ),
+                            ).then((_) => _loadUserName());
+                          }
+                        },
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          child: Text(
+                            _userName.isNotEmpty
+                                ? _userName[0].toUpperCase()
+                                : 'P',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // Search Card
-                  Container(
+                  SlideFadeIn(
+                    duration: const Duration(milliseconds: 500),
+                    offset: 25,
+                    child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -249,269 +254,275 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                     ),
                     padding: const EdgeInsets.all(20),
                     child: Column(
-                      children: [
-                        // Origin
-                        _LocationField(
-                          controller: _originController,
-                          hint: 'From where?',
-                          label: 'Origin',
-                          icon: Icons.radio_button_checked,
-                          iconColor: const Color(0xFF2563EB),
-                        ),
-                        // Swap + divider
-                        Row(
                           children: [
-                            const SizedBox(width: 20),
-                            Container(
-                              width: 1,
-                              height: 20,
-                              color: const Color(0xFFE2E8F0),
+                            // Origin
+                            _LocationField(
+                              controller: _originController,
+                              hint: 'From where?',
+                              label: 'Origin',
+                              icon: Icons.radio_button_checked,
+                              iconColor: const Color(0xFF2563EB),
                             ),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: _swapLocations,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(10),
+                            // Swap + divider
+                            Row(
+                              children: [
+                                const SizedBox(width: 20),
+                                Container(
+                                  width: 1,
+                                  height: 20,
+                                  color: const Color(0xFFE2E8F0),
                                 ),
-                                child: const Icon(
-                                  Icons.swap_vert_rounded,
-                                  color: Color(0xFF2563EB),
-                                  size: 20,
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: _swapLocations,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.swap_vert_rounded,
+                                      color: Color(0xFF2563EB),
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Destination
+                            _LocationField(
+                              controller: _destinationController,
+                              hint: 'Where to?',
+                              label: 'Destination',
+                              icon: Icons.location_on_rounded,
+                              iconColor: const Color(0xFFEF4444),
+                            ),
+                            const SizedBox(height: 16),
+                            const Divider(color: Color(0xFFE2E8F0)),
+                            const SizedBox(height: 16),
+                            // Date picker
+                            GestureDetector(
+                              onTap: _pickDate,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.calendar_today_rounded,
+                                      color: Color(0xFF2563EB),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Travel Date',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                      Text(
+                                        _formatDate(_selectedDate),
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            // Search Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton(
+                                onPressed: _searchRoutes,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.search_rounded, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Search Buses',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        // Destination
-                        _LocationField(
-                          controller: _destinationController,
-                          hint: 'Where to?',
-                          label: 'Destination',
-                          icon: Icons.location_on_rounded,
-                          iconColor: const Color(0xFFEF4444),
-                        ),
-                        const SizedBox(height: 16),
-                        const Divider(color: Color(0xFFE2E8F0)),
-                        const SizedBox(height: 16),
-                        // Date picker
-                        GestureDetector(
-                          onTap: _pickDate,
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.calendar_today_rounded,
-                                  color: Color(0xFF2563EB),
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Travel Date',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  Text(
-                                    _formatDate(_selectedDate),
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              const Icon(
-                                Icons.chevron_right_rounded,
-                                color: Color(0xFF94A3B8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Search Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: ElevatedButton(
-                            onPressed: _searchRoutes,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.search_rounded, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Search Buses',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
-                  // Our Partners (Operators)
-                  const Text(
-                    'Our Partners',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _isLoadingOperators
-                      ? const Center(child: CircularProgressIndicator())
-                      : _operators.isEmpty
-                      ? const Text(
-                          'No operators available at the moment',
-                          style: TextStyle(color: Color(0xFF9CA3AF)),
-                        )
-                      : SizedBox(
-                          height: 110,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _operators.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(width: 12),
-                            itemBuilder: (context, index) {
-                              final op = _operators[index];
-                              final name = op['name'] as String;
-                              final initial = name.isNotEmpty
-                                  ? name[0].toUpperCase()
-                                  : 'O';
+                    const SizedBox(height: 28),
+                    // Our Partners (Operators)
+                      const Text(
+                        'Our Partners',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _isLoadingOperators
+                          ? const Center(child: CircularProgressIndicator())
+                          : _operators.isEmpty
+                          ? const Text(
+                              'No operators available at the moment',
+                              style: TextStyle(color: Color(0xFF9CA3AF)),
+                            )
+                          : SizedBox(
+                              height: 110,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _operators.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(width: 12),
+                                itemBuilder: (context, index) {
+                                  final op = _operators[index];
+                                  final name = op['name'] as String;
+                                  final initial = name.isNotEmpty
+                                      ? name[0].toUpperCase()
+                                      : 'O';
 
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => RouteListScreen(
-                                        origin: '',
-                                        destination: '',
-                                        date: _selectedDate,
-                                        operatorId: op['id'],
-                                        operatorName: name,
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => RouteListScreen(
+                                            origin: '',
+                                            destination: '',
+                                            date: _selectedDate,
+                                            operatorId: op['id'],
+                                            operatorName: name,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 100,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.04,
+                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                        border: Border.all(
+                                          color: const Color(0xFFF3F4F6),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Color(0xFF2563EB),
+                                                  Color(0xFF1D4ED8),
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                initial,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            name,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF374151),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   );
                                 },
-                                child: Container(
-                                  width: 100,
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.04),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                    border: Border.all(
-                                      color: const Color(0xFFF3F4F6),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        width: 44,
-                                        height: 44,
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              Color(0xFF2563EB),
-                                              Color(0xFF1D4ED8),
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            initial,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        name,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF374151),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                  const SizedBox(height: 28),
+                              ),
+                            ),
+                      const SizedBox(height: 28),
 
-                  // Popular Routes
-                  const Text(
-                    'Popular Routes',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
-                    ),
+                      // Popular Routes
+                      const Text(
+                        'Popular Routes',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _PopularRoutes(
+                        onRouteTap: (origin, destination) {
+                          _originController.text = origin;
+                          _destinationController.text = destination;
+                        },
+                      ),
+                      const SizedBox(height: 28),
+                      const _OffersSection(),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  _PopularRoutes(
-                    onRouteTap: (origin, destination) {
-                      _originController.text = origin;
-                      _destinationController.text = destination;
-                    },
-                  ),
-                  const SizedBox(height: 28),
-                  const _OffersSection(),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -656,8 +667,11 @@ class _PopularRoutesState extends State<_PopularRoutes> {
         ),
       );
     }
-    return Column(
-      children: _routes
+                    return SlideFadeIn(
+                      duration: const Duration(milliseconds: 500),
+                      offset: 20,
+                      child: Column(
+                      children: _routes
           .map(
             (route) => _RouteCard(
               route: route,
@@ -666,6 +680,7 @@ class _PopularRoutesState extends State<_PopularRoutes> {
             ),
           )
           .toList(),
+    ),
     );
   }
 }
@@ -883,7 +898,12 @@ class _OffersSectionState extends State<_OffersSection> {
             ),
             GestureDetector(
               onTap: () {
-                // View more logic
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SeeAllPromotionsScreen(),
+                  ),
+                );
               },
               child: const Text(
                 'View more',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../supabase_config.dart';
+import '../widgets/animations.dart';
 import 'widgets/auth_text_field.dart';
 import 'login_screen.dart';
 
@@ -181,14 +182,15 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.white,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_rounded,
-            color: Color(0xFF0F172A),
+            color: Color(0xFF2563EB),
             size: 20,
           ),
           onPressed: () {
@@ -200,7 +202,15 @@ class _SignupScreenState extends State<SignupScreen> {
           },
         ),
       ),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset('assets/images/khmerbg.jpg', fit: BoxFit.cover),
+          ),
+          Positioned.fill(
+            child: Container(color: Colors.white.withValues(alpha: 0.85)),
+          ),
+          SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -211,25 +221,66 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 const SizedBox(height: 8),
 
-                // Title
-                const Text(
-                  'Create account',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.8,
+                // Header Icon
+                SlideFadeIn(
+                  duration: const Duration(milliseconds: 500),
+                  offset: 20,
+                  child: Center(
+                    child: Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2563EB).withOpacity(0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.directions_bus_rounded,
+                        size: 42,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Join us and book your rides easily',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15, 
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w400,
+                const SizedBox(height: 32),
+
+                // Title
+                SlideFadeIn(
+                  duration: const Duration(milliseconds: 500),
+                  offset: 20,
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Create account',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Join us and book your rides easily',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -239,7 +290,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 32),
 
                 // Elegant Form Card
-                Container(
+                SlideFadeIn(
+                  duration: const Duration(milliseconds: 600),
+                  offset: 30,
+                  child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
@@ -467,6 +521,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                 ),
+                ),
                 const SizedBox(height: 32),
 
                 // Login link
@@ -507,6 +562,8 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         ),
       ),
+      ],
+    ),
     );
   }
 }
@@ -659,7 +716,8 @@ class _PasswordStrengthIndicator extends StatelessWidget {
         Row(
           children: List.generate(4, (i) {
             return Expanded(
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
                 margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
                 height: 4,
                 decoration: BoxDecoration(

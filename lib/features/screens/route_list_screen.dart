@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../supabase_config.dart';
+import '../widgets/animations.dart';
 import 'passengers/schedule_seat_screen.dart';
 
 class RouteListScreen extends StatefulWidget {
@@ -281,9 +282,12 @@ class _RouteListScreenState extends State<RouteListScreen> {
           // Content
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF2563EB),
+                ? ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    itemCount: 5,
+                    itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ShimmerBox(height: 140),
                     ),
                   )
                 : _error != null
@@ -297,9 +301,14 @@ class _RouteListScreenState extends State<RouteListScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                     itemCount: _sortedSchedules.length,
                     itemBuilder: (context, index) {
-                      return _ScheduleCard(
-                        schedule: _sortedSchedules[index],
-                        date: widget.date,
+                      return SlideFadeIn(
+                        delay: Duration(milliseconds: 80 * index),
+                        duration: const Duration(milliseconds: 350),
+                        offset: 20,
+                        child: _ScheduleCard(
+                          schedule: _sortedSchedules[index],
+                          date: widget.date,
+                        ),
                       );
                     },
                   ),

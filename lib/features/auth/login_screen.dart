@@ -6,6 +6,7 @@ import '../screens/passengers/passenger_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../supabase_config.dart';
+import '../widgets/animations.dart';
 import 'widgets/auth_text_field.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
@@ -107,7 +108,15 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset('assets/images/khmerbg.jpg', fit: BoxFit.cover),
+          ),
+          Positioned.fill(
+            child: Container(color: Colors.white.withValues(alpha: 0.85)),
+          ),
+          SafeArea(
         child: Center(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -117,60 +126,75 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 20),
-                  // Header Icon
-                  Center(
-                    child: Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                  children: [
+                    const SizedBox(height: 20),
+                    // Header Icon
+                    SlideFadeIn(
+                      duration: const Duration(milliseconds: 500),
+                      offset: 20,
+                      child: Center(
+                        child: Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF2563EB).withOpacity(0.2),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.directions_bus_rounded,
+                            size: 42,
+                            color: Colors.white,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF2563EB).withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SlideFadeIn(
+                      duration: const Duration(milliseconds: 500),
+                      offset: 20,
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Welcome back',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                              letterSpacing: -0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Sign in to your account to continue booking',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.directions_bus_rounded,
-                        size: 42,
-                        color: Colors.white,
-                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'Welcome back',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                      letterSpacing: -0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Sign in to your account to continue booking',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                  // Elegant Form Card
-                  Container(
+                    // Elegant Form Card
+                    SlideFadeIn(
+                      duration: const Duration(milliseconds: 600),
+                      offset: 30,
+                      child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
@@ -282,9 +306,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                ),
+                const SizedBox(height: 32),
 
-                  // Sign up link
+                // Sign up link
                   Center(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -323,6 +348,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+      ],
+    ),
     );
   }
 }
