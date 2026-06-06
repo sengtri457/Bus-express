@@ -211,7 +211,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                   SliverAppBar(
                     expandedHeight: 160,
                     pinned: true,
-                    backgroundColor: const Color(0xFF7C3AED),
+                    backgroundColor: const Color(0xFF2563EB),
                     actions: [
                       IconButton(
                         icon: const Icon(
@@ -229,73 +229,87 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                       ),
                     ],
                     flexibleSpace: FlexibleSpaceBar(
-                      background: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            'assets/images/conductorBus.jpg',
+                            fit: BoxFit.cover,
                           ),
-                        ),
-                        child: SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: const Icon(
-                                        Icons.confirmation_number_rounded,
-                                        color: Colors.white,
-                                        size: 26,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Hello, ${_userProfile?['name']?.split(' ').first ?? 'Conductor'} 👋',
-                                          style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Conductor Dashboard',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.white.withOpacity(
-                                              0.8,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _formatDate(DateTime.now()),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white.withOpacity(0.8),
-                                  ),
-                                ),
-                              ],
+                          Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xB32563EB),
+                                  Color(0xB31D4ED8),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                          SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.confirmation_number_rounded,
+                                          color: Colors.white,
+                                          size: 26,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Hello, ${_userProfile?['name']?.split(' ').first ?? 'Conductor'} 👋',
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Conductor Dashboard',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.white.withOpacity(
+                                                0.8,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _formatDate(DateTime.now()),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.white.withOpacity(0.8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -315,7 +329,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                                     label: 'Total',
                                     value: '$_totalPassengers',
                                     icon: Icons.people_rounded,
-                                    color: const Color(0xFF7C3AED),
+                                    color: const Color(0xFF2563EB),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -398,7 +412,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                                   child: _ActionCard(
                                     icon: Icons.qr_code_scanner_rounded,
                                     label: 'Scan Ticket',
-                                    color: const Color(0xFF7C3AED),
+                                    color: const Color(0xFF2563EB),
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -477,7 +491,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
+                backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -550,7 +564,7 @@ class _TodayTripCard extends StatelessWidget {
         statusColor = const Color(0xFF6B7280);
         statusLabel = 'Completed';
       default:
-        statusColor = const Color(0xFF7C3AED);
+        statusColor = const Color(0xFF2563EB);
         statusLabel = 'Scheduled';
     }
 
@@ -569,12 +583,12 @@ class _TodayTripCard extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
+                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7C3AED).withOpacity(0.3),
+                    color: const Color(0xFF2563EB).withOpacity(0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -736,12 +750,12 @@ class _TodayTripCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
+          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C3AED).withValues(alpha: 0.3),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),

@@ -108,7 +108,9 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
           .select();
 
       if (response == null || response.isEmpty) {
-        throw Exception('Update blocked by Supabase RLS policy. Conductor role cannot update trips.');
+        throw Exception(
+          'Update blocked by Supabase RLS policy. Conductor role cannot update trips.',
+        );
       }
 
       if (mounted) {
@@ -144,7 +146,7 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF7C3AED),
+        backgroundColor: const Color(0xFF1D4ED8),
         foregroundColor: Colors.white,
         elevation: 0,
         title: Column(
@@ -184,7 +186,7 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
         children: [
           // Progress bar
           Container(
-            color: const Color(0xFF7C3AED),
+            color: const Color(0xFF1D4ED8),
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(
               children: [
@@ -235,7 +237,7 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
                 _FilterChip(
                   label: 'All (${_passengers.length})',
                   isSelected: _filterStatus == 'all',
-                  color: const Color(0xFF7C3AED),
+                  color: const Color(0xFF1D4ED8),
                   onTap: () => setState(() => _filterStatus = 'all'),
                 ),
                 const SizedBox(width: 8),
@@ -298,7 +300,7 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
                     },
                   ),
           ),
-          
+
           // Allow Trip Start Button
           Container(
             padding: const EdgeInsets.all(16),
@@ -318,14 +320,23 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
               height: 50,
               child: ElevatedButton.icon(
                 onPressed: _isAllowingStart ? null : _allowTripStart,
-                icon: _isAllowingStart 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                icon: _isAllowingStart
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.check_circle_outline_rounded),
-                label: const Text('Allow Trip Start', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                label: const Text(
+                  'Allow Trip Start',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -373,13 +384,13 @@ class _PassengerCard extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: isBoarded
               ? const Color(0xFF10B981).withOpacity(0.1)
-              : const Color(0xFF7C3AED).withOpacity(0.1),
+              : const Color(0xFF1D4ED8).withOpacity(0.1),
           child: Text(
             (user?['name'] as String? ?? 'P')[0].toUpperCase(),
             style: TextStyle(
               color: isBoarded
                   ? const Color(0xFF10B981)
-                  : const Color(0xFF7C3AED),
+                  : const Color(0xFF1D4ED8),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -445,7 +456,7 @@ class _PassengerCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7C3AED),
+                    color: const Color(0xFF1D4ED8),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(

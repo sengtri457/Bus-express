@@ -448,12 +448,8 @@ class _TodayTripCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
-          ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -463,8 +459,35 @@ class _TodayTripCard extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  'assets/images/HomeBanner.webp',
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF1565C0).withOpacity(0.85),
+                      Color(0xFF0D47A1).withOpacity(0.85),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -615,20 +638,19 @@ class _TodayTripCard extends StatelessWidget {
                 ),
               ],
             ),
-          ],
+            ],
+          ),
         ),
+        ],
+      ),
       ),
     );
   }
 
   Widget _buildNoScheduleCard(String status) {
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
-        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -638,57 +660,87 @@ class _TodayTripCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.4),
-                  ),
-                ),
-                child: Text(
-                  status[0].toUpperCase() +
-                      status.substring(1).replaceAll('_', ' '),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                'assets/images/HomeBanner.webp',
+                fit: BoxFit.cover,
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Icon(
-            Icons.warning_amber_rounded,
-            color: Colors.amber,
-            size: 40,
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'No schedule assigned',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'This trip has no schedule linked.\nContact your operator to fix it.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.75),
-              fontSize: 12,
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF1565C0).withOpacity(0.85),
+                    Color(0xFF0D47A1).withOpacity(0.85),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        status[0].toUpperCase() +
+                            status.substring(1).replaceAll('_', ' '),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.amber,
+                  size: 40,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'No schedule assigned',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'This trip has no schedule linked.\nContact your operator to fix it.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -712,9 +764,8 @@ class _NoTripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(28),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -724,26 +775,42 @@ class _NoTripCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const Column(
+      child: Stack(
         children: [
-          Icon(
-            Icons.free_cancellation_rounded,
-            size: 48,
-            color: Color(0xFF9CA3AF),
-          ),
-          SizedBox(height: 12),
-          Text(
-            'No trip today',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF374151),
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/HomeBanner.webp',
+              fit: BoxFit.cover,
             ),
           ),
-          SizedBox(height: 6),
-          Text(
-            'You have no scheduled trips for today',
-            style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+          Positioned.fill(
+            child: Container(color: Colors.white.withOpacity(0.85)),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(28),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.free_cancellation_rounded,
+                  size: 48,
+                  color: Color(0xFF9CA3AF),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'No trip today',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF374151),
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'You have no scheduled trips for today',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -764,9 +831,8 @@ class _UpcomingTripCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -776,45 +842,61 @@ class _UpcomingTripCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.calendar_today_rounded,
-              color: Color(0xFF1A73E8),
-              size: 20,
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/HomeBanner.webp',
+              fit: BoxFit.cover,
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Positioned.fill(
+            child: Container(color: Colors.white.withOpacity(0.85)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                Text(
-                  '${route?['origin'] ?? ''} → ${route?['destination'] ?? ''}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_today_rounded,
+                    color: Color(0xFF1A73E8),
+                    size: 20,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_formatDate(trip['trip_date'])} • ${_formatTime(schedule?['departure_time'] ?? '')}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF6B7280),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${route?['origin'] ?? ''} → ${route?['destination'] ?? ''}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_formatDate(trip['trip_date'])} • ${_formatTime(schedule?['departure_time'] ?? '')}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                _TripStatusBadge(status: trip['status'] as String, small: true),
               ],
             ),
           ),
-          _TripStatusBadge(status: trip['status'] as String, small: true),
         ],
       ),
     );
@@ -950,9 +1032,8 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -962,22 +1043,38 @@ class _StatCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: color,
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/HomeBanner.webp',
+              fit: BoxFit.cover,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          Positioned.fill(
+            child: Container(color: Colors.white.withOpacity(0.85)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(height: 8),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
