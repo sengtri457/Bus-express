@@ -103,7 +103,7 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF111827),
+        backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Column(
@@ -135,13 +135,13 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
         backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFF111827).withOpacity(0.1),
+        indicatorColor: const Color(0xFF2563EB).withOpacity(0.1),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(
               Icons.dashboard_rounded,
-              color: Color(0xFF111827),
+              color: Color(0xFF2563EB),
             ),
             label: 'Dashboard',
           ),
@@ -149,13 +149,13 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
             icon: Icon(Icons.business_outlined),
             selectedIcon: Icon(
               Icons.business_rounded,
-              color: Color(0xFF111827),
+              color: Color(0xFF2563EB),
             ),
             label: 'Operators',
           ),
           NavigationDestination(
             icon: Icon(Icons.people_outline_rounded),
-            selectedIcon: Icon(Icons.people_rounded, color: Color(0xFF111827)),
+            selectedIcon: Icon(Icons.people_rounded, color: Color(0xFF2563EB)),
             label: 'Users',
           ),
         ],
@@ -199,7 +199,7 @@ class _DashboardTab extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF111827), Color(0xFF1F2937)],
+                  colors: [Color(0xFF2563EB), Color(0xFF1F2937)],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
@@ -283,7 +283,7 @@ class _DashboardTab extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+                color: Color(0xFF2563EB),
               ),
             ),
             const SizedBox(height: 14),
@@ -316,7 +316,7 @@ class _DashboardTab extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+                color: Color(0xFF2563EB),
               ),
             ),
             const SizedBox(height: 14),

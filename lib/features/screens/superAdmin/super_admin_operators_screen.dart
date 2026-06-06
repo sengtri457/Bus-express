@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../supabase_config.dart';
 
 class SuperAdminOperatorsScreen extends StatefulWidget {
@@ -25,7 +27,7 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
     try {
       var query = SupabaseConfig.client
           .from('operators')
-          .select('id, name, contact, status, created_at');
+          .select('id, name, contact, status, created_at, logo_url');
 
       if (_filter != 'all') {
         query = query.eq('status', _filter);
@@ -279,27 +281,11 @@ class _OperatorCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? const Color(0xFF111827)
-                            : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Center(
-                        child: Text(
-                          (operator['name'] as String)[0].toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: isActive
-                                ? Colors.white
-                                : const Color(0xFF9CA3AF),
-                          ),
-                        ),
-                      ),
+                    _OperatorAvatar(
+                      name: operator['name'] as String,
+                      logoUrl: operator['logo_url'] as String?,
+                      size: 48,
+                      isActive: isActive,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -465,6 +451,61 @@ class _OperatorCard extends StatelessWidget {
   }
 }
 
+// ─── Operator Avatar ──────────────────────────────────────────────────────────
+
+class _OperatorAvatar extends StatelessWidget {
+  final String name;
+  final String? logoUrl;
+  final double size;
+  final bool isActive;
+
+  const _OperatorAvatar({
+    required this.name,
+    required this.logoUrl,
+    required this.size,
+    required this.isActive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValidUrl =
+        logoUrl != null && logoUrl!.startsWith('http');
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: hasValidUrl
+            ? const Color(0xFFF0F7FF)
+            : isActive
+                ? const Color(0xFF111827)
+                : const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(size * 0.3),
+        image: hasValidUrl
+            ? DecorationImage(
+                image: NetworkImage(logoUrl!),
+                fit: BoxFit.contain,
+              )
+            : null,
+      ),
+      child: hasValidUrl
+          ? null
+          : Center(
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : 'O',
+                style: TextStyle(
+                  fontSize: size * 0.42,
+                  fontWeight: FontWeight.w700,
+                  color: isActive
+                      ? Colors.white
+                      : const Color(0xFF9CA3AF),
+                ),
+              ),
+            ),
+    );
+  }
+}
+
 // ─── Mini Stat ────────────────────────────────────────────────────────────────
 
 class _MiniStat extends StatelessWidget {
@@ -548,6 +589,8 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
   final _nameCtrl = TextEditingController();
   final _contactCtrl = TextEditingController();
   bool _isLoading = false;
+  Uint8List? _logoBytes;
+  String? _logoFileName;
 
   @override
   void dispose() {
@@ -556,15 +599,53 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
     super.dispose();
   }
 
+  Future<void> _pickLogo() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    setState(() {
+      _logoBytes = bytes;
+      _logoFileName = file.name;
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
-      await SupabaseConfig.client.from('operators').insert({
-        'name': _nameCtrl.text.trim(),
-        'contact': _contactCtrl.text.trim(),
-        'status': 'active',
-      });
+      final inserted = await SupabaseConfig.client
+          .from('operators')
+          .insert({
+            'name': _nameCtrl.text.trim(),
+            'contact': _contactCtrl.text.trim(),
+            'status': 'active',
+          })
+          .select('id')
+          .single();
+
+      final operatorId = inserted['id'] as String;
+
+      if (_logoBytes != null && _logoFileName != null) {
+        final ext = _logoFileName!.contains('.')
+            ? _logoFileName!.split('.').last
+            : 'png';
+        final path = 'operator-logos/$operatorId/logo.$ext';
+        await SupabaseConfig.client.storage
+            .from('operator-logos')
+            .uploadBinary(path, _logoBytes!);
+
+        final logoUrl =
+            '${SupabaseConfig.storageUrl}/operator-logos/$operatorId/logo.$ext';
+        await SupabaseConfig.client
+            .from('operators')
+            .update({'logo_url': logoUrl})
+            .eq('id', operatorId);
+      }
+
       if (mounted) {
         Navigator.pop(context);
         widget.onSaved();
@@ -620,6 +701,49 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
               const Text(
                 'Add New Operator',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: _pickLogo,
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFE5E7EB),
+                      width: 2,
+                    ),
+                  ),
+                  child: _logoBytes != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: Image.memory(
+                            _logoBytes!,
+                            fit: BoxFit.contain,
+                          ),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              color: const Color(0xFF9CA3AF),
+                              size: 28,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Logo',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: const Color(0xFF9CA3AF),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
               ),
               const SizedBox(height: 20),
               _Field(

@@ -101,7 +101,7 @@ class _OperatorBusesScreenState extends State<OperatorBusesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_buses',
         onPressed: () => _showBusForm(),
-        backgroundColor: const Color(0xFF059669),
+        backgroundColor: const Color(0xFF54282E),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text(

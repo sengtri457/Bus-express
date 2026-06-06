@@ -21,7 +21,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
   bool _isLoading = true;
   String? _operatorId;
 
-  static const _primaryColor = Color(0xFF059669);
+  static const _primaryColor = Color(0xFF54282E);
 
   @override
   void initState() {
@@ -52,7 +52,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
 
       final opInfo = await SupabaseConfig.client
           .from('operators')
-          .select('id, name, status')
+          .select('id, name, status, logo_url')
           .eq('id', _operatorId!)
           .maybeSingle();
 
@@ -504,25 +504,25 @@ class _DashboardTab extends StatelessWidget {
                   label: 'Active Buses',
                   value: '${stats['buses'] ?? 0}',
                   icon: Icons.directions_bus_rounded,
-                  color: const Color(0xFF059669),
+                  color: const Color(0xFF54282E),
                 ),
                 _StatCard(
                   label: 'Active Routes',
                   value: '${stats['routes'] ?? 0}',
                   icon: Icons.route_rounded,
-                  color: const Color(0xFF7C3AED),
+                  color: const Color(0xFF54282E),
                 ),
                 _StatCard(
                   label: 'Schedules',
                   value: '${stats['schedules'] ?? 0}',
                   icon: Icons.schedule_rounded,
-                  color: const Color(0xFFEF4444),
+                  color: const Color(0xFF54282E),
                 ),
                 _StatCard(
                   label: 'Staff',
                   value: '${stats['staff'] ?? 0}',
                   icon: Icons.people_rounded,
-                  color: const Color(0xFF0EA5E9),
+                  color: const Color(0xFF54282E),
                 ),
               ],
             ),
@@ -571,7 +571,7 @@ class _DashboardTab extends StatelessWidget {
               icon: Icons.add_road_rounded,
               label: 'Add New Route',
               subtitle: 'Create a new bus route',
-              color: const Color(0xFF7C3AED),
+              color: const Color(0xFF54282E),
               onTap: () => onTabSelected(1),
             ),
             const SizedBox(height: 10),
@@ -579,7 +579,7 @@ class _DashboardTab extends StatelessWidget {
               icon: Icons.directions_bus_filled_rounded,
               label: 'Add New Bus',
               subtitle: 'Register a bus to your fleet',
-              color: const Color(0xFF059669),
+              color: const Color(0xFF54282E),
               onTap: () => onTabSelected(2),
             ),
             const SizedBox(height: 10),
@@ -587,12 +587,42 @@ class _DashboardTab extends StatelessWidget {
               icon: Icons.person_add_rounded,
               label: 'Add Staff Member',
               subtitle: 'Hire a driver or conductor',
-              color: const Color(0xFF0EA5E9),
+              color: const Color(0xFF54282E),
               onTap: () => onTabSelected(4),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Operator Logo ─────────────────────────────────────────────────────────────
+
+class _OperatorLogo extends StatelessWidget {
+  final String? logoUrl;
+  final String name;
+
+  const _OperatorLogo({required this.logoUrl, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUrl = logoUrl != null && logoUrl!.startsWith('http');
+
+    return Container(
+      width: 58,
+      height: 58,
+      padding: hasUrl ? null : const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(16),
+        image: hasUrl
+            ? DecorationImage(image: NetworkImage(logoUrl!), fit: BoxFit.fill)
+            : null,
+      ),
+      child: hasUrl
+          ? null
+          : Icon(Icons.business_rounded, color: Colors.white, size: 30),
     );
   }
 }
@@ -612,7 +642,7 @@ class _OperatorCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF059669), Color(0xFF047857)],
+          colors: [Color(0xFF54282E), Color(0xFF54282E)],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -625,17 +655,9 @@ class _OperatorCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.business_rounded,
-              color: Colors.white,
-              size: 30,
-            ),
+          _OperatorLogo(
+            logoUrl: operatorInfo?['logo_url'] as String?,
+            name: operatorInfo?['name'] as String? ?? '',
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -705,7 +727,7 @@ class _AllClearCard extends StatelessWidget {
             ),
             child: const Icon(
               Icons.check_circle_rounded,
-              color: Color(0xFF2E7D32),
+              color: Color(0xFF54282E),
               size: 20,
             ),
           ),

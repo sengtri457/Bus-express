@@ -8,6 +8,8 @@ class SupabaseConfig {
 
   static SupabaseClient get client => Supabase.instance.client;
 
+  static String get storageUrl => '$supabaseUrl/storage/v1/object/public';
+
   /// Automatically updates status to 'completed' for any trip that is scheduled or in progress
   /// whose scheduled arrival time has already passed.
   static Future<void> syncOverdueTrips() async {

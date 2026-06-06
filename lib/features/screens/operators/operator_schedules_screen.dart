@@ -443,7 +443,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_schedules',
         onPressed: () => _showScheduleForm(),
-        backgroundColor: const Color(0xFF059669),
+        backgroundColor: const Color(0xFF54282E),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text(

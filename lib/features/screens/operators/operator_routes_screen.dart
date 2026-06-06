@@ -152,7 +152,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_routes',
         onPressed: () => _showRouteForm(),
-        backgroundColor: const Color(0xFF059669),
+        backgroundColor: const Color(0xFF54282E),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text(

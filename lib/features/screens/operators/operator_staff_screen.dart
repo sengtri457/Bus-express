@@ -150,7 +150,7 @@ class _OperatorStaffScreenState extends State<OperatorStaffScreen>
         onPressed: () => _showAddStaffForm(
           defaultRole: _tabController.index == 0 ? 'driver' : 'conductor',
         ),
-        backgroundColor: const Color(0xFF059669),
+        backgroundColor: const Color(0xFF54282E),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add_rounded),
         label: Text(
