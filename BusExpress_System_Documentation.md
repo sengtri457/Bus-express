@@ -692,7 +692,7 @@ The following tables document the official verification testing logs for the Bus
 
 **Sprint = 2 weeks | 4 hours × 14 days = 56 hours | Work = 49 hours | Meetings = 7 hours**
 
-**Total Estimation: 266h | Completed: 214h | Remaining: 52h**
+**Total Estimation: 317h | Completed: 214h | Remaining: 103h**
 
 ### 7.1 Product Backlog Table
 
@@ -730,10 +730,15 @@ The following tables document the official verification testing logs for the Bus
 | 24 | As a super admin, I can manage operators | 10 | High | 5 | Done |
 | 25 | As a super admin, I can manage users and roles | 7 | High | 5 | Done |
 | **7. Future Enhancements & Integration Module** | | | | | |
-| 26 | As a passenger, I can checkout and pay online using Stripe / local cards | 15 | High | 6 | Open |
+| 26 | As a passenger, I can checkout and pay online using Stripe / local cards | 15 | High | 5 | Open |
 | 27 | As a user, I can receive push notifications about trip status | 12 | Medium | 6 | Open |
 | 28 | As a passenger, I can review and rate trips and drivers | 10 | Low | 6 | Open |
 | 29 | As a passenger, I can apply promo codes for ticket discounts | 15 | Medium | 7 | Open |
+| 30 | As a passenger, I can request refunds for cancelled bookings | 10 | Medium | 6 | Open |
+| 31 | As an operator admin, I can view business analytics on a dashboard | 15 | Medium | 6 | Open |
+| 32 | As a new user, I can view onboarding screens to understand the app | 8 | Low | 7 | Open |
+| 33 | As a passenger, I can export my booking ticket as a PDF | 8 | Low | 7 | Open |
+| 34 | As an operator admin, I can receive system alerts and notifications | 10 | Low | 7 | Open |
 
 ---
 
@@ -848,8 +853,8 @@ The Sprint Backlog contains the detailed task breakdowns and hourly estimates fo
 ---
 
 ### 8.5 Sprint 5 Detail (Completed)
-- **Goal**: Fleet schedule calendars planning, operator verification, and super-admin panels.
-- **Sprint Total**: **32 Hours** (Works capacity: 49 Hours).
+- **Goal**: Fleet schedule calendars planning, operator verification, super-admin panels, and online payments.
+- **Sprint Total**: **47 Hours** (Works capacity: 49 Hours).
 
 | ID | Task Breakdown | Est. (h) | Assigned | Status |
 |---|---|---|---|---|
@@ -862,36 +867,51 @@ The Sprint Backlog contains the detailed task breakdowns and hourly estimates fo
 | **25** | **As a super admin, I can manage users and roles** | **7** | | |
 | | Build users search and filter profile panels | 3 | Dev A | Done |
 | | Implement role change update triggers | 4 | Dev A | Done |
-| | **Total Sprint 5 Allocations** | **32 / 49** | | |
+| **26** | **As a passenger, I can checkout and pay online using Stripe / local cards** | **15** | | |
+| | Setup Stripe SDK on frontend client | 7 | Dev A | Open |
+| | Write payment confirmation webhook handlers in backend | 8 | Dev A | Open |
+| | **Total Sprint 5 Allocations** | **47 / 49** | | |
 
 ---
 
 ### 8.6 Sprint 6 Detail (Planned / Open)
-- **Goal**: Integrate online payment gateway, push notifications engine, and reviews.
-- **Sprint Total**: **37 Hours** (Works capacity: 49 Hours).
+- **Goal**: Integrate push notifications, reviews, refund handling, and analytics dashboard.
+- **Sprint Total**: **47 Hours** (Works capacity: 49 Hours).
 
 | ID | Task Breakdown | Est. (h) | Assigned | Status |
 |---|---|---|---|---|
-| **26** | **As a passenger, I can checkout and pay online using Stripe / local cards** | **15** | | |
-| | Setup Stripe SDK on frontend client | 7 | Dev A | Open |
-| | Write payment confirmation webhook handlers in backend | 8 | Dev A | Open |
 | **27** | **As a user, I can receive push notifications about trip status** | **12** | | |
 | | Connect Firebase Cloud Messaging (FCM) package | 6 | Dev A | Open |
 | | Implement push triggers on DB incident insertion | 6 | Dev A | Open |
 | **28** | **As a passenger, I can review and rate trips and drivers** | **10** | | |
 | | Build driver rating star component on ticket overview | 5 | Dev A | Open |
 | | Create driver reviews database table and average calculator | 5 | Dev A | Open |
-| | **Total Sprint 6 Allocations** | **37 / 49** | | |
+| **30** | **As a passenger, I can request refunds for cancelled bookings** | **10** | | |
+| | Design refund request form and status tracking UI | 4 | Dev A | Open |
+| | Implement backend refund processing and transaction logs | 6 | Dev A | Open |
+| **31** | **As an operator admin, I can view business analytics on a dashboard** | **15** | | |
+| | Design analytics dashboard layout and charts visualization | 7 | Dev A | Open |
+| | Implement database aggregations and analytics API endpoints | 8 | Dev A | Open |
+| | **Total Sprint 6 Allocations** | **47 / 49** | | |
 
 ---
 
 ### 8.7 Sprint 7 Detail (Planned / Open)
-- **Goal**: Implement dynamic promo code validations rules engine.
-- **Sprint Total**: **15 Hours** (Works capacity: 49 Hours).
+- **Goal**: Implement promo code validations, onboarding walkthrough, PDF exporting, and admin notifications.
+- **Sprint Total**: **41 Hours** (Works capacity: 49 Hours).
 
 | ID | Task Breakdown | Est. (h) | Assigned | Status |
 |---|---|---|---|---|
 | **29** | **As a passenger, I can apply promo codes for ticket discounts** | **15** | | |
 | | Design coupon code entry textfield inside booking details | 4 | Dev A | Open |
 | | Build backend checks for limits and min-purchase validation | 11 | Dev A | Open |
-| | **Total Sprint 7 Allocations** | **15 / 49** | | |
+| **32** | **As a new user, I can view onboarding screens to understand the app** | **8** | | |
+| | Design onboarding tutorial slides and page indicator UI | 4 | Dev A | Open |
+| | Implement walkthrough navigation and first-launch preference flags | 4 | Dev A | Open |
+| **33** | **As a passenger, I can export my booking ticket as a PDF** | **8** | | |
+| | Design printable ticket PDF invoice layout | 3 | Dev A | Open |
+| | Implement PDF generation and download sharing service | 5 | Dev A | Open |
+| **34** | **As an operator admin, I can receive system alerts and notifications** | **10** | | |
+| | Design operator admin notification center UI panels | 4 | Dev A | Open |
+| | Write notification triggers on incident reporting and cancellations | 6 | Dev A | Open |
+| | **Total Sprint 7 Allocations** | **41 / 49** | | |

@@ -1210,68 +1210,15 @@ class _SingleTicketView extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          if (qrCode != null) ...[
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  QrImageView(
-                    data: qrCode,
-                    version: QrVersions.auto,
-                    size: 200,
-                    backgroundColor: Colors.white,
-                    errorStateBuilder: (_, __) => const SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: Center(
-                        child: Text(
-                          'QR Error',
-                          style: TextStyle(color: Color(0xFFEF4444)),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '#${(booking['id'] as String).substring(0, 8).toUpperCase()}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    qrCode.length > 40
-                        ? '${qrCode.substring(0, 40)}...'
-                        : qrCode,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF9CA3AF),
-                      fontFamily: 'monospace',
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _StatusBadge(status: ticketStatus, large: true),
-            const SizedBox(height: 24),
-          ],
+          // QR code card — only shown for valid (unused) tickets
+          if (ticketStatus == 'valid' && qrCode != null)
+            _QrCodeCard(bookingId: booking['id'] as String, qrCode: qrCode)
+          else
+            _TicketStatusPlaceholder(status: ticketStatus),
+
+          const SizedBox(height: 12),
+          _StatusBadge(status: ticketStatus, large: true),
+          const SizedBox(height: 24),
 
           Container(
             width: double.infinity,
@@ -1313,35 +1260,7 @@ class _SingleTicketView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFDE68A)),
-            ),
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  color: Color(0xFFF59E0B),
-                  size: 16,
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Show this QR code to the conductor. Pay cash when boarding.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF92400E),
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _InfoBanner(status: ticketStatus),
           const SizedBox(height: 32),
         ],
       ),
@@ -1472,6 +1391,203 @@ class _DetailRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── QR Code Card ──────────────────────────────────────────────────────────────
+
+class _QrCodeCard extends StatelessWidget {
+  final String bookingId;
+  final String qrCode;
+  const _QrCodeCard({required this.bookingId, required this.qrCode});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          QrImageView(
+            data: qrCode,
+            version: QrVersions.auto,
+            size: 200,
+            backgroundColor: Colors.white,
+            errorStateBuilder: (_, __) => const SizedBox(
+              width: 200,
+              height: 200,
+              child: Center(
+                child: Text(
+                  'QR Error',
+                  style: TextStyle(color: Color(0xFFEF4444)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '#${bookingId.substring(0, 8).toUpperCase()}',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF374151),
+              letterSpacing: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Ticket Status Placeholder ─────────────────────────────────────────────────
+
+class _TicketStatusPlaceholder extends StatelessWidget {
+  final String status;
+  const _TicketStatusPlaceholder({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    IconData icon;
+    String message;
+    Color color;
+
+    switch (status) {
+      case 'used':
+        icon = Icons.check_circle_rounded;
+        message = 'Ticket already used';
+        color = const Color(0xFF6B7280);
+      case 'cancelled':
+        icon = Icons.cancel_rounded;
+        message = 'Ticket cancelled';
+        color = const Color(0xFFEF4444);
+      case 'expired':
+        icon = Icons.timer_off_rounded;
+        message = 'Ticket expired';
+        color = const Color(0xFF9CA3AF);
+      default:
+        icon = Icons.help_outline_rounded;
+        message = 'No ticket data';
+        color = const Color(0xFF9CA3AF);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 56, color: color),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Info Banner ───────────────────────────────────────────────────────────────
+
+class _InfoBanner extends StatelessWidget {
+  final String status;
+  const _InfoBanner({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    IconData icon;
+    String text;
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+    Color iconColor;
+
+    switch (status) {
+      case 'valid':
+        icon = Icons.info_outline_rounded;
+        text = 'Show this QR code to the conductor. Pay cash when boarding.';
+        bgColor = const Color(0xFFFFFBEB);
+        borderColor = const Color(0xFFFDE68A);
+        textColor = const Color(0xFF92400E);
+        iconColor = const Color(0xFFF59E0B);
+      case 'used':
+        icon = Icons.check_circle_outline_rounded;
+        text = 'This ticket has already been used for boarding.';
+        bgColor = const Color(0xFFF3F4F6);
+        borderColor = const Color(0xFFE5E7EB);
+        textColor = const Color(0xFF6B7280);
+        iconColor = const Color(0xFF6B7280);
+      case 'cancelled':
+        icon = Icons.cancel_outlined;
+        text = 'This booking has been cancelled.';
+        bgColor = const Color(0xFFFEE2E2);
+        borderColor = const Color(0xFFFCA5A5);
+        textColor = const Color(0xFF991B1B);
+        iconColor = const Color(0xFFEF4444);
+      case 'expired':
+        icon = Icons.timer_off_outlined;
+        text = 'This ticket has expired.';
+        bgColor = const Color(0xFFF3F4F6);
+        borderColor = const Color(0xFFE5E7EB);
+        textColor = const Color(0xFF6B7280);
+        iconColor = const Color(0xFF9CA3AF);
+      default:
+        icon = Icons.help_outline_rounded;
+        text = 'Ticket status is unknown.';
+        bgColor = const Color(0xFFFFFBEB);
+        borderColor = const Color(0xFFFDE68A);
+        textColor = const Color(0xFF92400E);
+        iconColor = const Color(0xFFF59E0B);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: iconColor, size: 16),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: textColor, height: 1.5),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

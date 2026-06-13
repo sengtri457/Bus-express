@@ -122,8 +122,8 @@ class _RouteListScreenState extends State<RouteListScreen> {
 
         if (tripForToday.isNotEmpty) {
           final tripStatus = tripForToday['status'] as String?;
-          // If driver clicked "end trip" (completed) or if it's cancelled, it should NOT show on the routes
-          if (tripStatus == 'completed' || tripStatus == 'cancelled') {
+          // Hide trips that have already started, ended, or were cancelled
+          if (tripStatus == 'in_progress' || tripStatus == 'completed' || tripStatus == 'cancelled') {
             continue;
           }
         }

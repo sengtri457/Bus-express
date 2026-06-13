@@ -26,7 +26,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
   String? _tripStatus;
 
   bool get _isExpired {
-    if (_tripStatus == 'completed' || _tripStatus == 'cancelled') return true;
+    if (_tripStatus == 'in_progress' || _tripStatus == 'completed' || _tripStatus == 'cancelled') return true;
 
     try {
       final arrivalParts = (widget.schedule['arrival_time'] as String).split(':');

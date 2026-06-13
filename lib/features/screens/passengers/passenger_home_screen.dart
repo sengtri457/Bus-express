@@ -512,8 +512,16 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                       const SizedBox(height: 14),
                       _PopularRoutes(
                         onRouteTap: (origin, destination) {
-                          _originController.text = origin;
-                          _destinationController.text = destination;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RouteListScreen(
+                                origin: origin,
+                                destination: destination,
+                                date: _selectedDate,
+                              ),
+                            ),
+                          );
                         },
                       ),
                       const SizedBox(height: 28),
@@ -667,20 +675,20 @@ class _PopularRoutesState extends State<_PopularRoutes> {
         ),
       );
     }
-                    return SlideFadeIn(
-                      duration: const Duration(milliseconds: 500),
-                      offset: 20,
-                      child: Column(
-                      children: _routes
-          .map(
-            (route) => _RouteCard(
-              route: route,
-              onTap: () =>
-                  widget.onRouteTap(route['origin'], route['destination']),
-            ),
-          )
-          .toList(),
-    ),
+    return SlideFadeIn(
+      duration: const Duration(milliseconds: 500),
+      offset: 20,
+      child: Column(
+        children: _routes
+            .map(
+              (route) => _RouteCard(
+                route: route,
+                onTap: () =>
+                    widget.onRouteTap(route['origin'], route['destination']),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }

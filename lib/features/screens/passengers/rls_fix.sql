@@ -39,6 +39,13 @@ CREATE POLICY "Authenticated users can insert trips"
   ON trips FOR INSERT
   WITH CHECK (true);
 
+-- Allow drivers / conductors to update trips (status, GPS coordinates).
+DROP POLICY IF EXISTS "Authenticated users can update trips" ON trips;
+CREATE POLICY "Authenticated users can update trips"
+  ON trips FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
+
 -- ── TICKETS & PAYMENTS (read-only for ticket display) ────────
 ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
 

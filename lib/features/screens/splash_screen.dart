@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../supabase_config.dart';
 import '../auth/login_screen.dart';
-
-// ─── Home screens (create these later per role) ───────────────────────────────
-// import '../../passenger/screens/passenger_home_screen.dart';
-// import '../../driver/screens/driver_home_screen.dart';
-// import '../../conductor/screens/conductor_home_screen.dart';
-// import '../../operator/screens/operator_home_screen.dart';
-// import '../../admin/screens/admin_home_screen.dart';
+import 'passengers/passenger_main_screen.dart';
+import 'drivers/driver_home_screen.dart';
+import 'conductors/conductor_home_screen.dart';
+import 'operators/operator_home_screen.dart';
+import 'superAdmin/super_admin_home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -72,23 +70,25 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateByRole(String role) {
-    // Replace with your actual home screens when ready
     switch (role) {
       case 'passenger':
-      // _navigateTo(const PassengerHomeScreen());
+        _navigateTo(const PassengerMainScreen());
+        break;
       case 'driver':
-      // _navigateTo(const DriverHomeScreen());
+        _navigateTo(const DriverHomeScreen());
+        break;
       case 'conductor':
-      // _navigateTo(const ConductorHomeScreen());
+        _navigateTo(const ConductorHomeScreen());
+        break;
       case 'operator_admin':
-      // _navigateTo(const OperatorHomeScreen());
+        _navigateTo(const OperatorHomeScreen());
+        break;
       case 'super_admin':
-      // _navigateTo(const AdminHomeScreen());
+        _navigateTo(const SuperAdminHomeScreen());
+        break;
       default:
         _navigateTo(const LoginScreen());
     }
-    // Temporary: go to login until home screens are built
-    _navigateTo(const LoginScreen());
   }
 
   void _navigateTo(Widget screen) {

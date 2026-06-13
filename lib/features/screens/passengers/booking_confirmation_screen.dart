@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phone_number/phone_number.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../supabase_config.dart';
 import 'passenger_main_screen.dart';
@@ -21,10 +22,14 @@ class BookingConfirmationScreen extends StatefulWidget {
 }
 
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  String? _userName;
-  String? _userPhone;
-  String? _userEmail;
+
+  // Passenger info controllers
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _nationalityController = TextEditingController();
 
   // Promo code state
   final TextEditingController _promoCodeController = TextEditingController();
@@ -50,6 +55,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _ageController.dispose();
+    _phoneController.dispose();
+    _nationalityController.dispose();
     _promoCodeController.dispose();
     super.dispose();
   }
@@ -60,15 +69,16 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (user == null) return;
       final data = await SupabaseConfig.client
           .from('users')
-          .select('name, phone, email')
+          .select('name, phone, email, age, nationality')
           .eq('id', user.id)
           .maybeSingle();
       if (mounted && data != null) {
-        setState(() {
-          _userName = data['name'];
-          _userPhone = data['phone'];
-          _userEmail = data['email'];
-        });
+        _nameController.text = data['name'] ?? '';
+        _phoneController.text = data['phone'] ?? '';
+        if (data['age'] != null) {
+          _ageController.text = data['age'].toString();
+        }
+        _nationalityController.text = data['nationality'] ?? '';
       }
     } catch (_) {}
   }
@@ -202,10 +212,30 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   }
 
   Future<void> _confirmBooking() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
     try {
       final user = SupabaseConfig.client.auth.currentUser;
       if (user == null) throw Exception('Not logged in');
+
+      // Validate phone number with libphonenumber
+      final phoneUtil = PhoneNumberUtil();
+      final phoneValid = await phoneUtil.validate(_phoneController.text.trim());
+      if (!phoneValid) {
+        throw Exception('Invalid phone number. Enter a real number with correct country code.');
+      }
+
+      // Save passenger info to user profile
+      await SupabaseConfig.client
+          .from('users')
+          .update({
+            'name': _nameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'age': int.tryParse(_ageController.text.trim()),
+            'nationality': _nationalityController.text.trim(),
+          })
+          .eq('id', user.id);
 
       final scheduleId = widget.schedule['id'] as String;
       final tripDate = widget.date.toIso8601String().split('T')[0];
@@ -222,12 +252,15 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (existingTrip != null) {
         tripId = existingTrip['id'] as String;
 
-        // Safety check: ensure the existing trip is not already completed or cancelled
+        // Safety check: ensure the existing trip has not already started, ended, or been cancelled
         final tripStatus = existingTrip['status'] as String?;
-        if (tripStatus == 'completed' || tripStatus == 'cancelled') {
-          throw Exception(
-            'This trip has already ${tripStatus == 'completed' ? 'ended' : 'been cancelled'} and cannot be booked.',
-          );
+        if (tripStatus == 'in_progress' || tripStatus == 'completed' || tripStatus == 'cancelled') {
+          final reason = tripStatus == 'in_progress'
+              ? 'already departed'
+              : tripStatus == 'completed'
+                  ? 'already ended'
+                  : 'been cancelled';
+          throw Exception('This trip has $reason and cannot be booked.');
         }
       } else {
         // FIX 1: was .single() — crashes if RLS blocks the insert or
@@ -268,6 +301,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               'total_price': _pricePerSeat,
               'booked_at': DateTime.now().toIso8601String(),
               'booking_channel': 'online',
+              'passenger_name': _nameController.text.trim(),
+              'passenger_age': int.tryParse(_ageController.text.trim()),
+              'passenger_phone': _phoneController.text.trim(),
+              'passenger_nationality': _nationalityController.text.trim(),
             })
             .select('id')
             .maybeSingle();
@@ -532,26 +569,68 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
             _SectionCard(
               title: 'Passenger',
               icon: Icons.person_outline_rounded,
-              child: Column(
-                children: [
-                  _InfoRow(
-                    icon: Icons.person_rounded,
-                    label: 'Name',
-                    value: _userName ?? '—',
-                  ),
-                  const SizedBox(height: 10),
-                  _InfoRow(
-                    icon: Icons.email_outlined,
-                    label: 'Email',
-                    value: _userEmail ?? '—',
-                  ),
-                  const SizedBox(height: 10),
-                  _InfoRow(
-                    icon: Icons.phone_outlined,
-                    label: 'Phone',
-                    value: _userPhone ?? '—',
-                  ),
-                ],
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: _inputDecoration(
+                        label: 'Full Name',
+                        icon: Icons.person_rounded,
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Enter your full name' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _ageController,
+                      decoration: _inputDecoration(
+                        label: 'Age',
+                        icon: Icons.numbers_rounded,
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Enter your age';
+                        final age = int.tryParse(v);
+                        if (age == null || age < 1 || age > 120) return 'Enter a valid age';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: _inputDecoration(
+                        label: 'Phone Number',
+                        icon: Icons.phone_outlined,
+                        helperText: 'Include country code (e.g. +1XXXXXXXXX) for OTP',
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Enter your phone number';
+                        final phone = v.trim();
+                        if (!phone.startsWith('+')) return 'Include country code (e.g. +1XXXXXXXXX)';
+                        final digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
+                        if (digitsOnly.length < 8 || digitsOnly.length > 15) {
+                          return 'Enter a valid phone number (8–15 digits)';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _nationalityController,
+                      decoration: _inputDecoration(
+                        label: 'Nationality',
+                        icon: Icons.flag_rounded,
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Enter your nationality' : null,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -963,6 +1042,47 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required IconData icon,
+    String? helperText,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: Color(0xFF6B7280),
+      ),
+      helperText: helperText,
+      helperStyle: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+      prefixIcon: Icon(icon, size: 18, color: const Color(0xFF9CA3AF)),
+      filled: true,
+      fillColor: const Color(0xFFF9FAFB),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFF2563EB)),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFEF4444)),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFEF4444)),
       ),
     );
   }

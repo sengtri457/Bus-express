@@ -633,7 +633,7 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
         final ext = _logoFileName!.contains('.')
             ? _logoFileName!.split('.').last
             : 'png';
-        final path = 'operator-logos/$operatorId/logo.$ext';
+        final path = '$operatorId/logo.$ext';
         await SupabaseConfig.client.storage
             .from('operator-logos')
             .uploadBinary(path, _logoBytes!);

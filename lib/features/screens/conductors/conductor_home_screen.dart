@@ -97,6 +97,9 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
         debugPrint('[Conductor Sync] Error auto-spawning trips: $e');
       }
 
+      // Auto-complete any newly spawned trips whose departure time has already passed
+      await SupabaseConfig.syncOverdueTrips();
+
       // Load today's trip
       debugPrint(
         '[Conductor] Querying trips for date=$today, conductor_id=${user.id}',
@@ -316,10 +319,63 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
 
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Quick Actions (scrolls with content)
+                          if (_todayTrip != null) ...[
+                            const Text(
+                              'Quick Actions',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF111827),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _ActionCard(
+                                    icon: Icons.qr_code_scanner_rounded,
+                                    label: 'Scan Ticket',
+                                    color: const Color(0xFF2563EB),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ConductorScannerScreen(
+                                            tripId: _todayTrip!['id'],
+                                          ),
+                                        ),
+                                      ).then((_) => _loadData());
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _ActionCard(
+                                    icon: Icons.people_rounded,
+                                    label: 'Passenger List',
+                                    color: const Color(0xFF1A73E8),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ConductorPassengersScreen(
+                                            trip: _todayTrip!,
+                                          ),
+                                        ),
+                                      ).then((_) => _loadData());
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+
                           // Boarding stats
                           if (_todayTrip != null) ...[
                             Row(
@@ -393,56 +449,6 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                                   }).toList(),
                                 )
                               : _NoTripCard(),
-
-                          // Quick actions
-                          if (_todayTrip != null) ...[
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Quick Actions',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _ActionCard(
-                                    icon: Icons.qr_code_scanner_rounded,
-                                    label: 'Scan Ticket',
-                                    color: const Color(0xFF2563EB),
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ConductorScannerScreen(
-                                          tripId: _todayTrip!['id'],
-                                        ),
-                                      ),
-                                    ).then((_) => _loadData()),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _ActionCard(
-                                    icon: Icons.people_rounded,
-                                    label: 'Passenger List',
-                                    color: const Color(0xFF1A73E8),
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ConductorPassengersScreen(
-                                              trip: _todayTrip!,
-                                            ),
-                                      ),
-                                    ).then((_) => _loadData()),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),

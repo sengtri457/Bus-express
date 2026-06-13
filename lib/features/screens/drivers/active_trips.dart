@@ -21,6 +21,8 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
   Position? _currentPosition;
   _GpsState _gpsState = _GpsState.idle;
   String _gpsMessage = 'GPS not started';
+  DateTime? _lastGpsSync;
+  static const Duration _gpsThrottle = Duration(seconds: 5);
 
   // UI
   bool _startLoading = false;
@@ -110,24 +112,34 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
         '[GPS Sync] Initial driver position synced: ${initialPos.latitude}, ${initialPos.longitude}',
       );
     } catch (e) {
-      debugPrint('[GPS Sync] Error getting initial position: $e');
+      _setGpsError('Could not get GPS position: $e');
     }
 
     _posStream =
         Geolocator.getPositionStream(
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.high,
-            distanceFilter:
-                5, // lowered to 5m for easier testing and higher update frequency
+            distanceFilter: 10,
           ),
         ).listen((pos) {
           if (!mounted) return;
           setState(() => _currentPosition = pos);
-          // Push to Supabase
-          SupabaseConfig.client
-              .from('trips')
-              .update({'latitude': pos.latitude, 'longitude': pos.longitude})
-              .eq('id', _trip['id'] as String);
+
+          // Throttle writes to Supabase — the passenger tracking polls every 5s
+          // so writing faster is wasteful and risks hitting rate limits.
+          final now = DateTime.now();
+          if (_lastGpsSync == null ||
+              now.difference(_lastGpsSync!) >= _gpsThrottle) {
+            _lastGpsSync = now;
+            SupabaseConfig.client
+                .from('trips')
+                .update({
+                  'latitude': pos.latitude,
+                  'longitude': pos.longitude,
+                })
+                .eq('id', _trip['id'] as String)
+                .catchError((err) => debugPrint('[GPS] Sync error: $err'));
+          }
         }, onError: (_) => _setGpsError('GPS signal lost. Retrying…'));
   }
 

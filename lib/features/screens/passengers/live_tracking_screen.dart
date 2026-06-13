@@ -32,6 +32,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   String? _scheduledDeparture;
   String? _scheduledArrival;
   bool _isLoading = true;
+  String? _errorMessage;
   bool _followBus = true;
   bool _mapReady = false;
 
@@ -203,6 +204,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   }
 
   Future<void> _loadInitialData() async {
+    setState(() => _errorMessage = null);
     try {
       final results = await Future.wait<dynamic>([
         SupabaseConfig.client
@@ -257,11 +259,19 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
             }
           });
         }
-      } else {
-        setState(() => _isLoading = false);
+      } else if (mounted) {
+        setState(() {
+          _errorMessage = 'Trip not found. It may have been cancelled.';
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Could not load tracking data. Check your connection.';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -301,6 +311,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
           final schedule = data['schedules'] as Map<String, dynamic>?;
 
           final oldBusPosition = _busPosition;
+          final oldTripStatus = _tripStatus;
 
           setState(() {
             _tripStatus = data['status'] ?? _tripStatus;
@@ -315,8 +326,9 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
             }
           });
 
-          // Recalculate route polyline dynamically if the bus's live coordinates changed!
-          if (_busPosition != oldBusPosition) {
+          // Recalculate route polyline if position changed OR trip status changed
+          // (e.g., scheduled→in_progress updates route from origin→dest to bus→dest)
+          if (_busPosition != oldBusPosition || _tripStatus != oldTripStatus) {
             _updateRoutePath();
           }
 
@@ -351,24 +363,27 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   String get _estimatedArrivalTime {
     if (_scheduledArrival == null) return '—';
     try {
-      final parts = _scheduledArrival!.split(':');
-      final schedHours = int.parse(parts[0]);
-      final schedMinutes = int.parse(parts[1]);
+      final aParts = _scheduledArrival!.split(':');
+      final aHour = int.parse(aParts[0]);
+      final aMin = int.parse(aParts[1]);
 
-      // Create a dummy DateTime today with scheduled arrival time
       final now = DateTime.now();
-      var arrivalDateTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        schedHours,
-        schedMinutes,
-      );
+      var arrivalDateTime = DateTime(now.year, now.month, now.day, aHour, aMin);
 
-      // Add the total delay minutes
+      // Handle overnight trips: if arrival time is before departure time,
+      // the arrival is on the next calendar day.
+      if (_scheduledDeparture != null) {
+        final dParts = _scheduledDeparture!.split(':');
+        final dHour = int.parse(dParts[0]);
+        final dMin = int.parse(dParts[1]);
+        final departureDateTime = DateTime(now.year, now.month, now.day, dHour, dMin);
+        if (arrivalDateTime.isBefore(departureDateTime)) {
+          arrivalDateTime = arrivalDateTime.add(const Duration(days: 1));
+        }
+      }
+
       arrivalDateTime = arrivalDateTime.add(Duration(minutes: _totalDelayMinutes));
 
-      // Format to readable 12-hour AM/PM string
       final h = arrivalDateTime.hour;
       final m = arrivalDateTime.minute.toString().padLeft(2, '0');
       final period = h >= 12 ? 'PM' : 'AM';
@@ -377,6 +392,63 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     } catch (_) {
       return _scheduledArrival!;
     }
+  }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(36),
+              ),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                color: Color(0xFFEF4444),
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _errorMessage ?? 'Something went wrong.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF6B7280),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _errorMessage = null;
+                });
+                _loadInitialData();
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A73E8),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -424,7 +496,9 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Stack(
+          : _errorMessage != null
+              ? _buildErrorView()
+              : Stack(
               children: [
                 // ── MAP ────────────────────────────────────────────────
                 FlutterMap(
@@ -762,17 +836,26 @@ class _StatusOverlayCard extends StatelessWidget {
 
     switch (status) {
       case 'in_progress':
-        color = const Color(0xFF10B981);
-        icon = Icons.play_circle_rounded;
-        label = 'Bus is on the way';
+        if (busPosition != null) {
+          color = const Color(0xFF10B981);
+          icon = Icons.play_circle_rounded;
+          label = 'Bus is on the way';
+        } else {
+          color = const Color(0xFFF59E0B);
+          icon = Icons.gps_fixed_rounded;
+          label = 'Locating bus...';
+        }
+        break;
       case 'completed':
         color = const Color(0xFF6B7280);
         icon = Icons.check_circle_rounded;
         label = 'Trip completed';
+        break;
       case 'cancelled':
         color = const Color(0xFFEF4444);
         icon = Icons.cancel_rounded;
         label = 'Trip cancelled';
+        break;
       default:
         color = const Color(0xFF1A73E8);
         icon = Icons.schedule_rounded;
@@ -826,8 +909,8 @@ class _StatusOverlayCard extends StatelessWidget {
               ],
             ),
           ),
-          // Live indicator
-          if (status == 'in_progress')
+          // Live indicator (only show when we have actual GPS data)
+          if (status == 'in_progress' && busPosition != null)
             Row(
               children: [
                 Container(

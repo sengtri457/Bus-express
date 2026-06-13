@@ -93,6 +93,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         debugPrint('[Driver Sync] Error auto-spawning trips: $e');
       }
 
+      // Auto-complete any newly spawned trips whose departure time has already passed
+      await SupabaseConfig.syncOverdueTrips();
+
       // Load today's and upcoming trips
       debugPrint(
         '[Driver] Querying trips for date >= $today, driver_id=${user.id}',

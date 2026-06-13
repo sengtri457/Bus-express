@@ -22,18 +22,169 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
   Position? _currentPosition;
   int _boardedCount = 0;
 
+  // End-trip validation
+  List<Map<String, dynamic>> _incidents = [];
+  Timer? _endTripTimer;
+  bool _canEndTrip = false;
+  DateTime? _scheduledArrival;
+  DateTime? _adjustedArrival;
+
+  static const Map<String, int> _incidentDelays = {
+    'delay': 20,
+    'breakdown': 30,
+    'accident': 45,
+    'other': 15,
+  };
+
   @override
   void initState() {
     super.initState();
     _trip = Map<String, dynamic>.from(widget.trip);
+    _refreshTrip();
     _loadPassengers();
+    _computeSchedule();
+    _loadIncidents();
+    _startEndTripCheck();
+  }
+
+  Future<void> _refreshTrip() async {
+    try {
+      final data = await SupabaseConfig.client
+          .from('trips')
+          .select('''
+            id, trip_date, status, departed_at, arrived_at,
+            schedules (
+              departure_time, arrival_time, price,
+              routes ( name, origin, destination, distance_km, duration_min ),
+              buses ( model, plate_number, capacity )
+            )
+          ''')
+          .eq('id', _trip['id'])
+          .single();
+      if (mounted) setState(() => _trip = Map<String, dynamic>.from(data));
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     _gpsTimer?.cancel();
+    _endTripTimer?.cancel();
     super.dispose();
   }
+
+  // ─── Time Helpers (shared, no duplication) ───────────────
+
+  static String formatTime(String t) {
+    if (t.isEmpty) return '';
+    final p = t.split(':');
+    final h = int.parse(p[0]);
+    final period = h >= 12 ? 'PM' : 'AM';
+    final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+    return '$dh:${p[1]} $period';
+  }
+
+  static String formatIsoTimestamp(String ts) {
+    final dt = DateTime.parse(ts).toLocal();
+    return formatTime('${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}');
+  }
+
+  static String formatDate(String d) {
+    final dt = DateTime.parse(d);
+    const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const w = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return '${w[dt.weekday - 1]}, ${dt.day} ${m[dt.month - 1]} ${dt.year}';
+  }
+
+  static int _minuteOfDay(String timeStr) {
+    final p = timeStr.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
+  }
+
+  static DateTime _parseScheduleTime(String dateStr, String timeStr, {String? departureTimeStr}) {
+    final parts = timeStr.split(':');
+    final date = DateTime.parse(dateStr);
+    var dt = DateTime(date.year, date.month, date.day, int.parse(parts[0]), int.parse(parts[1]));
+    if (departureTimeStr != null && _minuteOfDay(timeStr) < _minuteOfDay(departureTimeStr)) {
+      dt = dt.add(const Duration(days: 1));
+    }
+    return dt;
+  }
+
+  // ─── Schedule & Incident Logic ──────────────────────────
+
+  void _computeSchedule() {
+    final schedule = _trip['schedules'] as Map<String, dynamic>?;
+    if (schedule == null) return;
+    final arrivalStr = schedule['arrival_time'] as String?;
+    final depStr = schedule['departure_time'] as String?;
+    final dateStr = _trip['trip_date'] as String?;
+    if (arrivalStr == null || dateStr == null) return;
+    _scheduledArrival = _parseScheduleTime(dateStr, arrivalStr, departureTimeStr: depStr);
+    _updateAdjustedArrival();
+  }
+
+  void _updateAdjustedArrival() {
+    if (_scheduledArrival == null) return;
+    _adjustedArrival = _scheduledArrival!.add(Duration(minutes: _totalDelay));
+  }
+
+  int get _totalDelay {
+    int total = 0;
+    for (final inc in _incidents) {
+      final type = inc['type'] as String? ?? 'other';
+      total += _incidentDelays[type] ?? 15;
+    }
+    return total;
+    return total;
+  }
+
+  Future<void> _loadIncidents() async {
+    try {
+      final data = await SupabaseConfig.client
+          .from('incidents')
+          .select('type, created_at')
+          .eq('trip_id', _trip['id'])
+          .order('created_at', ascending: false);
+      if (mounted) {
+        setState(() {
+          _incidents = List<Map<String, dynamic>>.from(data);
+          _updateAdjustedArrival();
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _startEndTripCheck() {
+    _checkEndTrip();
+    _endTripTimer = Timer.periodic(const Duration(seconds: 1), (_) => _checkEndTrip());
+  }
+
+  void _checkEndTrip() {
+    if (_status != 'in_progress' || _adjustedArrival == null) {
+      if (_canEndTrip && mounted) setState(() => _canEndTrip = false);
+      return;
+    }
+    final canEnd = DateTime.now().isAfter(_adjustedArrival!);
+    if (canEnd != _canEndTrip && mounted) {
+      setState(() => _canEndTrip = canEnd);
+    }
+  }
+
+  String get _endTripCountdown {
+    if (_adjustedArrival == null || _canEndTrip) return '';
+    final remaining = _adjustedArrival!.difference(DateTime.now());
+    if (remaining.isNegative) return '';
+    final h = remaining.inHours;
+    final m = remaining.inMinutes % 60;
+    if (h > 0) return '${h}h ${m}m';
+    return '${m}m';
+  }
+
+  String get _status => _trip['status'] as String? ?? 'scheduled';
+  bool get _isInProgress => _status == 'in_progress';
+  bool get _isScheduled => _status == 'scheduled';
+
+  // ─── Passengers ─────────────────────────────────────────
 
   Future<void> _loadPassengers() async {
     try {
@@ -60,6 +211,8 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
     }
   }
 
+  // ─── Trip Actions ───────────────────────────────────────
+
   Future<void> _startTrip() async {
     final confirm = await _showConfirmDialog(
       title: 'Start Trip',
@@ -71,7 +224,6 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // 1. Fetch conductor permission
       final tripData = await SupabaseConfig.client
           .from('trips')
           .select('conductor_allowed_start')
@@ -79,31 +231,51 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
           .single();
 
       final allowedByConductor = tripData['conductor_allowed_start'] == true;
-      
-      // 2. Get capacity from the already loaded _trip data
+
       final scheduleInfo = _trip['schedules'] as Map<String, dynamic>?;
       final busInfo = scheduleInfo?['buses'] as Map<String, dynamic>?;
-      
+
       int capacity = 0;
       final rawCap = busInfo?['capacity'];
       if (rawCap is int) capacity = rawCap;
       else if (rawCap is num) capacity = rawCap.toInt();
       else if (rawCap is String) capacity = int.tryParse(rawCap) ?? 0;
 
-      // 3. Validation logic
       final isFull = capacity > 0 && _boardedCount >= capacity;
-      
+
       if (!isFull && !allowedByConductor) {
         _showSnackBar('Bus is not full ($_boardedCount/$capacity). Waiting for Conductor permission.', Colors.red);
-        return; // Early return, loading state will be reset in finally block
+        return;
       }
 
+      double? initialLat;
+      double? initialLng;
+      try {
+        final permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          await Geolocator.requestPermission();
+        }
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        initialLat = position.latitude;
+        initialLng = position.longitude;
+        if (mounted) setState(() => _currentPosition = position);
+      } catch (e) {
+        debugPrint('GPS initial fix error: $e');
+      }
+
+      final updatePayload = <String, dynamic>{
+        'status': 'in_progress',
+        'departed_at': DateTime.now().toIso8601String(),
+      };
+      if (initialLat != null && initialLng != null) {
+        updatePayload['latitude'] = initialLat;
+        updatePayload['longitude'] = initialLng;
+      }
       await SupabaseConfig.client
           .from('trips')
-          .update({
-            'status': 'in_progress',
-            'departed_at': DateTime.now().toIso8601String(),
-          })
+          .update(updatePayload)
           .eq('id', _trip['id']);
 
       setState(() {
@@ -121,9 +293,22 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
   }
 
   Future<void> _endTrip() async {
+    if (!_canEndTrip && _adjustedArrival != null) {
+      _showSnackBar(
+        'Arrival at ${formatIsoTimestamp(_adjustedArrival!.toIso8601String())}. '
+        'Please wait $_endTripCountdown to end the trip.',
+        Colors.orange,
+      );
+      return;
+    }
+
+    final message = _totalDelay > 0
+        ? 'Trip was delayed by $_totalDelay min due to incidents. Confirm arrival?'
+        : 'Confirm you have arrived at the destination?';
+
     final confirm = await _showConfirmDialog(
       title: 'End Trip',
-      message: 'Confirm you have arrived at the destination?',
+      message: message,
       confirmLabel: 'End Trip',
       confirmColor: const Color(0xFF1A73E8),
     );
@@ -153,6 +338,8 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  // ─── GPS ────────────────────────────────────────────────
 
   void _startGPSTracking() {
     setState(() => _isTrackingGPS = true);
@@ -185,6 +372,8 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
     setState(() => _isTrackingGPS = false);
   }
 
+  // ─── UI Helpers ─────────────────────────────────────────
+
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -204,6 +393,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
   }) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -214,10 +404,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF6B7280)),
-            ),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -225,9 +412,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
               backgroundColor: confirmColor,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: Text(confirmLabel),
           ),
@@ -237,12 +422,13 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
     return result ?? false;
   }
 
+  // ─── Build ──────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final schedule = _trip['schedules'] as Map<String, dynamic>?;
     final route = schedule?['routes'] as Map<String, dynamic>?;
     final bus = schedule?['buses'] as Map<String, dynamic>?;
-    final status = _trip['status'] as String;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -250,21 +436,20 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Trip Management',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
+        title: const Text('Trip Management', style: TextStyle(fontWeight: FontWeight.w700)),
         actions: [
           IconButton(
             icon: const Icon(Icons.warning_amber_rounded),
             tooltip: 'Report Incident',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    DriverIncidentScreen(tripId: _trip['id'] as String),
-              ),
-            ),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DriverIncidentScreen(tripId: _trip['id'] as String),
+                ),
+              );
+              _loadIncidents();
+            },
           ),
         ],
       ),
@@ -276,19 +461,14 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Trip Status Card
               _TripStatusCard(
                 trip: _trip,
                 isTrackingGPS: _isTrackingGPS,
                 currentPosition: _currentPosition,
               ),
               const SizedBox(height: 10),
-
-              // Schedule Adherence Card
               _ScheduleAdherenceCard(trip: _trip),
               const SizedBox(height: 16),
-
-              // Route Info
               _InfoCard(
                 child: Column(
                   children: [
@@ -301,7 +481,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                     _InfoRow(
                       icon: Icons.access_time_rounded,
                       label: 'Departure',
-                      value: _formatTime(schedule?['departure_time'] ?? ''),
+                      value: formatTime(schedule?['departure_time'] ?? ''),
                     ),
                     const Divider(height: 20, color: Color(0xFFF3F4F6)),
                     _InfoRow(
@@ -313,12 +493,21 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                     _InfoRow(
                       icon: Icons.calendar_today_rounded,
                       label: 'Date',
-                      value: _formatDate(_trip['trip_date'] as String),
+                      value: formatDate(_trip['trip_date'] as String),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
+
+              // Incident delay info
+              if (_isInProgress && _totalDelay > 0)
+                _DelayInfoCard(
+                  totalDelay: _totalDelay,
+                  incidentCount: _incidents.length,
+                  adjustedArrival: _adjustedArrival,
+                ),
+              if (_isInProgress && _totalDelay > 0) const SizedBox(height: 16),
 
               // GPS Status
               if (_isTrackingGPS)
@@ -333,31 +522,16 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                   child: Row(
                     children: [
                       Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10B981),
-                          shape: BoxShape.circle,
-                        ),
+                        width: 8, height: 8,
+                        decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
-                        'GPS Tracking Active',
-                        style: TextStyle(
-                          color: Color(0xFF065F46),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
+                      const Text('GPS Tracking Active', style: TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.w600, fontSize: 13)),
                       const Spacer(),
                       if (_currentPosition != null)
                         Text(
-                          '${_currentPosition!.latitude.toStringAsFixed(4)}, '
-                          '${_currentPosition!.longitude.toStringAsFixed(4)}',
-                          style: const TextStyle(
-                            color: Color(0xFF059669),
-                            fontSize: 11,
-                          ),
+                          '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}',
+                          style: const TextStyle(color: Color(0xFF059669), fontSize: 11),
                         ),
                     ],
                   ),
@@ -367,79 +541,38 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Passengers',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
+                  const Text('Passengers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '$_boardedCount/${_passengers.length} boarded',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF1A73E8),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(20)),
+                    child: Text('$_boardedCount/${_passengers.length} boarded',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF1A73E8), fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-
-              // Passenger List
               _passengers.isEmpty
                   ? Container(
                       padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'No passengers booked yet',
-                          style: TextStyle(color: Color(0xFF9CA3AF)),
-                        ),
-                      ),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      child: const Center(child: Text('No passengers booked yet', style: TextStyle(color: Color(0xFF9CA3AF)))),
                     )
-                  : Column(
-                      children: _passengers
-                          .map((p) => _PassengerTile(passenger: p))
-                          .toList(),
-                    ),
-
+                  : Column(children: _passengers.map((p) => _PassengerTile(passenger: p)).toList()),
               const SizedBox(height: 100),
             ],
           ),
         ),
       ),
 
-      // Bottom Action Button
-      bottomNavigationBar: status == 'completed' || status == 'cancelled'
+      bottomNavigationBar: _status == 'completed' || _status == 'cancelled'
           ? null
           : Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, -3))],
               ),
-              child: status == 'scheduled'
+              child: _isScheduled
                   ? _ActionButton(
                       label: 'Start Trip',
                       icon: Icons.play_arrow_rounded,
@@ -447,44 +580,33 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                       isLoading: _isLoading,
                       onPressed: _startTrip,
                     )
-                  : _ActionButton(
-                      label: 'End Trip (Arrived)',
-                      icon: Icons.flag_rounded,
-                      color: const Color(0xFF1A73E8),
-                      isLoading: _isLoading,
-                      onPressed: _endTrip,
-                    ),
+                  : _buildEndTripButton(),
             ),
     );
   }
 
-  String _formatTime(String t) {
-    if (t.isEmpty) return '';
-    final p = t.split(':');
-    final h = int.parse(p[0]);
-    final period = h >= 12 ? 'PM' : 'AM';
-    final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
-    return '$dh:${p[1]} $period';
-  }
+  Widget _buildEndTripButton() {
+    if (_adjustedArrival == null) {
+      return _ActionButton(
+        label: 'End Trip (Arrived)',
+        icon: Icons.flag_rounded,
+        color: const Color(0xFF1A73E8),
+        isLoading: _isLoading,
+        onPressed: _endTrip,
+      );
+    }
 
-  String _formatDate(String d) {
-    final dt = DateTime.parse(d);
-    const m = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    const w = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return '${w[dt.weekday - 1]}, ${dt.day} ${m[dt.month - 1]} ${dt.year}';
+    final label = _canEndTrip
+        ? 'End Trip (Arrived)'
+        : 'End Trip (ready in $_endTripCountdown)';
+
+    return _ActionButton(
+      label: label,
+      icon: Icons.flag_rounded,
+      color: _canEndTrip ? const Color(0xFF1A73E8) : const Color(0xFF9CA3AF),
+      isLoading: _isLoading,
+      onPressed: _canEndTrip ? _endTrip : null,
+    );
   }
 }
 
@@ -495,40 +617,18 @@ class _TripStatusCard extends StatelessWidget {
   final bool isTrackingGPS;
   final Position? currentPosition;
 
-  const _TripStatusCard({
-    required this.trip,
-    required this.isTrackingGPS,
-    required this.currentPosition,
-  });
+  const _TripStatusCard({required this.trip, required this.isTrackingGPS, required this.currentPosition});
 
   @override
   Widget build(BuildContext context) {
     final status = trip['status'] as String;
     final configs = {
-      'scheduled': [
-        const Color(0xFF1A73E8),
-        Icons.schedule_rounded,
-        'Ready to Depart',
-      ],
-      'in_progress': [
-        const Color(0xFF10B981),
-        Icons.play_circle_rounded,
-        'Trip In Progress',
-      ],
-      'completed': [
-        const Color(0xFF6B7280),
-        Icons.check_circle_rounded,
-        'Trip Completed',
-      ],
-      'cancelled': [
-        const Color(0xFFEF4444),
-        Icons.cancel_rounded,
-        'Trip Cancelled',
-      ],
+      'scheduled': [const Color(0xFF1A73E8), Icons.schedule_rounded, 'Ready to Depart'],
+      'in_progress': [const Color(0xFF10B981), Icons.play_circle_rounded, 'Trip In Progress'],
+      'completed': [const Color(0xFF6B7280), Icons.check_circle_rounded, 'Trip Completed'],
+      'cancelled': [const Color(0xFFEF4444), Icons.cancel_rounded, 'Trip Cancelled'],
     };
-    final cfg =
-        configs[status] ??
-        [const Color(0xFFF59E0B), Icons.pending_rounded, 'Unknown'];
+    final cfg = configs[status] ?? [const Color(0xFFF59E0B), Icons.pending_rounded, 'Unknown'];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -541,10 +641,7 @@ class _TripStatusCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: (cfg[0] as Color).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(14),
-            ),
+            decoration: BoxDecoration(color: (cfg[0] as Color).withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
             child: Icon(cfg[1] as IconData, color: cfg[0] as Color, size: 28),
           ),
           const SizedBox(width: 16),
@@ -552,25 +649,15 @@ class _TripStatusCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  cfg[2] as String,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: cfg[0] as Color,
-                  ),
-                ),
+                Text(cfg[2] as String, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cfg[0] as Color)),
                 const SizedBox(height: 4),
                 Text(
                   status == 'in_progress' && trip['departed_at'] != null
-                      ? 'Departed at ${_formatTimestamp(trip['departed_at'])}'
+                      ? 'Departed at ${formatTimestamp(trip['departed_at'])}'
                       : status == 'completed' && trip['arrived_at'] != null
-                      ? 'Arrived at ${_formatTimestamp(trip['arrived_at'])}'
+                      ? 'Arrived at ${formatTimestamp(trip['arrived_at'])}'
                       : 'Tap "Start Trip" when ready',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: (cfg[0] as Color).withOpacity(0.8),
-                  ),
+                  style: TextStyle(fontSize: 12, color: (cfg[0] as Color).withOpacity(0.8)),
                 ),
               ],
             ),
@@ -580,12 +667,58 @@ class _TripStatusCard extends StatelessWidget {
     );
   }
 
-  String _formatTimestamp(String ts) {
+  String formatTimestamp(String ts) {
     final dt = DateTime.parse(ts).toLocal();
     final h = dt.hour;
     final period = h >= 12 ? 'PM' : 'AM';
     final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
     return '$dh:${dt.minute.toString().padLeft(2, '0')} $period';
+  }
+}
+
+// ─── Delay Info Card ──────────────────────────────────────────────────────────
+
+class _DelayInfoCard extends StatelessWidget {
+  final int totalDelay;
+  final int incidentCount;
+  final DateTime? adjustedArrival;
+
+  const _DelayInfoCard({required this.totalDelay, required this.incidentCount, this.adjustedArrival});
+
+  @override
+  Widget build(BuildContext context) {
+    final arrivalStr = adjustedArrival != null
+        ? _DriverTripScreenState.formatIsoTimestamp(adjustedArrival!.toIso8601String())
+        : '—';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: const Color(0xFFF59E0B).withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.timer_off_rounded, color: Color(0xFFF59E0B), size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$totalDelay min delay ($incidentCount incident${incidentCount > 1 ? 's' : ''})',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
+                Text('Adjusted ETA: $arrivalStr',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFFA16207))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -599,10 +732,6 @@ class _PassengerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = passenger['users'] as Map<String, dynamic>?;
     final status = passenger['status'] as String;
-    final ticketList = passenger['tickets'] as List?;
-    final ticketStatus = ticketList != null && ticketList.isNotEmpty
-        ? ticketList.first['status'] as String
-        : 'unknown';
 
     Color statusColor;
     IconData statusIcon;
@@ -610,9 +739,11 @@ class _PassengerTile extends StatelessWidget {
       case 'boarded':
         statusColor = const Color(0xFF10B981);
         statusIcon = Icons.check_circle_rounded;
+        break;
       case 'confirmed':
         statusColor = const Color(0xFF1A73E8);
         statusIcon = Icons.confirmation_number_rounded;
+        break;
       default:
         statusColor = const Color(0xFFF59E0B);
         statusIcon = Icons.pending_rounded;
@@ -624,13 +755,7 @@ class _PassengerTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
@@ -639,11 +764,7 @@ class _PassengerTile extends StatelessWidget {
             backgroundColor: statusColor.withOpacity(0.1),
             child: Text(
               (user?['name'] as String? ?? 'P')[0].toUpperCase(),
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: statusColor, fontWeight: FontWeight.w700, fontSize: 16),
             ),
           ),
           const SizedBox(width: 12),
@@ -651,21 +772,10 @@ class _PassengerTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  user?['name'] ?? 'Unknown Passenger',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                Text(
-                  'Seat ${passenger['seat_number']} • ${user?['phone'] ?? ''}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF6B7280),
-                  ),
-                ),
+                Text(user?['name'] ?? 'Unknown Passenger',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
+                Text('Seat ${passenger['seat_number']} • ${user?['phone'] ?? ''}',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ],
             ),
           ),
@@ -674,14 +784,8 @@ class _PassengerTile extends StatelessWidget {
             children: [
               Icon(statusIcon, color: statusColor, size: 20),
               const SizedBox(height: 2),
-              Text(
-                status[0].toUpperCase() + status.substring(1),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: statusColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text('${status[0].toUpperCase()}${status.substring(1)}',
+                style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w600)),
             ],
           ),
         ],
@@ -703,13 +807,7 @@ class _InfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: child,
     );
@@ -720,11 +818,7 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -732,19 +826,9 @@ class _InfoRow extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
         const SizedBox(width: 10),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-        ),
+        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
       ],
     );
   }
@@ -755,7 +839,7 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool isLoading;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _ActionButton({
     required this.label,
@@ -767,32 +851,21 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final disabled = onPressed == null;
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: ElevatedButton.icon(
         onPressed: isLoading ? null : onPressed,
         icon: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : Icon(icon, size: 22),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
+          backgroundColor: disabled ? const Color(0xFFD1D5DB) : color,
+          foregroundColor: disabled ? const Color(0xFF9CA3AF) : Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );
@@ -819,23 +892,17 @@ class _ScheduleAdherenceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: punctuality.color.withOpacity(0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: punctuality.color.withOpacity(0.25),
-        ),
+        border: Border.all(color: punctuality.color.withOpacity(0.25)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: punctuality.color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                decoration: BoxDecoration(color: punctuality.color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
                 child: Icon(punctuality.icon, color: punctuality.color, size: 18),
               ),
               const SizedBox(width: 10),
@@ -843,21 +910,8 @@ class _ScheduleAdherenceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      punctuality.label,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: punctuality.color,
-                      ),
-                    ),
-                    Text(
-                      punctuality.message,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: punctuality.color.withOpacity(0.8),
-                      ),
-                    ),
+                    Text(punctuality.label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: punctuality.color)),
+                    Text(punctuality.message, style: TextStyle(fontSize: 12, color: punctuality.color.withOpacity(0.8))),
                   ],
                 ),
               ),
@@ -866,34 +920,22 @@ class _ScheduleAdherenceCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(height: 1, color: Color(0xFFE5E7EB)),
           const SizedBox(height: 14),
-
-          // Timeline comparison: Scheduled vs Actual
           Row(
             children: [
-              Expanded(
-                child: _TimelineCompare(
-                  label: 'Departure',
-                  scheduled: _fmtScheduleTime(departureTimeStr),
-                  actual: departedAt != null ? _fmtIso(departedAt) : null,
-                  isMissed: status == 'scheduled' &&
-                      _isOverdue(trip['trip_date'] as String? ?? '', departureTimeStr),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 50,
-                color: const Color(0xFFE5E7EB),
-                margin: const EdgeInsets.symmetric(horizontal: 14),
-              ),
-              Expanded(
-                child: _TimelineCompare(
-                  label: 'Arrival',
-                  scheduled: _fmtScheduleTime(arrivalTimeStr),
-                  actual: arrivedAt != null ? _fmtIso(arrivedAt) : null,
-                  isMissed: status == 'in_progress' &&
-                      _isOverdue(trip['trip_date'] as String? ?? '', arrivalTimeStr, departureTimeStr: departureTimeStr),
-                ),
-              ),
+              Expanded(child: _TimelineCompare(
+                label: 'Departure',
+                scheduled: _fmtScheduleTime(departureTimeStr),
+                actual: departedAt != null ? _fmtIso(departedAt) : null,
+                isMissed: status == 'scheduled' && _isOverdue(trip['trip_date'] as String? ?? '', departureTimeStr),
+              )),
+              Container(width: 1, height: 50, color: const Color(0xFFE5E7EB), margin: const EdgeInsets.symmetric(horizontal: 14)),
+              Expanded(child: _TimelineCompare(
+                label: 'Arrival',
+                scheduled: _fmtScheduleTime(arrivalTimeStr),
+                actual: arrivedAt != null ? _fmtIso(arrivedAt) : null,
+                isMissed: status == 'in_progress' &&
+                    _isOverdue(trip['trip_date'] as String? ?? '', arrivalTimeStr, departureTimeStr: departureTimeStr),
+              )),
             ],
           ),
         ],
@@ -902,44 +944,17 @@ class _ScheduleAdherenceCard extends StatelessWidget {
   }
 
   static String _fmtScheduleTime(String t) {
-    try {
-      final p = t.split(':');
-      final h = int.parse(p[0]);
-      final m = p[1];
-      final period = h >= 12 ? 'PM' : 'AM';
-      final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
-      return '$dh:$m $period';
-    } catch (_) {
-      return t;
-    }
+    if (t.isEmpty) return '--:--';
+    return _DriverTripScreenState.formatTime(t);
   }
 
   static String _fmtIso(String iso) {
-    try {
-      final dt = DateTime.parse(iso).toLocal();
-      final h = dt.hour;
-      final period = h >= 12 ? 'PM' : 'AM';
-      final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
-      return '$dh:${dt.minute.toString().padLeft(2, '0')} $period';
-    } catch (_) {
-      return iso;
-    }
+    return _DriverTripScreenState.formatIsoTimestamp(iso);
   }
 
   static bool _isOverdue(String dateStr, String timeStr, {String? departureTimeStr}) {
     try {
-      final parts = timeStr.split(':');
-      final d = DateTime.parse(dateStr);
-      var planned = DateTime(d.year, d.month, d.day,
-          int.parse(parts[0]), int.parse(parts[1]));
-      if (departureTimeStr != null) {
-        final depParts = departureTimeStr.split(':');
-        final depTotalMinutes = int.parse(depParts[0]) * 60 + int.parse(depParts[1]);
-        final arrTotalMinutes = int.parse(parts[0]) * 60 + int.parse(parts[1]);
-        if (arrTotalMinutes < depTotalMinutes) {
-          planned = planned.add(const Duration(days: 1));
-        }
-      }
+      final planned = _DriverTripScreenState._parseScheduleTime(dateStr, timeStr, departureTimeStr: departureTimeStr);
       return DateTime.now().isAfter(planned.add(const Duration(minutes: 5)));
     } catch (_) {
       return false;
@@ -953,89 +968,44 @@ class _TimelineCompare extends StatelessWidget {
   final String? actual;
   final bool isMissed;
 
-  const _TimelineCompare({
-    required this.label,
-    required this.scheduled,
-    this.actual,
-    this.isMissed = false,
-  });
+  const _TimelineCompare({required this.label, required this.scheduled, this.actual, this.isMissed = false});
 
   @override
   Widget build(BuildContext context) {
     final hasActual = actual != null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF9CA3AF),
-            letterSpacing: 0.5,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF9CA3AF), letterSpacing: 0.5)),
         const SizedBox(height: 5),
         Row(
           children: [
-            const Icon(
-              Icons.schedule_rounded,
-              size: 12,
-              color: Color(0xFF9CA3AF),
-            ),
+            const Icon(Icons.schedule_rounded, size: 12, color: Color(0xFF9CA3AF)),
             const SizedBox(width: 4),
-            Text(
-              scheduled,
-              style: TextStyle(
-                fontSize: 12,
-                color: isMissed
-                    ? const Color(0xFFEF4444)
-                    : const Color(0xFF6B7280),
+            Text(scheduled,
+              style: TextStyle(fontSize: 12,
+                color: isMissed ? const Color(0xFFEF4444) : const Color(0xFF6B7280),
                 decoration: hasActual ? TextDecoration.lineThrough : null,
                 decorationColor: const Color(0xFF9CA3AF),
-              ),
-            ),
+              )),
           ],
         ),
         if (hasActual) ...[
           const SizedBox(height: 3),
           Row(
             children: [
-              const Icon(
-                Icons.check_circle_outline_rounded,
-                size: 12,
-                color: Color(0xFF16A34A),
-              ),
+              const Icon(Icons.check_circle_outline_rounded, size: 12, color: Color(0xFF16A34A)),
               const SizedBox(width: 4),
-              Text(
-                actual!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF16A34A),
-                ),
-              ),
+              Text(actual!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
             ],
           ),
         ] else if (isMissed) ...[
           const SizedBox(height: 3),
           const Row(
             children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: 12,
-                color: Color(0xFFEF4444),
-              ),
+              Icon(Icons.error_outline_rounded, size: 12, color: Color(0xFFEF4444)),
               SizedBox(width: 4),
-              Text(
-                'Overdue',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFEF4444),
-                ),
-              ),
+              Text('Overdue', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFEF4444))),
             ],
           ),
         ],

@@ -10,13 +10,14 @@ class SupabaseConfig {
 
   static String get storageUrl => '$supabaseUrl/storage/v1/object/public';
 
-  /// Automatically updates status to 'completed' for any trip that is scheduled or in progress
-  /// whose scheduled arrival time has already passed.
+  /// Automatically updates status to 'completed' for trips whose scheduled time has passed.
+  /// - Scheduled (not started): auto-completes when departure time is over.
+  /// - In progress: auto-completes when arrival time is over.
   static Future<void> syncOverdueTrips() async {
     try {
       final today = DateTime.now().toLocal().toIso8601String().split('T')[0];
+      final now = DateTime.now();
 
-      // Query trips that are scheduled or in progress for today or earlier
       final trips = await client
           .from('trips')
           .select('''
@@ -28,8 +29,6 @@ class SupabaseConfig {
           .inFilter('status', ['scheduled', 'in_progress'])
           .lte('trip_date', today);
 
-      final now = DateTime.now();
-
       for (final trip in trips) {
         final schedule = trip['schedules'] as Map<String, dynamic>?;
         if (schedule == null) continue;
@@ -37,50 +36,59 @@ class SupabaseConfig {
         final tripDateStr = trip['trip_date'] as String;
         final departureTimeStr = schedule['departure_time'] as String?;
         final arrivalTimeStr = schedule['arrival_time'] as String;
+        final status = trip['status'] as String;
+
+        if (departureTimeStr == null) continue;
 
         try {
-          final arrivalParts = arrivalTimeStr.split(':');
           final tripDate = DateTime.parse(tripDateStr);
-          var plannedArrival = DateTime(
-            tripDate.year,
-            tripDate.month,
-            tripDate.day,
-            int.parse(arrivalParts[0]),
-            int.parse(arrivalParts[1]),
-          );
+          final depParts = departureTimeStr.split(':');
 
-          if (departureTimeStr != null) {
-            final depParts = departureTimeStr.split(':');
-            final depHours = int.parse(depParts[0]);
-            final depMins = int.parse(depParts[1]);
-            final arrHours = int.parse(arrivalParts[0]);
-            final arrMins = int.parse(arrivalParts[1]);
+          if (status == 'scheduled') {
+            // Driver never started — auto-complete if departure time is past
+            final plannedDeparture = DateTime(
+              tripDate.year, tripDate.month, tripDate.day,
+              int.parse(depParts[0]), int.parse(depParts[1]),
+            );
+            if (now.isAfter(plannedDeparture)) {
+              final nowIso = now.toIso8601String();
+              await client
+                  .from('trips')
+                  .update({'status': 'completed', 'arrived_at': nowIso})
+                  .eq('id', trip['id'] as String);
+              debugPrint(
+                '[TripAutoEnd] Scheduled trip ${trip['id']} auto-completed. '
+                'Departure was $plannedDeparture',
+              );
+            }
+          } else if (status == 'in_progress') {
+            // Trip underway — auto-complete if arrival time is past
+            final arrivalParts = arrivalTimeStr.split(':');
+            var plannedArrival = DateTime(
+              tripDate.year, tripDate.month, tripDate.day,
+              int.parse(arrivalParts[0]), int.parse(arrivalParts[1]),
+            );
 
-            final depTotalMinutes = depHours * 60 + depMins;
-            final arrTotalMinutes = arrHours * 60 + arrMins;
-
-            if (arrTotalMinutes < depTotalMinutes) {
-              // Crossed midnight, arrival is on the next day
+            final depTotal = int.parse(depParts[0]) * 60 + int.parse(depParts[1]);
+            final arrTotal = int.parse(arrivalParts[0]) * 60 + int.parse(arrivalParts[1]);
+            if (arrTotal < depTotal) {
               plannedArrival = plannedArrival.add(const Duration(days: 1));
             }
-          }
 
-          // If the current time is past the planned arrival time, auto-end the trip
-          if (now.isAfter(plannedArrival)) {
-            final nowIso = now.toIso8601String();
-            await client
-                .from('trips')
-                .update({'status': 'completed', 'arrived_at': nowIso})
-                .eq('id', trip['id'] as String);
-
-            debugPrint(
-              '[TripAutoEnd] Trip ${trip['id']} auto-completed. Scheduled arrival was $plannedArrival',
-            );
+            if (now.isAfter(plannedArrival)) {
+              final nowIso = now.toIso8601String();
+              await client
+                  .from('trips')
+                  .update({'status': 'completed', 'arrived_at': nowIso})
+                  .eq('id', trip['id'] as String);
+              debugPrint(
+                '[TripAutoEnd] Trip ${trip['id']} auto-completed. '
+                'Arrival was $plannedArrival',
+              );
+            }
           }
         } catch (e) {
-          debugPrint(
-            '[TripAutoEnd] Error parsing arrival time for trip ${trip['id']}: $e',
-          );
+          debugPrint('[TripAutoEnd] Error processing trip ${trip['id']}: $e');
         }
       }
     } catch (e) {
