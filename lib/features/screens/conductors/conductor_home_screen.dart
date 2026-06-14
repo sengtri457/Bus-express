@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/notification_bell.dart';
 import '../../auth/login_screen.dart';
 import 'conductor_passengers_screen.dart';
 import 'conductor_scanner_screen.dart';
@@ -25,6 +27,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
   @override
   void initState() {
     super.initState();
+    NotificationService.instance.refreshUnreadCount();
     _loadData();
   }
 
@@ -216,6 +219,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                     pinned: true,
                     backgroundColor: const Color(0xFF2563EB),
                     actions: [
+                      const NotificationBell(),
                       IconButton(
                         icon: const Icon(
                           Icons.refresh_rounded,

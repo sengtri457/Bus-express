@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 import '../../widgets/animations.dart';
+import '../../widgets/notification_bell.dart';
 import '../route_list_screen.dart';
 import 'passenger_profile_screen.dart';
 import 'see_all_promotions_screen.dart';
@@ -28,6 +30,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
     _loadUserName();
     _loadOperators();
     PassengerProfileScreen.userNameNotifier.addListener(_onUserNameChanged);
+    NotificationService.instance.refreshUnreadCount();
   }
 
   @override
@@ -199,6 +202,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                           ],
                         ),
                       ),
+                      const NotificationBell(),
                       GestureDetector(
                         onTap: () {
                           if (widget.onProfileTap != null) {

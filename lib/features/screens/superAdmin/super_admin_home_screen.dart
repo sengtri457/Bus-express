@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/notification_bell.dart';
 import '../../auth/login_screen.dart';
 import 'super_admin_operators_screen.dart';
 import 'super_admin_users_screen.dart';
@@ -19,6 +21,7 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
   @override
   void initState() {
     super.initState();
+    NotificationService.instance.refreshUnreadCount();
     _loadStats();
   }
 
@@ -120,6 +123,7 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
           ],
         ),
         actions: [
+          const NotificationBell(),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadStats,

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 
 class ConductorScannerScreen extends StatefulWidget {
@@ -136,6 +139,21 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
           .from('bookings')
           .update({'status': 'boarded'})
           .eq('id', booking['id']);
+
+      final passengerId = booking['passenger_id'] as String?;
+      if (passengerId != null) {
+        unawaited(
+          NotificationService.instance.insertNotification(
+            userId: passengerId,
+            title: 'Ticket Validated',
+            body:
+                'Your ticket for seat ${booking['seat_number']} has been scanned. Enjoy your trip!',
+            type: 'ticket_scanned',
+            referenceType: 'booking',
+            referenceId: booking['id'] as String?,
+          ),
+        );
+      }
 
       // Defensively parse passenger (users) data to handle both 'users' and alias keys
       final passengerRaw =

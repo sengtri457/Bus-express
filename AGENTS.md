@@ -11,7 +11,6 @@ Flutter bus ticketing app with Supabase backend. Features passenger live trackin
 ## Auth Methods Implemented
 1. Email/password (login + signup)
 2. Google OAuth (with web redirect fix)
-3. Phone OTP — **not yet implemented** (planned for future)
 
 ## Session Summary (Jun 14, 2026)
 
@@ -51,7 +50,6 @@ Flutter bus ticketing app with Supabase backend. Features passenger live trackin
 - **Required**: Run `lib/features/screens/passengers/add_passenger_info_columns.sql` in Supabase SQL editor to add columns (`passenger_name`, `passenger_age`, `passenger_phone`, `passenger_nationality` on bookings; `age`, `nationality` on users)
 
 ### Pending / Not Started
-- **Phone OTP login**: Planned but not implemented. Decision made to use **email OTP** (free) for login instead of SMS (costs ~$0.01/SMS via Twilio). Phone number field kept for boarding contact. Supabase supports `signInWithOtp(email: ...)` with zero SMS costs.
 - **Passenger info fields** on booking screen: Analyzed only (Full name, Age, Phone, Nationality) — now implemented.
 
 ### DB Setup Notes

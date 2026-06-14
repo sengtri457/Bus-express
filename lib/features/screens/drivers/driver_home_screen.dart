@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/notification_bell.dart';
 import '../../auth/login_screen.dart';
 import 'driver_trips_screen.dart';
 import 'trip_punctuality.dart';
@@ -21,6 +23,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   @override
   void initState() {
     super.initState();
+    NotificationService.instance.refreshUnreadCount();
     _loadData();
   }
 
@@ -180,6 +183,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                     pinned: true,
                     backgroundColor: const Color(0xFF0D47A1),
                     actions: [
+                      const NotificationBell(),
                       IconButton(
                         icon: const Icon(
                           Icons.refresh_rounded,

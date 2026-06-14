@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 
 class DriverIncidentScreen extends StatefulWidget {
@@ -197,6 +199,8 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
         'created_at': DateTime.now().toIso8601String(),
       });
 
+      unawaited(_notifyPassengersOfIncident());
+
       if (!mounted) return;
 
       _descriptionController.clear();
@@ -263,6 +267,50 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
       _showError(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _notifyPassengersOfIncident() async {
+    try {
+      final bookings = await SupabaseConfig.client
+          .from('bookings')
+          .select('passenger_id')
+          .eq('trip_id', widget.tripId)
+          .inFilter('status', ['confirmed', 'boarded']);
+
+      final passengerIds = <String>{};
+      for (final b in bookings) {
+        final pid = b['passenger_id'] as String?;
+        if (pid != null) passengerIds.add(pid);
+      }
+
+      if (passengerIds.isEmpty) return;
+
+      final typeLabel = _types
+          .firstWhere(
+            (t) => t['value'] == _selectedType,
+            orElse: () => {'label': 'Issue'},
+          )['label'] as String;
+
+      final delayMap = {'delay': '20', 'breakdown': '30', 'accident': '45', 'other': '15'};
+      final estDelay = delayMap[_selectedType] ?? '15';
+
+      final title = 'Trip Alert: $typeLabel';
+      final body =
+          'Your bus reported a $typeLabel. Estimated delay: $estDelay min. We apologize for the inconvenience.';
+
+      for (final uid in passengerIds) {
+        await NotificationService.instance.insertNotification(
+          userId: uid,
+          title: title,
+          body: body,
+          type: 'incident',
+          referenceType: 'trip',
+          referenceId: widget.tripId,
+        );
+      }
+    } catch (e) {
+      debugPrint('[IncidentNotify] Failed to notify passengers: $e');
     }
   }
 

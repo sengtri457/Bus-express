@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/notification_bell.dart';
 import '../../auth/login_screen.dart';
 import 'operator_routes_screen.dart';
 import 'operator_buses_screen.dart';
@@ -26,6 +28,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
   @override
   void initState() {
     super.initState();
+    NotificationService.instance.refreshUnreadCount();
     _loadData();
   }
 
@@ -250,6 +253,7 @@ class _OperatorAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
+        const NotificationBell(),
         IconButton(
           icon: const Icon(Icons.refresh_rounded, size: 22),
           tooltip: 'Refresh',

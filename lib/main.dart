@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/screens/splash_screen.dart';
+import 'services/notification_service.dart';
 import 'supabase_config.dart';
 
 void main() async {
@@ -13,6 +14,7 @@ void main() async {
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
   );
+  await NotificationService.instance.init();
   runApp(
     DevicePreview(
       enabled: true,

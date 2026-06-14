@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 import 'driver_incident_screen.dart';
 import 'trip_punctuality.dart';
@@ -285,6 +286,8 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
 
       _startGPSTracking();
       _showSnackBar('Trip started! GPS tracking active.', Colors.green);
+
+      unawaited(_notifyPassengersTripStarted());
     } catch (e) {
       _showSnackBar('Failed to start trip: $e', Colors.red);
     } finally {
@@ -370,6 +373,40 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
   void _stopGPSTracking() {
     _gpsTimer?.cancel();
     setState(() => _isTrackingGPS = false);
+  }
+
+  Future<void> _notifyPassengersTripStarted() async {
+    try {
+      final bookings = await SupabaseConfig.client
+          .from('bookings')
+          .select('passenger_id')
+          .eq('trip_id', _trip['id'])
+          .eq('status', 'confirmed');
+
+      final schedule = _trip['schedules'] as Map<String, dynamic>?;
+      final route = schedule?['routes'] as Map<String, dynamic>?;
+      final origin = route?['origin'] as String? ?? 'N/A';
+      final destination = route?['destination'] as String? ?? 'N/A';
+
+      final passengerIds = <String>{};
+      for (final b in bookings) {
+        final pid = b['passenger_id'] as String?;
+        if (pid != null) passengerIds.add(pid);
+      }
+
+      for (final uid in passengerIds) {
+        await NotificationService.instance.insertNotification(
+          userId: uid,
+          title: 'Trip Started',
+          body: 'Your bus from $origin → $destination has departed! Track it live.',
+          type: 'trip_started',
+          referenceType: 'trip',
+          referenceId: _trip['id'] as String?,
+        );
+      }
+    } catch (e) {
+      debugPrint('[Notify] Failed to notify passengers: $e');
+    }
   }
 
   // ─── UI Helpers ─────────────────────────────────────────

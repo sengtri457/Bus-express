@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:phone_number/phone_number.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 import 'passenger_main_screen.dart';
 
@@ -219,11 +222,14 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       final user = SupabaseConfig.client.auth.currentUser;
       if (user == null) throw Exception('Not logged in');
 
-      // Validate phone number with libphonenumber
-      final phoneUtil = PhoneNumberUtil();
-      final phoneValid = await phoneUtil.validate(_phoneController.text.trim());
-      if (!phoneValid) {
-        throw Exception('Invalid phone number. Enter a real number with correct country code.');
+      // Validate phone number with phone_numbers_parser (pure Dart, works on web)
+      try {
+        final phone = PhoneNumber.parse(_phoneController.text.trim());
+        if (!phone.isValid()) {
+          throw Exception('Invalid phone number format.');
+        }
+      } catch (_) {
+        throw Exception('Invalid phone number. Enter a real number with correct country code (e.g. +1234567890).');
       }
 
       // Save passenger info to user profile
@@ -355,6 +361,20 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           });
         }
       }
+
+      final route = widget.schedule['routes'] as Map<String, dynamic>?;
+      unawaited(
+        NotificationService.instance.insertNotification(
+          userId: user.id,
+          title: 'Booking Confirmed',
+          body:
+              '${widget.seatNumbers.length} seat(s) on ${route?['origin'] ?? 'N/A'} → ${route?['destination'] ?? 'N/A'} '
+              '(${_formatTime(widget.schedule['departure_time'] as String)})',
+          type: 'booking',
+          referenceType: 'booking',
+          referenceId: firstBookingId,
+        ),
+      );
 
       if (!mounted) return;
 
