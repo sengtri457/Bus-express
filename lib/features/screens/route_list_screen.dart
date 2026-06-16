@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../supabase_config.dart';
+
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/date_helpers.dart';
+import '../../repositories/trip_repository.dart';
 import '../widgets/animations.dart';
 import 'passengers/schedule_seat_screen.dart';
 
@@ -24,12 +27,11 @@ class RouteListScreen extends StatefulWidget {
 }
 
 class _RouteListScreenState extends State<RouteListScreen> {
+  final _tripRepo = TripRepository();
   List<Map<String, dynamic>> _schedules = [];
   bool _isLoading = true;
   String? _error;
-
-  // Sort options
-  String _sortBy = 'departure'; // departure, price, duration
+  String _sortBy = 'departure';
 
   @override
   void initState() {
@@ -44,14 +46,12 @@ class _RouteListScreenState extends State<RouteListScreen> {
     });
 
     try {
-      // Auto-end overdue trips in real-time
-      await SupabaseConfig.syncOverdueTrips();
+      await _tripRepo.syncOverdueTrips();
 
-      // Get day of week (1=Mon ... 7=Sun)
       final dayOfWeek = widget.date.weekday.toString();
       final dateStr = widget.date.toIso8601String().split('T')[0];
 
-      var query = SupabaseConfig.client
+      var query = _tripRepo.client
           .from('schedules')
           .select('''
             id,
@@ -100,8 +100,7 @@ class _RouteListScreenState extends State<RouteListScreen> {
 
       final data = await query;
 
-      // Fetch trips for this searched date
-      final tripsData = await SupabaseConfig.client
+      final tripsData = await _tripRepo.client
           .from('trips')
           .select('id, schedule_id, status, trip_date')
           .eq('trip_date', dateStr);
@@ -114,7 +113,6 @@ class _RouteListScreenState extends State<RouteListScreen> {
         final days = (s['days_of_week'] as String).split(',');
         if (!days.contains(dayOfWeek)) continue;
 
-        // Check if there is an ended/completed/cancelled trip today for this schedule
         final tripForToday = tripsList.firstWhere(
           (t) => t['schedule_id'] == s['id'],
           orElse: () => <String, dynamic>{},
@@ -122,17 +120,18 @@ class _RouteListScreenState extends State<RouteListScreen> {
 
         if (tripForToday.isNotEmpty) {
           final tripStatus = tripForToday['status'] as String?;
-          // Hide trips that have already started, ended, or were cancelled
-          if (tripStatus == 'in_progress' || tripStatus == 'completed' || tripStatus == 'cancelled') {
+          if (tripStatus == 'in_progress' ||
+              tripStatus == 'completed' ||
+              tripStatus == 'cancelled') {
             continue;
           }
         }
 
-        // Validate scheduled arrival and departure times for today
         try {
-          final departureParts = (s['departure_time'] as String).split(':');
+          final departureParts =
+              (s['departure_time'] as String).split(':');
           final arrivalParts = (s['arrival_time'] as String).split(':');
-          
+
           final plannedDeparture = DateTime(
             widget.date.year,
             widget.date.month,
@@ -140,7 +139,7 @@ class _RouteListScreenState extends State<RouteListScreen> {
             int.parse(departureParts[0]),
             int.parse(departureParts[1]),
           );
-          
+
           var plannedArrival = DateTime(
             widget.date.year,
             widget.date.month,
@@ -158,14 +157,11 @@ class _RouteListScreenState extends State<RouteListScreen> {
             plannedArrival = plannedArrival.add(const Duration(days: 1));
           }
 
-          // If the searched date has already passed the arrival/departure time,
-          // it is "Time over", so we do NOT show it on the route list
-          if (now.isAfter(plannedArrival) || now.isAfter(plannedDeparture)) {
+          if (now.isAfter(plannedArrival) ||
+              now.isAfter(plannedDeparture)) {
             continue;
           }
-        } catch (_) {
-          // If we fail parsing for some reason, keep the schedule
-        }
+        } catch (_) {}
 
         filtered.add(Map<String, dynamic>.from(s));
       }
@@ -190,18 +186,22 @@ class _RouteListScreenState extends State<RouteListScreen> {
     final list = List<Map<String, dynamic>>.from(_schedules);
     switch (_sortBy) {
       case 'price':
-        list.sort((a, b) => (a['price'] as num).compareTo(b['price'] as num));
+        list.sort(
+          (a, b) => (a['price'] as num).compareTo(b['price'] as num),
+        );
       case 'duration':
         list.sort(
-          (a, b) => (a['routes']['duration_min'] as num).compareTo(
-            b['routes']['duration_min'] as num,
-          ),
+          (a, b) =>
+              (a['routes']['duration_min'] as num).compareTo(
+                b['routes']['duration_min'] as num,
+              ),
         );
       default:
         list.sort(
-          (a, b) => (a['departure_time'] as String).compareTo(
-            b['departure_time'] as String,
-          ),
+          (a, b) =>
+              (a['departure_time'] as String).compareTo(
+                b['departure_time'] as String,
+              ),
         );
     }
     return list;
@@ -210,7 +210,7 @@ class _RouteListScreenState extends State<RouteListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -233,13 +233,16 @@ class _RouteListScreenState extends State<RouteListScreen> {
                       widget.operatorName != null)
                   ? 'Trips by ${widget.operatorName}'
                   : '${widget.origin} → ${widget.destination}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             Text(
-              _formatDate(widget.date),
+              DateHelpers.formatFullDate(widget.date.toIso8601String()),
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withValues(alpha: 0.85),
               ),
             ),
           ],
@@ -247,15 +250,14 @@ class _RouteListScreenState extends State<RouteListScreen> {
       ),
       body: Column(
         children: [
-          // Sort Bar
           Container(
-            color: Colors.white,
+            color: AppColors.surface,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               children: [
                 const Text(
                   'Sort by:',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                 ),
                 const SizedBox(width: 12),
                 _SortChip(
@@ -278,8 +280,6 @@ class _RouteListScreenState extends State<RouteListScreen> {
               ],
             ),
           ),
-
-          // Content
           Expanded(
             child: _isLoading
                 ? ListView.builder(
@@ -317,28 +317,7 @@ class _RouteListScreenState extends State<RouteListScreen> {
       ),
     );
   }
-
-  String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]} ${date.year}';
-  }
 }
-
-// ─── Sort Chip ────────────────────────────────────────────────────────────────
 
 class _SortChip extends StatelessWidget {
   final String label;
@@ -358,7 +337,9 @@ class _SortChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+          color: isSelected
+              ? const Color(0xFF2563EB)
+              : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -373,8 +354,6 @@ class _SortChip extends StatelessWidget {
     );
   }
 }
-
-// ─── Schedule Card ────────────────────────────────────────────────────────────
 
 class _ScheduleCard extends StatelessWidget {
   final Map<String, dynamic> schedule;
@@ -391,17 +370,18 @@ class _ScheduleCard extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ScheduleSeatScreen(schedule: schedule, date: date),
+          builder: (_) =>
+              ScheduleSeatScreen(schedule: schedule, date: date),
         ),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 12,
               offset: const Offset(0, 3),
             ),
@@ -413,7 +393,6 @@ class _ScheduleCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Left accent bar
                 Container(
                   width: 4,
                   decoration: const BoxDecoration(
@@ -424,18 +403,16 @@ class _ScheduleCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Main card content
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        // Top: Operator Logo and Price
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Operator Logo / Initial
                             if (operator != null)
                               Container(
                                 width: 60,
@@ -443,23 +420,31 @@ class _ScheduleCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF0F7FF),
                                   borderRadius: BorderRadius.circular(6),
-                                  image:
-                                      operator['logo_url'] != null &&
-                                          operator['logo_url'].toString().startsWith('http')
+                                  image: operator['logo_url'] != null &&
+                                          operator['logo_url']
+                                              .toString()
+                                              .startsWith('http')
                                       ? DecorationImage(
-                                          image: NetworkImage(operator['logo_url']),
+                                          image: NetworkImage(
+                                            operator['logo_url'],
+                                          ),
                                           fit: BoxFit.contain,
                                         )
                                       : null,
                                 ),
-                                child:
-                                    operator['logo_url'] == null ||
-                                        !operator['logo_url'].toString().startsWith('http')
+                                child: operator['logo_url'] == null ||
+                                        !operator['logo_url']
+                                            .toString()
+                                            .startsWith('http')
                                     ? Center(
                                         child: Text(
                                           operator['name'] != null &&
-                                                  operator['name'].toString().isNotEmpty
-                                              ? operator['name'].toString()[0].toUpperCase()
+                                                  operator['name']
+                                                      .toString()
+                                                      .isNotEmpty
+                                              ? operator['name']
+                                                  .toString()[0]
+                                                  .toUpperCase()
                                               : 'O',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
@@ -472,8 +457,6 @@ class _ScheduleCard extends StatelessWidget {
                               )
                             else
                               const SizedBox(),
-
-                            // Price badge
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -495,16 +478,15 @@ class _ScheduleCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 16),
-
-                        // Middle: Timeline with animated line
                         Row(
                           children: [
-                            // Departure
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _formatTime(schedule['departure_time']),
+                                  DateHelpers.formatTime(
+                                    schedule['departure_time'],
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
@@ -521,15 +503,17 @@ class _ScheduleCard extends StatelessWidget {
                                 ),
                               ],
                             ),
-
-                            // Duration line
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
                                 child: Column(
                                   children: [
                                     Text(
-                                      _formatDuration(route['duration_min'] as int),
+                                      DateHelpers.formatDuration(
+                                        route['duration_min'] as int,
+                                      ),
                                       style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w600,
@@ -545,21 +529,25 @@ class _ScheduleCard extends StatelessWidget {
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: [
-                                                const Color(0xFF2563EB).withOpacity(0.3),
+                                                const Color(0xFF2563EB)
+                                                    .withValues(alpha: 0.3),
                                                 const Color(0xFF2563EB),
-                                                const Color(0xFF2563EB).withOpacity(0.3),
+                                                const Color(0xFF2563EB)
+                                                    .withValues(alpha: 0.3),
                                               ],
                                             ),
                                           ),
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(
+                                          padding:
+                                              const EdgeInsets.symmetric(
                                             horizontal: 6,
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(10),
+                                            color: AppColors.surface,
+                                            borderRadius:
+                                                BorderRadius.circular(10),
                                           ),
                                           child: const Icon(
                                             Icons.directions_bus_rounded,
@@ -573,13 +561,13 @@ class _ScheduleCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                            // Arrival
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  _formatTime(schedule['arrival_time']),
+                                  DateHelpers.formatTime(
+                                    schedule['arrival_time'],
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
@@ -599,10 +587,9 @@ class _ScheduleCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 14),
-
-                        // Bottom: Operator Name & Book Now
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
                               child: Row(
@@ -615,7 +602,9 @@ class _ScheduleCard extends StatelessWidget {
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
-                                      operator != null ? operator['name'] : 'Standard Bus',
+                                      operator != null
+                                          ? operator['name']
+                                          : 'Standard Bus',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
@@ -678,24 +667,7 @@ class _ScheduleCard extends StatelessWidget {
       ),
     );
   }
-
-  String _formatDuration(int minutes) {
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    if (h > 0 && m > 0) return '${h}h ${m}m';
-    if (h > 0) return '${h}h';
-    return '${m}m';
-  }
-
-  String _formatTime(String time) {
-    final parts = time.split(':');
-    final hour = parts[0].padLeft(2, '0');
-    final minute = parts[1].padLeft(2, '0');
-    return '$hour:$minute';
-  }
 }
-
-// ─── Empty View ───────────────────────────────────────────────────────────────
 
 class _EmptyView extends StatelessWidget {
   final String origin;
@@ -715,7 +687,7 @@ class _EmptyView extends StatelessWidget {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(44),
               ),
               child: const Icon(
@@ -730,7 +702,7 @@ class _EmptyView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -739,7 +711,7 @@ class _EmptyView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 14,
-                color: Color(0xFF6B7280),
+                color: AppColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -766,8 +738,6 @@ class _EmptyView extends StatelessWidget {
   }
 }
 
-// ─── Error View ───────────────────────────────────────────────────────────────
-
 class _ErrorView extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
@@ -793,14 +763,17 @@ class _ErrorView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(

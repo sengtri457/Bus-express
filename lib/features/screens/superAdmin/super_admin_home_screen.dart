@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/auth_helper.dart';
+import '../../../repositories/user_repository.dart';
 import '../../../services/notification_service.dart';
-import '../../../supabase_config.dart';
 import '../../widgets/notification_bell.dart';
-import '../../auth/login_screen.dart';
 import 'super_admin_operators_screen.dart';
 import 'super_admin_users_screen.dart';
 
@@ -14,6 +16,7 @@ class SuperAdminHomeScreen extends StatefulWidget {
 }
 
 class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
+  final _userRepo = UserRepository();
   int _selectedIndex = 0;
   Map<String, int> _stats = {};
   bool _isLoading = true;
@@ -29,35 +32,34 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
-        SupabaseConfig.client
+        _userRepo.client
             .from('operators')
             .select('id')
             .eq('status', 'active'),
-        SupabaseConfig.client
+        _userRepo.client
             .from('operators')
             .select('id')
             .eq('status', 'inactive'),
-        SupabaseConfig.client
+        _userRepo.client
             .from('users')
             .select('id')
             .eq('role', 'passenger'),
-        SupabaseConfig.client.from('users').select('id').inFilter('role', [
+        _userRepo.client.from('users').select('id').inFilter('role', [
           'driver',
           'conductor',
         ]),
-        SupabaseConfig.client
+        _userRepo.client
             .from('trips')
             .select('id')
             .eq('status', 'in_progress'),
-        SupabaseConfig.client
+        _userRepo.client
             .from('bookings')
             .select('id')
             .eq('status', 'confirmed'),
       ]);
 
-      // Today's trips
       final today = DateTime.now().toIso8601String().split('T')[0];
-      final todayTrips = await SupabaseConfig.client
+      final todayTrips = await _userRepo.client
           .from('trips')
           .select('id')
           .eq('trip_date', today);
@@ -81,15 +83,7 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
     }
   }
 
-  Future<void> _signOut() async {
-    await SupabaseConfig.client.auth.signOut();
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    }
-  }
+  Future<void> _signOut() => AuthHelper.signOut(context);
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +98,7 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
@@ -139,7 +133,7 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
         backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFF2563EB).withOpacity(0.1),
+        indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
@@ -168,8 +162,6 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
   }
 }
 
-// ─── Dashboard Tab ────────────────────────────────────────────────────────────
-
 class _DashboardTab extends StatelessWidget {
   final Map<String, int> stats;
   final bool isLoading;
@@ -195,7 +187,6 @@ class _DashboardTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -208,7 +199,7 @@ class _DashboardTab extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -222,7 +213,7 @@ class _DashboardTab extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -280,8 +271,6 @@ class _DashboardTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Operators section
             const Text(
               'Operators',
               style: TextStyle(
@@ -298,7 +287,7 @@ class _DashboardTab extends StatelessWidget {
                     label: 'Active',
                     value: '${stats['active_operators'] ?? 0}',
                     icon: Icons.business_rounded,
-                    color: const Color(0xFF059669),
+                    color: AppColors.success,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -307,14 +296,12 @@ class _DashboardTab extends StatelessWidget {
                     label: 'Inactive',
                     value: '${stats['inactive_operators'] ?? 0}',
                     icon: Icons.business_outlined,
-                    color: const Color(0xFF9CA3AF),
+                    color: AppColors.textHint,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-
-            // Users section
             const Text(
               'Users',
               style: TextStyle(
@@ -331,7 +318,7 @@ class _DashboardTab extends StatelessWidget {
                     label: 'Passengers',
                     value: '${stats['passengers'] ?? 0}',
                     icon: Icons.person_rounded,
-                    color: const Color(0xFF1A73E8),
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -351,8 +338,6 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 }
-
-// ─── Reusable Widgets ─────────────────────────────────────────────────────────
 
 class _HeroStat extends StatelessWidget {
   final String label;
@@ -380,7 +365,10 @@ class _HeroStat extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );
@@ -405,11 +393,11 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -420,7 +408,7 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 22),
@@ -439,7 +427,10 @@ class _StatCard extends StatelessWidget {
               ),
               Text(
                 label,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textHint,
+                ),
               ),
             ],
           ),

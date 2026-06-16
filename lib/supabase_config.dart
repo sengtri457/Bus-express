@@ -47,8 +47,11 @@ class SupabaseConfig {
           if (status == 'scheduled') {
             // Driver never started — auto-complete if departure time is past
             final plannedDeparture = DateTime(
-              tripDate.year, tripDate.month, tripDate.day,
-              int.parse(depParts[0]), int.parse(depParts[1]),
+              tripDate.year,
+              tripDate.month,
+              tripDate.day,
+              int.parse(depParts[0]),
+              int.parse(depParts[1]),
             );
             if (now.isAfter(plannedDeparture)) {
               final nowIso = now.toIso8601String();
@@ -65,12 +68,17 @@ class SupabaseConfig {
             // Trip underway — auto-complete if arrival time is past
             final arrivalParts = arrivalTimeStr.split(':');
             var plannedArrival = DateTime(
-              tripDate.year, tripDate.month, tripDate.day,
-              int.parse(arrivalParts[0]), int.parse(arrivalParts[1]),
+              tripDate.year,
+              tripDate.month,
+              tripDate.day,
+              int.parse(arrivalParts[0]),
+              int.parse(arrivalParts[1]),
             );
 
-            final depTotal = int.parse(depParts[0]) * 60 + int.parse(depParts[1]);
-            final arrTotal = int.parse(arrivalParts[0]) * 60 + int.parse(arrivalParts[1]);
+            final depTotal =
+                int.parse(depParts[0]) * 60 + int.parse(depParts[1]);
+            final arrTotal =
+                int.parse(arrivalParts[0]) * 60 + int.parse(arrivalParts[1]);
             if (arrTotal < depTotal) {
               plannedArrival = plannedArrival.add(const Duration(days: 1));
             }

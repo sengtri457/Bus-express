@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../supabase_config.dart';
+
+import '../../core/utils/navigation_helper.dart';
+import '../../models/user_model.dart';
+import '../../core/error/result.dart';
+import '../../repositories/auth_repository.dart';
+import '../../repositories/user_repository.dart';
 import '../auth/login_screen.dart';
-import 'passengers/passenger_main_screen.dart';
-import 'drivers/driver_home_screen.dart';
-import 'conductors/conductor_home_screen.dart';
-import 'operators/operator_home_screen.dart';
-import 'superAdmin/super_admin_home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,55 +46,43 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    final session = SupabaseConfig.client.auth.currentSession;
+    final authRepo = AuthRepository();
+    final supabaseUser = AuthRepository()
+        .client
+        .auth
+        .currentUser;
 
-    if (session == null) {
-      // Not logged in → go to Login
+    if (supabaseUser == null) {
       _navigateTo(const LoginScreen());
       return;
     }
 
-    // Logged in → fetch role and route accordingly
     try {
-      final userData = await SupabaseConfig.client
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+      final userRepo = UserRepository();
+      final result = await userRepo.getCurrentUser(supabaseUser.id);
 
-      final role = userData['role'] as String;
-      _navigateByRole(role);
-    } catch (_) {
-      _navigateTo(const LoginScreen());
-    }
-  }
+      if (!mounted) return;
 
-  void _navigateByRole(String role) {
-    switch (role) {
-      case 'passenger':
-        _navigateTo(const PassengerMainScreen());
-        break;
-      case 'driver':
-        _navigateTo(const DriverHomeScreen());
-        break;
-      case 'conductor':
-        _navigateTo(const ConductorHomeScreen());
-        break;
-      case 'operator_admin':
-        _navigateTo(const OperatorHomeScreen());
-        break;
-      case 'super_admin':
-        _navigateTo(const SuperAdminHomeScreen());
-        break;
-      default:
+      if (result is Success<UserModel>) {
+        final user = result.data;
+        if (user.isSuspended) {
+          await authRepo.signOut();
+          if (mounted) _navigateTo(const LoginScreen());
+          return;
+        }
+        NavigationHelper.navigateByRole(context, user.role);
+      } else {
         _navigateTo(const LoginScreen());
+      }
+    } catch (_) {
+      if (mounted) _navigateTo(const LoginScreen());
     }
   }
 
   void _navigateTo(Widget screen) {
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => screen));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => screen),
+    );
   }
 
   @override
@@ -126,15 +114,15 @@ class _SplashScreenState extends State<SplashScreen>
                     width: 110,
                     height: 110,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(32),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -162,7 +150,7 @@ class _SplashScreenState extends State<SplashScreen>
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.75),
+                      color: Colors.white.withValues(alpha: 0.75),
                       letterSpacing: 0.2,
                     ),
                   ),
@@ -173,7 +161,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: CircularProgressIndicator(
                       strokeWidth: 2.0,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white.withOpacity(0.6),
+                        Colors.white.withValues(alpha: 0.6),
                       ),
                     ),
                   ),

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/auth_helper.dart';
+import '../../../repositories/user_repository.dart';
 import '../../../services/notification_service.dart';
-import '../../../supabase_config.dart';
 import '../../widgets/notification_bell.dart';
-import '../../auth/login_screen.dart';
-import 'operator_routes_screen.dart';
 import 'operator_buses_screen.dart';
+import 'operator_routes_screen.dart';
 import 'operator_schedules_screen.dart';
 import 'operator_staff_screen.dart';
+import 'widgets/incident_card.dart';
+import 'widgets/operator_card.dart';
+import 'widgets/quick_action.dart';
 
 class OperatorHomeScreen extends StatefulWidget {
   const OperatorHomeScreen({super.key});
@@ -16,6 +21,8 @@ class OperatorHomeScreen extends StatefulWidget {
 }
 
 class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
+  final _userRepo = UserRepository();
+
   int _selectedIndex = 0;
   Map<String, dynamic>? _operatorInfo;
   Map<String, int> _stats = {};
@@ -35,13 +42,13 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final user = SupabaseConfig.client.auth.currentUser;
+      final user = _userRepo.client.auth.currentUser;
       if (user == null) {
         if (mounted) setState(() => _isLoading = false);
         return;
       }
 
-      final userData = await SupabaseConfig.client
+      final userData = await _userRepo.client
           .from('users')
           .select('name, operator_id')
           .eq('id', user.id)
@@ -53,50 +60,49 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
         return;
       }
 
-      final opInfo = await SupabaseConfig.client
+      final opInfo = await _userRepo.client
           .from('operators')
           .select('id, name, status, logo_url')
           .eq('id', _operatorId!)
           .maybeSingle();
 
       final results = await Future.wait([
-        SupabaseConfig.client
+        _userRepo.client
             .from('buses')
             .select('id')
             .eq('operator_id', _operatorId!)
             .eq('status', 'active'),
-        SupabaseConfig.client
+        _userRepo.client
             .from('routes')
             .select('id')
             .eq('operator_id', _operatorId!)
             .eq('status', 'active'),
-        SupabaseConfig.client
+        _userRepo.client
             .from('schedules')
             .select('id')
             .eq('status', 'active'),
-        SupabaseConfig.client
+        _userRepo.client
             .from('users')
             .select('id')
             .eq('operator_id', _operatorId!)
             .inFilter('role', ['driver', 'conductor']),
-        SupabaseConfig.client
+        _userRepo.client
             .from('trips')
             .select('id')
             .eq('status', 'scheduled'),
       ]);
 
       final today = DateTime.now().toIso8601String().split('T')[0];
-      final todayTrips = await SupabaseConfig.client
+      final todayTrips = await _userRepo.client
           .from('trips')
           .select('id')
           .eq('trip_date', today);
 
-      final tripIds = (todayTrips as List)
-          .map((t) => t['id'] as String)
-          .toList();
+      final tripIds =
+          (todayTrips as List).map((t) => t['id'] as String).toList();
       int todayBookings = 0;
       if (tripIds.isNotEmpty) {
-        final bookings = await SupabaseConfig.client
+        final bookings = await _userRepo.client
             .from('bookings')
             .select('id')
             .inFilter('trip_id', tripIds)
@@ -104,7 +110,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
         todayBookings = (bookings as List).length;
       }
 
-      final incidentsData = await SupabaseConfig.client
+      final incidentsData = await _userRepo.client
           .from('incidents')
           .select('''
             id,
@@ -135,7 +141,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
         final trip =
             (incident['trips'] ?? incident['trip']) as Map<String, dynamic>?;
         final schedule =
-            (trip?['schedules'] ?? trip?['schedule']) as Map<String, dynamic>?;
+            (trip?['schedules'] ?? trip?['schedule'])
+                as Map<String, dynamic>?;
         final route =
             (schedule?['routes'] ?? schedule?['route'])
                 as Map<String, dynamic>?;
@@ -162,15 +169,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
     }
   }
 
-  Future<void> _signOut() async {
-    await SupabaseConfig.client.auth.signOut();
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    }
-  }
+  Future<void> _signOut() => AuthHelper.signOut(context);
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +190,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: _OperatorAppBar(
         companyName: _operatorInfo?['name'] ?? 'Operator Panel',
         onRefresh: _loadData,
@@ -209,8 +208,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
     );
   }
 }
-
-// ─── App Bar ──────────────────────────────────────────────────────────────────
 
 class _OperatorAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String companyName;
@@ -270,13 +267,10 @@ class _OperatorAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-// ─── Bottom Nav Bar ───────────────────────────────────────────────────────────
-
 class _NavItem {
   final IconData icon;
   final IconData activeIcon;
   final String label;
-
   const _NavItem({
     required this.icon,
     required this.activeIcon,
@@ -427,8 +421,6 @@ class _NavBarItem extends StatelessWidget {
   }
 }
 
-// ─── Dashboard Tab ────────────────────────────────────────────────────────────
-
 class _DashboardTab extends StatelessWidget {
   final Map<String, int> stats;
   final Map<String, dynamic>? operatorInfo;
@@ -463,21 +455,18 @@ class _DashboardTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Operator header card
-            _OperatorCard(operatorInfo: operatorInfo),
+            OperatorCard(operatorInfo: operatorInfo),
             const SizedBox(height: 28),
-
-            // Today section
-            _SectionLabel(label: "Today's Summary"),
+            const SectionLabel(label: "Today's Summary"),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _StatCard(
-                    label: "Bookings",
+                    label: 'Bookings',
                     value: '${stats['today_bookings'] ?? 0}',
                     icon: Icons.confirmation_number_rounded,
-                    color: const Color(0xFF1A73E8),
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -486,15 +475,13 @@ class _DashboardTab extends StatelessWidget {
                     label: 'Upcoming Trips',
                     value: '${stats['upcoming_trips'] ?? 0}',
                     icon: Icons.departure_board_rounded,
-                    color: const Color(0xFFF59E0B),
+                    color: AppColors.warning,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 28),
-
-            // Fleet overview
-            _SectionLabel(label: 'Fleet Overview'),
+            const SectionLabel(label: 'Fleet Overview'),
             const SizedBox(height: 12),
             GridView.count(
               crossAxisCount: 2,
@@ -531,11 +518,9 @@ class _DashboardTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 28),
-
-            // Fleet alerts
             Row(
               children: [
-                const _SectionLabel(label: 'Fleet Alerts'),
+                const SectionLabel(label: 'Fleet Alerts'),
                 const SizedBox(width: 8),
                 if (activeIncidents.isNotEmpty)
                   Container(
@@ -560,18 +545,16 @@ class _DashboardTab extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             activeIncidents.isEmpty
-                ? _AllClearCard()
+                ? const AllClearCard()
                 : Column(
                     children: activeIncidents
-                        .map((i) => _IncidentCard(incident: i))
+                        .map((i) => IncidentCard(incident: i))
                         .toList(),
                   ),
             const SizedBox(height: 28),
-
-            // Quick actions
-            _SectionLabel(label: 'Quick Actions'),
+            const SectionLabel(label: 'Quick Actions'),
             const SizedBox(height: 12),
-            _QuickAction(
+            QuickAction(
               icon: Icons.add_road_rounded,
               label: 'Add New Route',
               subtitle: 'Create a new bus route',
@@ -579,7 +562,7 @@ class _DashboardTab extends StatelessWidget {
               onTap: () => onTabSelected(1),
             ),
             const SizedBox(height: 10),
-            _QuickAction(
+            QuickAction(
               icon: Icons.directions_bus_filled_rounded,
               label: 'Add New Bus',
               subtitle: 'Register a bus to your fleet',
@@ -587,7 +570,7 @@ class _DashboardTab extends StatelessWidget {
               onTap: () => onTabSelected(2),
             ),
             const SizedBox(height: 10),
-            _QuickAction(
+            QuickAction(
               icon: Icons.person_add_rounded,
               label: 'Add Staff Member',
               subtitle: 'Hire a driver or conductor',
@@ -596,377 +579,6 @@ class _DashboardTab extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ─── Operator Logo ─────────────────────────────────────────────────────────────
-
-class _OperatorLogo extends StatelessWidget {
-  final String? logoUrl;
-  final String name;
-
-  const _OperatorLogo({required this.logoUrl, required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasUrl = logoUrl != null && logoUrl!.startsWith('http');
-
-    return Container(
-      width: 58,
-      height: 58,
-      padding: hasUrl ? null : const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(16),
-        image: hasUrl
-            ? DecorationImage(image: NetworkImage(logoUrl!), fit: BoxFit.fill)
-            : null,
-      ),
-      child: hasUrl
-          ? null
-          : Icon(Icons.business_rounded, color: Colors.white, size: 30),
-    );
-  }
-}
-
-// ─── Operator Card ────────────────────────────────────────────────────────────
-
-class _OperatorCard extends StatelessWidget {
-  final Map<String, dynamic>? operatorInfo;
-
-  const _OperatorCard({required this.operatorInfo});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF54282E), Color(0xFF54282E)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF059669).withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _OperatorLogo(
-            logoUrl: operatorInfo?['logo_url'] as String?,
-            name: operatorInfo?['name'] as String? ?? '',
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  operatorInfo?['name'] ?? 'My Company',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF6EE7B7),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Active Operator',
-                      style: TextStyle(fontSize: 12, color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── All Clear Card ───────────────────────────────────────────────────────────
-
-class _AllClearCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8F5E9),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check_circle_rounded,
-              color: Color(0xFF54282E),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'All Systems Normal',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'All fleet vehicles operating normally.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Incident Card ────────────────────────────────────────────────────────────
-
-class _IncidentCard extends StatelessWidget {
-  final Map<String, dynamic> incident;
-
-  const _IncidentCard({required this.incident});
-
-  static const _configs = {
-    'delay': _IncidentConfig(
-      primary: Color(0xFFD97706),
-      background: Color(0xFFFFFBEB),
-      icon: Icons.timer_off_rounded,
-    ),
-    'breakdown': _IncidentConfig(
-      primary: Color(0xFFDC2626),
-      background: Color(0xFFFEF2F2),
-      icon: Icons.build_rounded,
-    ),
-    'accident': _IncidentConfig(
-      primary: Color(0xFFB91C1C),
-      background: Color(0xFFFEF2F2),
-      icon: Icons.car_crash_rounded,
-    ),
-    'other': _IncidentConfig(
-      primary: Color(0xFF4B5563),
-      background: Color(0xFFF3F4F6),
-      icon: Icons.warning_amber_rounded,
-    ),
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final type = incident['type'] as String? ?? 'other';
-    final desc = incident['description'] as String? ?? '';
-    final timeStr = incident['created_at'] as String? ?? '';
-
-    final trip =
-        (incident['trips'] ?? incident['trip']) as Map<String, dynamic>?;
-    final schedule =
-        (trip?['schedules'] ?? trip?['schedule']) as Map<String, dynamic>?;
-    final route =
-        (schedule?['routes'] ?? schedule?['route']) as Map<String, dynamic>?;
-
-    final origin = route?['origin'] as String? ?? 'Unknown';
-    final destination = route?['destination'] as String? ?? 'Unknown';
-    final depTime = schedule?['departure_time'] as String? ?? '';
-
-    final cfg = _configs[type] ?? _configs['other']!;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cfg.primary.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: cfg.background,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(cfg.icon, color: cfg.primary, size: 20),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$origin → $destination',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    Text(
-                      _formatTime(timeStr),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: cfg.background,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        type.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: cfg.primary,
-                        ),
-                      ),
-                    ),
-                    if (depTime.isNotEmpty) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        'Departs ${_formatDepTime(depTime)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  desc,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF4B5563),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(String ts) {
-    if (ts.isEmpty) return '';
-    try {
-      final dt = DateTime.parse(ts).toLocal();
-      final h = dt.hour;
-      final period = h >= 12 ? 'PM' : 'AM';
-      final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
-      return '$dh:${dt.minute.toString().padLeft(2, '0')} $period';
-    } catch (_) {
-      return '';
-    }
-  }
-
-  String _formatDepTime(String t) {
-    if (t.isEmpty) return '';
-    try {
-      final p = t.split(':');
-      final h = int.parse(p[0]);
-      final period = h >= 12 ? 'PM' : 'AM';
-      final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
-      return '$dh:${p[1]} $period';
-    } catch (_) {
-      return t;
-    }
-  }
-}
-
-class _IncidentConfig {
-  final Color primary;
-  final Color background;
-  final IconData icon;
-
-  const _IncidentConfig({
-    required this.primary,
-    required this.background,
-    required this.icon,
-  });
-}
-
-// ─── Shared Widgets ───────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-
-  const _SectionLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF111827),
-        letterSpacing: 0.1,
       ),
     );
   }
@@ -990,7 +602,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -1027,7 +639,7 @@ class _StatCard extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.textHint,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1035,80 +647,6 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF9CA3AF),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA3AF)),
-          ],
-        ),
       ),
     );
   }

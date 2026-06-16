@@ -1,25 +1,27 @@
-import 'package:bus_express/features/screens/conductors/conductor_home_screen.dart';
-import 'package:bus_express/features/screens/drivers/driver_home_screen.dart';
-import 'package:bus_express/features/screens/operators/operator_home_screen.dart';
-import 'package:bus_express/features/screens/superAdmin/super_admin_home_screen.dart';
-import '../screens/passengers/passenger_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../supabase_config.dart';
+
+import '../../core/error/result.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/navigation_helper.dart';
+import '../../models/user_model.dart';
+import '../../repositories/auth_repository.dart';
+import '../../repositories/user_repository.dart';
 import '../widgets/animations.dart';
 import 'widgets/auth_text_field.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -37,76 +39,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    try {
-      final response = await SupabaseConfig.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      if (!mounted) return;
-
-      if (response.user != null) {
-        // Fetch user role
-        final userData = await SupabaseConfig.client
-            .from('users')
-            .select('role, status')
-            .eq('id', response.user!.id)
-            .single();
-
-        if (!mounted) return;
-
-        final status = userData['status'] as String;
-        if (status == 'suspended' || status == 'inactive') {
-          await SupabaseConfig.client.auth.signOut();
-          _showError('Your account has been $status. Please contact support.');
-          return;
-        }
-
-        final role = userData['role'] as String;
-        _navigateByRole(role);
-      }
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } catch (_) {
-      _showError('Something went wrong. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _navigateByRole(String role) {
-    Widget screen;
-    switch (role) {
-      case 'passenger':
-        screen = const PassengerMainScreen();
-      case 'driver':
-        screen = const DriverHomeScreen();
-      case 'conductor':
-        screen = const ConductorHomeScreen();
-      case 'operator_admin':
-        screen = const OperatorHomeScreen();
-      case 'super_admin':
-        screen = const SuperAdminHomeScreen();
-      default:
-        screen = const PassengerMainScreen();
-    }
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => screen),
-      (route) => false,
+    final authRepo = AuthRepository();
+    final result = await authRepo.loginWithEmail(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
     );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result is Success<UserModel>) {
+      NavigationHelper.navigateByRole(context, result.data.role);
+    } else {
+      _showError((result as Failure).message);
+    }
   }
 
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
-    try {
-      // For web, redirect back to the app's current URL after OAuth
-      // For mobile, Supabase Flutter handles the redirect automatically
-      final redirectUrl = kIsWeb ? Uri.base.toString() : null;
 
-      final launched = await SupabaseConfig.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: redirectUrl,
-      );
+    try {
+      final redirectUrl = kIsWeb ? Uri.base.toString() : null;
+      final launched = await AuthRepository()
+          .client
+          .auth
+          .signInWithOAuth(
+            OAuthProvider.google,
+            redirectTo: redirectUrl,
+          );
 
       if (!launched || !mounted) {
         _showError('Could not launch Google sign-in. Please try again.');
@@ -115,8 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      // Listen for the auth state change after OAuth redirect
-      SupabaseConfig.client.auth.onAuthStateChange.listen((data) async {
+      AuthRepository().client.auth.onAuthStateChange.listen((data) async {
         if (!mounted) return;
         final session = data.session;
         if (session == null) return;
@@ -124,44 +83,44 @@ class _LoginScreenState extends State<LoginScreen> {
         final user = session.user;
         final metadata = user.userMetadata ?? {};
 
-        // Ensure user record exists in the `users` table
-        final existing = await SupabaseConfig.client
+        final existing = await UserRepository()
+            .client
             .from('users')
             .select('id, role, status')
             .eq('id', user.id)
             .maybeSingle();
 
         if (existing == null) {
-          await SupabaseConfig.client.from('users').insert({
-            'id': user.id,
-            'email': user.email,
-            'name':
-                metadata['full_name'] ??
-                metadata['name'] ??
-                user.email?.split('@').first ??
-                'User',
-            'phone': metadata['phone'] ?? '',
-            'role': 'passenger',
-            'status': 'active',
-          });
+          await UserRepository()
+              .client
+              .from('users')
+              .insert({
+                'id': user.id,
+                'email': user.email,
+                'name': metadata['full_name'] ??
+                    metadata['name'] ??
+                    user.email?.split('@').first ??
+                    'User',
+                'phone': metadata['phone'] ?? '',
+                'role': 'passenger',
+                'status': 'active',
+              });
           if (!mounted) return;
-          _navigateByRole('passenger');
+          NavigationHelper.navigateByRole(context, 'passenger');
           return;
         }
 
         if (!mounted) return;
         final status = existing['status'] as String? ?? 'active';
         if (status == 'suspended' || status == 'inactive') {
-          await SupabaseConfig.client.auth.signOut();
+          await AuthRepository().client.auth.signOut();
           _showError('Your account has been $status. Please contact support.');
           return;
         }
 
         final role = existing['role'] as String? ?? 'passenger';
-        _navigateByRole(role);
+        NavigationHelper.navigateByRole(context, role);
       });
-    } on AuthException catch (e) {
-      _showError(e.message);
     } catch (e) {
       _showError('Google sign-in failed. Please try again.');
     } finally {
@@ -173,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: AppColors.error,
       ),
     );
   }
@@ -205,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 20),
-                      // Header Icon
                       SlideFadeIn(
                         duration: const Duration(milliseconds: 500),
                         offset: 20,
@@ -224,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 BoxShadow(
                                   color: const Color(
                                     0xFF2563EB,
-                                  ).withOpacity(0.2),
+                                  ).withValues(alpha: 0.2),
                                   blurRadius: 15,
                                   offset: const Offset(0, 6),
                                 ),
@@ -268,8 +226,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-
-                      // Elegant Form Card
                       SlideFadeIn(
                         duration: const Duration(milliseconds: 600),
                         offset: 30,
@@ -280,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
+                                color: Colors.black.withValues(alpha: 0.03),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                               ),
@@ -290,7 +246,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Email
                               AuthTextField(
                                 label: 'Email',
                                 hint: 'you@example.com',
@@ -298,16 +253,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (v) {
-                                  if (v == null || v.isEmpty)
+                                  if (v == null || v.isEmpty) {
                                     return 'Email is required';
-                                  if (!v.contains('@'))
+                                  }
+                                  if (!v.contains('@')) {
                                     return 'Enter a valid email';
+                                  }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 20),
-
-                              // Password
                               AuthTextField(
                                 label: 'Password',
                                 hint: '••••••••',
@@ -315,8 +270,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 controller: _passwordController,
                                 isPassword: true,
                                 validator: (v) {
-                                  if (v == null || v.isEmpty)
+                                  if (v == null || v.isEmpty) {
                                     return 'Password is required';
+                                  }
                                   if (v.length < 6) {
                                     return 'Password must be at least 6 characters';
                                   }
@@ -324,8 +280,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 },
                               ),
                               const SizedBox(height: 8),
-
-                              // Forgot password
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -353,24 +307,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-
-                              // Login button
                               SizedBox(
                                 width: double.infinity,
                                 height: 52,
                                 child: ElevatedButton(
                                   onPressed: _isLoading ? null : _login,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2563EB),
-                                    foregroundColor: Colors.white,
-                                    disabledBackgroundColor: const Color(
-                                      0xFF93C5FD,
-                                    ),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
                                   child: _isLoading
                                       ? const SizedBox(
                                           width: 22,
@@ -393,7 +334,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      // ─── Divider ─────────────────────────────────────
                       SlideFadeIn(
                         duration: const Duration(milliseconds: 650),
                         offset: 20,
@@ -424,8 +364,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-
-                      // ─── Google Sign-In ────────────────────────────
                       SlideFadeIn(
                         duration: const Duration(milliseconds: 700),
                         offset: 20,
@@ -470,8 +408,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-
-                      // Sign up link
                       Center(
                         child: Row(
                           mainAxisSize: MainAxisSize.min,

@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../supabase_config.dart';
+
+import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/date_helpers.dart';
+import '../../../repositories/trip_repository.dart';
 import 'booking_confirmation_screen.dart';
 
 class ScheduleSeatScreen extends StatefulWidget {
@@ -18,20 +21,25 @@ class ScheduleSeatScreen extends StatefulWidget {
 }
 
 class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
+  final _tripRepo = TripRepository();
   List<String> _bookedSeats = [];
-  final List<String> _selectedSeats = []; // ← now a list
+  final List<String> _selectedSeats = [];
   bool _isLoading = true;
   int _capacity = 30;
   Timer? _timer;
   String? _tripStatus;
 
   bool get _isExpired {
-    if (_tripStatus == 'in_progress' || _tripStatus == 'completed' || _tripStatus == 'cancelled') return true;
+    if (_tripStatus == 'in_progress' ||
+        _tripStatus == 'completed' ||
+        _tripStatus == 'cancelled') return true;
 
     try {
-      final arrivalParts = (widget.schedule['arrival_time'] as String).split(':');
-      final departureParts = (widget.schedule['departure_time'] as String).split(':');
-      
+      final arrivalParts =
+          (widget.schedule['arrival_time'] as String).split(':');
+      final departureParts =
+          (widget.schedule['departure_time'] as String).split(':');
+
       var arrival = DateTime(
         widget.date.year,
         widget.date.month,
@@ -53,7 +61,8 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     } catch (_) {}
 
     try {
-      final parts = (widget.schedule['departure_time'] as String).split(':');
+      final parts =
+          (widget.schedule['departure_time'] as String).split(':');
       final departure = DateTime(
         widget.date.year,
         widget.date.month,
@@ -91,7 +100,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
   Future<void> _loadBookedSeats() async {
     setState(() => _isLoading = true);
     try {
-      final tripData = await SupabaseConfig.client
+      final tripData = await _tripRepo.client
           .from('trips')
           .select('id, status')
           .eq('schedule_id', widget.schedule['id'])
@@ -99,7 +108,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
           .maybeSingle();
 
       if (tripData != null) {
-        final bookings = await SupabaseConfig.client
+        final bookings = await _tripRepo.client
             .from('bookings')
             .select('seat_number')
             .eq('trip_id', tripData['id'])
@@ -168,7 +177,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
         builder: (_) => BookingConfirmationScreen(
           schedule: widget.schedule,
           date: widget.date,
-          seatNumbers: _selectedSeats, // pass all selected seats
+          seatNumbers: _selectedSeats,
         ),
       ),
     );
@@ -179,7 +188,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     final route = widget.schedule['routes'] as Map<String, dynamic>;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -200,7 +209,6 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       ),
       body: Column(
         children: [
-          // Trip info header
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -213,7 +221,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
@@ -223,7 +231,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _formatTime(widget.schedule['departure_time']),
+                        DateHelpers.formatTime(
+                          widget.schedule['departure_time'],
+                        ),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -234,7 +244,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                         route['origin'],
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                         ),
                       ),
                     ],
@@ -250,7 +260,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                         '${route['duration_min']} min',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -259,7 +269,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        _formatTime(widget.schedule['arrival_time']),
+                        DateHelpers.formatTime(
+                          widget.schedule['arrival_time'],
+                        ),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -270,7 +282,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                         route['destination'],
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                         ),
                       ),
                     ],
@@ -279,7 +291,6 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
               ),
             ),
           ),
-
           Expanded(
             child: _isLoading
                 ? const Center(
@@ -291,7 +302,6 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        // Legend
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -306,15 +316,14 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                             ),
                             const SizedBox(width: 20),
                             _LegendItem(
-                              color: const Color(0xFFEF4444).withOpacity(0.15),
+                              color:
+                                  const Color(0xFFEF4444).withValues(alpha: 0.15),
                               label: 'Booked',
                               textColor: const Color(0xFFEF4444),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-
-                        // Expired banner
                         if (_isExpired)
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
@@ -351,17 +360,14 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                               ],
                             ),
                           ),
-
                         const SizedBox(height: 8),
-
-                        // Bus diagram
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
+                                color: Colors.black.withValues(alpha: 0.06),
                                 blurRadius: 12,
                                 offset: const Offset(0, 3),
                               ),
@@ -370,7 +376,6 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              // Driver section
                               Row(
                                 children: [
                                   Container(
@@ -425,8 +430,6 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                               const SizedBox(height: 16),
                               const Divider(color: Color(0xFFF3F4F6)),
                               const SizedBox(height: 16),
-
-                              // Column headers
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 4,
@@ -442,18 +445,17 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-
-                              // Seat grid
                               GridView.builder(
                                 shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
+                                physics:
+                                    const NeverScrollableScrollPhysics(),
                                 gridDelegate:
                                     const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 4,
-                                      mainAxisSpacing: 10,
-                                      crossAxisSpacing: 10,
-                                      childAspectRatio: 1,
-                                    ),
+                                  crossAxisCount: 4,
+                                  mainAxisSpacing: 10,
+                                  crossAxisSpacing: 10,
+                                  childAspectRatio: 1,
+                                ),
                                 itemCount: _capacity,
                                 itemBuilder: (context, index) {
                                   final seat = _seatLabel(index);
@@ -463,9 +465,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                                     status: status,
                                     onTap:
                                         (status == SeatStatus.booked ||
-                                            _isExpired)
-                                        ? null
-                                        : () => _toggleSeat(seat),
+                                                _isExpired)
+                                            ? null
+                                            : () => _toggleSeat(seat),
                                   );
                                 },
                               ),
@@ -479,15 +481,13 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
           ),
         ],
       ),
-
-      // Bottom bar
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 10,
               offset: const Offset(0, -3),
             ),
@@ -499,7 +499,6 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Selected seats label
                 Text(
                   _selectedSeats.isEmpty
                       ? 'No seat selected'
@@ -507,15 +506,14 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     color: _selectedSeats.isNotEmpty
-                        ? const Color(0xFF111827)
-                        : const Color(0xFF9CA3AF),
+                        ? AppColors.textPrimary
+                        : AppColors.textHint,
                     fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
                 const SizedBox(height: 2),
-                // Total price
                 Row(
                   children: [
                     Text(
@@ -532,7 +530,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                         '(\$${widget.schedule['price']} x ${_selectedSeats.length})',
                         style: const TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF9CA3AF),
+                          color: AppColors.textHint,
                         ),
                       ),
                     ],
@@ -557,7 +555,10 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                   ),
                   child: const Text(
                     'Continue',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -567,22 +568,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       ),
     );
   }
-
-  String _formatTime(String time) {
-    final parts = time.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = parts[1];
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-    return '$displayHour:$minute $period';
-  }
 }
 
-// ─── Seat Status ──────────────────────────────────────────────────────────────
-
 enum SeatStatus { available, selected, booked }
-
-// ─── Seat Widget ──────────────────────────────────────────────────────────────
 
 class _SeatWidget extends StatelessWidget {
   final String label;
@@ -631,10 +619,10 @@ class _SeatWidget extends StatelessWidget {
               Icons.event_seat_rounded,
               size: 18,
               color: status == SeatStatus.booked
-                  ? const Color(0xFFEF4444).withOpacity(0.5)
+                  ? const Color(0xFFEF4444).withValues(alpha: 0.5)
                   : status == SeatStatus.selected
-                  ? Colors.white
-                  : const Color(0xFF9CA3AF),
+                      ? Colors.white
+                      : const Color(0xFF9CA3AF),
             ),
             const SizedBox(height: 2),
             Text(
@@ -652,14 +640,16 @@ class _SeatWidget extends StatelessWidget {
   }
 }
 
-// ─── Legend Item ──────────────────────────────────────────────────────────────
-
 class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
   final Color? textColor;
 
-  const _LegendItem({required this.color, required this.label, this.textColor});
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -679,15 +669,13 @@ class _LegendItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: textColor ?? const Color(0xFF6B7280),
+            color: textColor ?? AppColors.textSecondary,
           ),
         ),
       ],
     );
   }
 }
-
-// ─── Column Header ────────────────────────────────────────────────────────────
 
 class _ColHeader extends StatelessWidget {
   final String label;
