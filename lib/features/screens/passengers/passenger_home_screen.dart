@@ -493,11 +493,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                      ),
+                      gradient: AppGradients.primaryBlue,
                       borderRadius: AppRadius.mdR,
                     ),
                     child: Center(

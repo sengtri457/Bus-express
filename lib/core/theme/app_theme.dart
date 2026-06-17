@@ -145,6 +145,22 @@ class AppRadius {
   static BorderRadius get xlR => circular(xl);
 }
 
+class AppGradients {
+  AppGradients._();
+
+  static const primaryBlue = LinearGradient(
+    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const darkBlue = LinearGradient(
+    colors: [Color(0xFF1E3A8A), Color(0xFF0F172A)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
+
 class AppTextStyles {
   AppTextStyles._();
 

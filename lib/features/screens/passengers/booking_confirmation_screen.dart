@@ -1,9 +1,16 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/error/result.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/date_helpers.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/receipt_service.dart';
+import '../../../services/resend_email_service.dart';
 import '../../../supabase_config.dart';
 import 'passenger_main_screen.dart';
 
@@ -33,6 +40,15 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nationalityController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+
+  bool _hasSavedInfo = false;
+  bool _useSavedInfo = true;
+  String _savedName = '';
+  String _savedAge = '';
+  String _savedPhone = '';
+  String _savedNationality = '';
+  String _savedEmail = '';
 
   // Promo code state
   final TextEditingController _promoCodeController = TextEditingController();
@@ -62,6 +78,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     _ageController.dispose();
     _phoneController.dispose();
     _nationalityController.dispose();
+    _emailController.dispose();
     _promoCodeController.dispose();
     super.dispose();
   }
@@ -76,14 +93,28 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           .eq('id', user.id)
           .maybeSingle();
       if (mounted && data != null) {
-        _nameController.text = data['name'] ?? '';
-        _phoneController.text = data['phone'] ?? '';
-        if (data['age'] != null) {
-          _ageController.text = data['age'].toString();
-        }
-        _nationalityController.text = data['nationality'] ?? '';
+        _savedName = data['name'] ?? '';
+        _savedPhone = data['phone'] ?? '';
+        _savedEmail = data['email'] ?? user.email ?? '';
+        _savedAge = data['age']?.toString() ?? '';
+        _savedNationality = data['nationality'] ?? '';
+        _nameController.text = _savedName;
+        _phoneController.text = _savedPhone;
+        _emailController.text = _savedEmail;
+        _ageController.text = _savedAge;
+        _nationalityController.text = _savedNationality;
+        final hasInfo = _savedName.isNotEmpty;
+        setState(() {
+          _hasSavedInfo = hasInfo;
+          _useSavedInfo = hasInfo;
+        });
+      } else if (mounted) {
+        _savedEmail = user.email ?? '';
+        _emailController.text = _savedEmail;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[BookingConfirm] Failed to load user info: $e');
+    }
   }
 
   Future<void> _validatePromoCode() async {
@@ -232,12 +263,22 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         throw Exception('Invalid phone number. Enter a real number with correct country code (e.g. +1234567890).');
       }
 
+      // Validate email
+      final email = _emailController.text.trim();
+      if (email.isNotEmpty) {
+        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+        if (!emailRegex.hasMatch(email)) {
+          throw Exception('Enter a valid email address.');
+        }
+      }
+
       // Save passenger info to user profile
       await SupabaseConfig.client
           .from('users')
           .update({
             'name': _nameController.text.trim(),
             'phone': _phoneController.text.trim(),
+            'email': email,
             'age': int.tryParse(_ageController.text.trim()),
             'nationality': _nationalityController.text.trim(),
           })
@@ -294,6 +335,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
       // Step 2: Create one booking per seat
       String firstBookingId = '';
+      final List<Map<String, dynamic>> receiptBookings = [];
+      final now = DateTime.now();
+      final nowStr = now.toIso8601String();
       for (final seat in widget.seatNumbers) {
         // FIX 2: was .single() — same issue. If the booking insert is
         // blocked or returns nothing, this would crash.
@@ -305,7 +349,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               'seat_number': seat,
               'status': 'confirmed',
               'total_price': _pricePerSeat,
-              'booked_at': DateTime.now().toIso8601String(),
+              'booked_at': nowStr,
               'booking_channel': 'online',
               'passenger_name': _nameController.text.trim(),
               'passenger_age': int.tryParse(_ageController.text.trim()),
@@ -339,6 +383,20 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           'booking_id': bookingId,
           'qr_code': qrCode,
           'status': 'valid',
+        });
+
+        receiptBookings.add({
+          'id': bookingId,
+          'seat_number': seat,
+          'status': 'confirmed',
+          'total_price': _pricePerSeat,
+          'booked_at': nowStr,
+          'trips': {
+            'id': tripId,
+            'trip_date': widget.date.toIso8601String().split('T')[0],
+            'status': 'scheduled',
+            'schedules': widget.schedule,
+          },
         });
       }
 
@@ -376,6 +434,18 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         ),
       );
 
+      final receiptEmail = _emailController.text.trim();
+      if (receiptEmail.isNotEmpty && receiptBookings.isNotEmpty) {
+        await _sendReceiptEmail(
+          to: receiptEmail,
+          bookings: receiptBookings,
+          passengerName: _nameController.text.trim(),
+        ).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {},
+        );
+      }
+
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
@@ -398,6 +468,25 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     }
   }
 
+  void _onUseSavedInfoChanged(bool useSaved) {
+    setState(() {
+      _useSavedInfo = useSaved;
+      if (_useSavedInfo) {
+        _nameController.text = _savedName;
+        _ageController.text = _savedAge;
+        _phoneController.text = _savedPhone;
+        _nationalityController.text = _savedNationality;
+        _emailController.text = _savedEmail;
+      } else {
+        _nameController.clear();
+        _ageController.clear();
+        _phoneController.clear();
+        _nationalityController.clear();
+        _emailController.clear();
+      }
+    });
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -409,6 +498,63 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     );
   }
 
+  Future<void> _sendReceiptEmail({
+    required String to,
+    required List<Map<String, dynamic>> bookings,
+    required String passengerName,
+  }) async {
+    final route = widget.schedule['routes'] as Map<String, dynamic>?;
+    final origin = route?['origin'] as String? ?? '?';
+    final destination = route?['destination'] as String? ?? '?';
+    final bookingRef =
+        '#${(bookings.first['id'] as String).substring(0, 8).toUpperCase()}';
+    final tripDate = DateHelpers.formatFullDate(
+      widget.date.toIso8601String().split('T')[0],
+    );
+    final departureTime =
+        _formatTime(widget.schedule['departure_time'] as String);
+
+    final pdfResult = await ReceiptService.generate(bookings: bookings);
+
+    switch (pdfResult) {
+      case Success<Uint8List>(:final data):
+        final emailResult = await ResendEmailService.sendReceipt(
+          to: to,
+          pdfBytes: data,
+          bookingRef: bookingRef,
+          origin: origin,
+          destination: destination,
+          tripDate: tripDate,
+          departureTime: departureTime,
+          seatCount: bookings.length,
+          totalPrice:
+              bookings.fold<double>(0, (s, b) => s + (b['total_price'] as num).toDouble()),
+          passengerName: passengerName,
+        );
+        if (emailResult is Success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Receipt sent to your email'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        } else if (emailResult is Failure) {
+          debugPrint('[Email] Failed to send receipt: ${emailResult.message}');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(emailResult.message),
+                backgroundColor: Colors.orange.shade700,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      case Failure<Uint8List>(:final message):
+        debugPrint('[Email] Failed to generate receipt PDF: $message');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final route = widget.schedule['routes'] as Map<String, dynamic>;
@@ -418,13 +564,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
         ),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -593,6 +733,36 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
+                    if (_hasSavedInfo)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                              SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: Checkbox(
+                                  value: _useSavedInfo,
+                                  onChanged: (v) => _onUseSavedInfoChanged(v ?? true),
+                                  activeColor: const Color(0xFF2563EB),
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              GestureDetector(
+                                onTap: () => _onUseSavedInfoChanged(!_useSavedInfo),
+                                child: const Text(
+                                'Use my saved information',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF374151),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     TextFormField(
                       controller: _nameController,
                       decoration: _inputDecoration(
@@ -648,6 +818,26 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                       textCapitalization: TextCapitalization.words,
                       validator: (v) =>
                           v == null || v.trim().isEmpty ? 'Enter your nationality' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: _inputDecoration(
+                        label: 'Email',
+                        icon: Icons.email_outlined,
+                        helperText: 'Receipt will be sent here',
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        final emailRegex = RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                        );
+                        if (!emailRegex.hasMatch(v.trim())) {
+                          return 'Enter a valid email address';
+                        }
+                        return null;
+                      },
                     ),
                   ],
                 ),

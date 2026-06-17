@@ -48,6 +48,8 @@ dependencies:
   phone_numbers_parser: ^9.0.0
   flutter_local_notifications: ^18.0.1
   flutter_riverpod: ^2.6.1
+  pdf: ^3.11.2
+  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:

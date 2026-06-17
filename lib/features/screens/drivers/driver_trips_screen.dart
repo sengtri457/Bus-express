@@ -136,7 +136,6 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
       total += _incidentDelays[type] ?? 15;
     }
     return total;
-    return total;
   }
 
   Future<void> _loadIncidents() async {

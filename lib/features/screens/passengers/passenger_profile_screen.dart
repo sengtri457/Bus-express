@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../supabase_config.dart';
 import '../../auth/login_screen.dart';
 
@@ -240,11 +241,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
         centerTitle: true,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppGradients.primaryBlue,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -274,11 +271,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                   Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                      ),
+                      gradient: AppGradients.primaryBlue,
                       borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(32),
                         bottomRight: Radius.circular(32),

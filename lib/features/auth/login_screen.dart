@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,6 +57,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  StreamSubscription<AuthState>? _googleAuthSub;
+
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
 
@@ -75,10 +79,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (!mounted) return;
 
-      AuthRepository().client.auth.onAuthStateChange.listen((data) async {
+      _googleAuthSub?.cancel();
+      _googleAuthSub = AuthRepository().client.auth.onAuthStateChange.listen((data) async {
         if (!mounted) return;
         final session = data.session;
         if (session == null) return;
+
+        await _googleAuthSub?.cancel();
+        _googleAuthSub = null;
 
         final user = session.user;
         final metadata = user.userMetadata ?? {};
@@ -172,11 +180,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 76,
                             height: 76,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              gradient: AppGradients.primaryBlue,
                               borderRadius: BorderRadius.circular(22),
                               boxShadow: [
                                 BoxShadow(

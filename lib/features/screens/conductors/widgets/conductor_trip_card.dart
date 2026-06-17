@@ -42,11 +42,7 @@ class ConductorTripCard extends StatelessWidget {
       child: Container(
         decoration: isSelected
             ? BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                ),
+                gradient: AppGradients.primaryBlue,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -185,11 +181,7 @@ class ConductorTripCard extends StatelessWidget {
   Widget _buildNoScheduleCard(String status) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-        ),
+        gradient: AppGradients.primaryBlue,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(

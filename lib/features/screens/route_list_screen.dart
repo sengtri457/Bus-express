@@ -213,13 +213,7 @@ class _RouteListScreenState extends State<RouteListScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
         ),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -396,11 +390,7 @@ class _ScheduleCard extends StatelessWidget {
                 Container(
                   width: 4,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+                    gradient: AppGradients.primaryBlue,
                   ),
                 ),
                 Expanded(
@@ -619,20 +609,6 @@ class _ScheduleCard extends StatelessWidget {
                             ),
                             Row(
                               children: [
-                                const Icon(
-                                  Icons.star_rounded,
-                                  size: 13,
-                                  color: Color(0xFF10B981),
-                                ),
-                                const SizedBox(width: 3),
-                                const Text(
-                                  '4.7',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF10B981),
-                                  ),
-                                ),
                                 const SizedBox(width: 10),
                                 Container(
                                   padding: const EdgeInsets.symmetric(

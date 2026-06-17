@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
-import '../../../../models/booking_model.dart';
-import '../../../../models/ticket_model.dart';
 import '../../../../shared/widgets/trip_status_badge.dart';
 import '../live_tracking_screen.dart';
+import '../receipt_screen.dart';
 import 'ticket_detail_sheet.dart';
 
 class TicketGroupCard extends StatelessWidget {
@@ -268,7 +267,7 @@ class TicketGroupCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
               child: Row(
                 children: [
                   const Icon(
@@ -295,6 +294,41 @@ class TicketGroupCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (!trackable)
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReceiptScreen(bookings: bookings),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.receipt_long_rounded,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'View Receipt',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textHint,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),

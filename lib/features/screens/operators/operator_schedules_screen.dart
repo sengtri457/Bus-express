@@ -578,6 +578,18 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
           _buses = List<Map<String, dynamic>>.from(results[1]);
           _drivers = List<Map<String, dynamic>>.from(results[2]);
           _conductors = List<Map<String, dynamic>>.from(results[3]);
+
+          // Pre-select first item when value is null (new schedule)
+          if (_selectedRouteId == null && _routes.isNotEmpty) {
+            _selectedRouteId = _routes.first['id'] as String?;
+          }
+          if (_selectedBusId == null && _buses.isNotEmpty) {
+            _selectedBusId = _buses.first['id'] as String?;
+          }
+          if (_selectedDriverId == null && _drivers.isNotEmpty) {
+            _selectedDriverId = _drivers.first['id'] as String?;
+          }
+
           _isFetching = false;
         });
       }

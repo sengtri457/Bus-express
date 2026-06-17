@@ -50,8 +50,6 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
       _errorMessage = null;
     });
     try {
-      await _tripRepo.syncOverdueTrips();
-
       final user = _userRepo.client.auth.currentUser;
       if (user == null) {
         if (mounted) setState(() => _isLoading = false);

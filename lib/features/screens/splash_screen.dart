@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/navigation_helper.dart';
 import '../../models/user_model.dart';
 import '../../core/error/result.dart';
@@ -96,11 +97,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1E3A8A), Color(0xFF0F172A)],
-          ),
+          gradient: AppGradients.darkBlue,
         ),
         child: Center(
           child: FadeTransition(

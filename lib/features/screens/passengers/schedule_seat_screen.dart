@@ -191,13 +191,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
         ),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -210,13 +204,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       body: Column(
         children: [
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+            decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: Container(
               padding: const EdgeInsets.all(16),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/date_helpers.dart';
 import 'services/booking_cancellation_service.dart';
 
 /// Call this from any screen:
@@ -55,7 +56,6 @@ class CancelBookingSheet extends StatefulWidget {
 
 class _CancelBookingSheetState extends State<CancelBookingSheet> {
   bool _isLoading = false;
-  bool _confirmed = false; // shows confirmation step first
 
   Future<void> _performCancellation() async {
     setState(() => _isLoading = true);
@@ -276,10 +276,10 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                   value: '${widget.origin} → ${widget.destination}',
                 ),
                 const Divider(height: 16, color: Color(0xFFE5E7EB)),
-                _SummaryRow(
+                 _SummaryRow(
                   icon: Icons.calendar_today_rounded,
                   label: 'Date',
-                  value: _formatDate(widget.tripDate),
+                  value: DateHelpers.formatDate(widget.tripDate),
                 ),
                 const Divider(height: 16, color: Color(0xFFE5E7EB)),
                 _SummaryRow(
@@ -387,29 +387,6 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
     );
   }
 
-  String _formatDate(String d) {
-    try {
-      final dt = DateTime.parse(d);
-      const m = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      const w = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      return '${w[dt.weekday - 1]}, ${dt.day} ${m[dt.month - 1]} ${dt.year}';
-    } catch (_) {
-      return d;
-    }
-  }
 }
 
 class _SummaryRow extends StatelessWidget {

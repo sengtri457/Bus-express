@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/theme/app_theme.dart';
 import '../../supabase_config.dart';
 import '../widgets/animations.dart';
 import 'widgets/auth_text_field.dart';
@@ -230,11 +231,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           width: 76,
                           height: 76,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            gradient: AppGradients.primaryBlue,
                             borderRadius: BorderRadius.circular(22),
                             boxShadow: [
                               BoxShadow(

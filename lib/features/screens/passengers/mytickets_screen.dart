@@ -140,8 +140,8 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
               const SizedBox(height: 20),
               Text(
                 count > 1
-                    ? '$count Seats Confirmed! 🎉'
-                    : 'Booking Confirmed! 🎉',
+                    ? '$count Seats Confirmed!'
+                    : 'Booking Confirmed!',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,

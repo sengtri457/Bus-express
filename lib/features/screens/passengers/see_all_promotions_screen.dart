@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../supabase_config.dart';
 
 class SeeAllPromotionsScreen extends StatefulWidget {
@@ -100,11 +101,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppGradients.primaryBlue,
           ),
         ),
         backgroundColor: Colors.transparent,
