@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../repositories/booking_repository.dart';
+import '../../widgets/animations.dart';
 import 'widgets/ticket_card.dart';
 
 class MyTicketsScreen extends StatefulWidget {
@@ -210,7 +211,10 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: SkeletonList(count: 4),
+            )
           : TabBarView(
               controller: _tabController,
               children: [

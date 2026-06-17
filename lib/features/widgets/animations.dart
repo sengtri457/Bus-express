@@ -214,3 +214,167 @@ class _ShimmerBoxState extends State<ShimmerBox>
     );
   }
 }
+
+// ── Reusable skeleton layout patterns ──────────────────────────
+
+/// A single shimmer row: circle + two text lines.
+class SkeletonRow extends StatelessWidget {
+  final double spacing;
+  const SkeletonRow({super.key, this.spacing = 12});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: spacing / 2),
+      child: Row(
+        children: [
+          const ShimmerBox(width: 44, height: 44, borderRadius: 22),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerBox(height: 14, borderRadius: 6),
+                SizedBox(height: 8),
+                ShimmerBox(width: 140, height: 11, borderRadius: 5),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A card skeleton with optional trailing icon space.
+class SkeletonCard extends StatelessWidget {
+  final double height;
+  const SkeletonCard({super.key, this.height = 100});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const ShimmerBox(width: 44, height: 44, borderRadius: 10),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerBox(height: 14, borderRadius: 6),
+                SizedBox(height: 8),
+                ShimmerBox(width: 120, height: 11, borderRadius: 5),
+              ],
+            ),
+          ),
+          const ShimmerBox(width: 18, height: 18, borderRadius: 9),
+        ],
+      ),
+    );
+  }
+}
+
+/// Repeated card skeletons for list loading.
+class SkeletonList extends StatelessWidget {
+  final int count;
+  final double cardHeight;
+  const SkeletonList({super.key, this.count = 5, this.cardHeight = 100});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(
+        count,
+        (_) => SkeletonCard(height: cardHeight),
+      ),
+    );
+  }
+}
+
+/// A block skeleton: top area + body rows.
+class SkeletonBlock extends StatelessWidget {
+  final int rows;
+  const SkeletonBlock({super.key, this.rows = 4});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ShimmerBox(width: 160, height: 16, borderRadius: 6),
+          const SizedBox(height: 18),
+          ...List.generate(rows, (_) {
+            return const Padding(
+              padding: EdgeInsets.only(bottom: 14),
+              child: Row(
+                children: [
+                  ShimmerBox(width: 18, height: 18, borderRadius: 4),
+                  SizedBox(width: 12),
+                  Expanded(child: ShimmerBox(height: 13, borderRadius: 5)),
+                  SizedBox(width: 12),
+                  ShimmerBox(width: 60, height: 13, borderRadius: 5),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+/// Full-screen seat grid skeleton (matches seat layout: 4 cols + aisle).
+class SkeletonSeatGrid extends StatelessWidget {
+  final int rows;
+  const SkeletonSeatGrid({super.key, this.rows = 7});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Row(
+          children: [
+            Expanded(child: ShimmerBox(height: 44, borderRadius: 10)),
+            SizedBox(width: 8),
+            Expanded(child: ShimmerBox(height: 44, borderRadius: 10)),
+            SizedBox(width: 28),
+            Expanded(child: ShimmerBox(height: 44, borderRadius: 10)),
+            SizedBox(width: 8),
+            Expanded(child: ShimmerBox(height: 44, borderRadius: 10)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...List.generate(rows, (_) {
+          return const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Expanded(child: ShimmerBox(height: 56, borderRadius: 10)),
+                SizedBox(width: 8),
+                Expanded(child: ShimmerBox(height: 56, borderRadius: 10)),
+                SizedBox(width: 28),
+                Expanded(child: ShimmerBox(height: 56, borderRadius: 10)),
+                SizedBox(width: 8),
+                Expanded(child: ShimmerBox(height: 56, borderRadius: 10)),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/animations.dart';
 import '../../auth/login_screen.dart';
 
 class PassengerProfileScreen extends StatefulWidget {
@@ -258,10 +259,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
         automaticallyImplyLeading: !widget.isTab,
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
-              ),
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: SkeletonBlock(rows: 3),
             )
           : SingleChildScrollView(
               physics: const BouncingScrollPhysics(),

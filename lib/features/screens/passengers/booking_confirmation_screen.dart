@@ -42,13 +42,20 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   final TextEditingController _nationalityController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
-  bool _hasSavedInfo = false;
-  bool _useSavedInfo = true;
+  bool _hasStoredInfo = false;
+  bool _useStoredInfo = true;
   String _savedName = '';
   String _savedAge = '';
   String _savedPhone = '';
   String _savedNationality = '';
   String _savedEmail = '';
+
+  String get _savedInfoPreview {
+    if (_savedName.isEmpty) return '';
+    final parts = <String>[_savedName];
+    if (_savedPhone.isNotEmpty) parts.add(_savedPhone);
+    return parts.join(' • ');
+  }
 
   // Promo code state
   final TextEditingController _promoCodeController = TextEditingController();
@@ -87,34 +94,50 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     try {
       final user = SupabaseConfig.client.auth.currentUser;
       if (user == null) return;
+
       final data = await SupabaseConfig.client
           .from('users')
           .select('name, phone, email, age, nationality')
           .eq('id', user.id)
           .maybeSingle();
-      if (mounted && data != null) {
-        _savedName = data['name'] ?? '';
-        _savedPhone = data['phone'] ?? '';
-        _savedEmail = data['email'] ?? user.email ?? '';
+
+      if (!mounted) return;
+
+      if (data != null) {
+        _savedName = data['name'] as String? ?? '';
+        _savedPhone = data['phone'] as String? ?? '';
+        _savedEmail = data['email'] as String? ?? user.email ?? '';
         _savedAge = data['age']?.toString() ?? '';
-        _savedNationality = data['nationality'] ?? '';
-        _nameController.text = _savedName;
-        _phoneController.text = _savedPhone;
-        _emailController.text = _savedEmail;
-        _ageController.text = _savedAge;
-        _nationalityController.text = _savedNationality;
-        final hasInfo = _savedName.isNotEmpty;
-        setState(() {
-          _hasSavedInfo = hasInfo;
-          _useSavedInfo = hasInfo;
-        });
-      } else if (mounted) {
+        _savedNationality = data['nationality'] as String? ?? '';
+      } else {
         _savedEmail = user.email ?? '';
-        _emailController.text = _savedEmail;
       }
+
+      _fillControllersFromSaved();
+      final hasInfo = _savedName.isNotEmpty;
+      setState(() {
+        _hasStoredInfo = hasInfo;
+        _useStoredInfo = hasInfo;
+      });
     } catch (e) {
       debugPrint('[BookingConfirm] Failed to load user info: $e');
     }
+  }
+
+  void _fillControllersFromSaved() {
+    _nameController.text = _savedName;
+    _phoneController.text = _savedPhone;
+    _emailController.text = _savedEmail;
+    _ageController.text = _savedAge;
+    _nationalityController.text = _savedNationality;
+  }
+
+  void _clearControllers() {
+    _nameController.clear();
+    _phoneController.clear();
+    _ageController.clear();
+    _nationalityController.clear();
+    _emailController.clear();
   }
 
   Future<void> _validatePromoCode() async {
@@ -272,17 +295,27 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         }
       }
 
-      // Save passenger info to user profile
-      await SupabaseConfig.client
-          .from('users')
-          .update({
-            'name': _nameController.text.trim(),
-            'phone': _phoneController.text.trim(),
-            'email': email,
-            'age': int.tryParse(_ageController.text.trim()),
-            'nationality': _nationalityController.text.trim(),
-          })
-          .eq('id', user.id);
+      // Save passenger info to user profile (insert or update)
+      final profileData = <String, dynamic>{
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'email': email,
+        'age': int.tryParse(_ageController.text.trim()),
+        'nationality': _nationalityController.text.trim(),
+      };
+      try {
+        await SupabaseConfig.client.from('users').insert({
+          'id': user.id,
+          ...profileData,
+        });
+        debugPrint('[BookingConfirm] User profile created');
+      } catch (_) {
+        // Record already exists — update instead
+        await SupabaseConfig.client.from('users')
+            .update(profileData)
+            .eq('id', user.id);
+        debugPrint('[BookingConfirm] User profile updated');
+      }
 
       final scheduleId = widget.schedule['id'] as String;
       final tripDate = widget.date.toIso8601String().split('T')[0];
@@ -470,19 +503,11 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
   void _onUseSavedInfoChanged(bool useSaved) {
     setState(() {
-      _useSavedInfo = useSaved;
-      if (_useSavedInfo) {
-        _nameController.text = _savedName;
-        _ageController.text = _savedAge;
-        _phoneController.text = _savedPhone;
-        _nationalityController.text = _savedNationality;
-        _emailController.text = _savedEmail;
+      _useStoredInfo = useSaved;
+      if (_useStoredInfo) {
+        _fillControllersFromSaved();
       } else {
-        _nameController.clear();
-        _ageController.clear();
-        _phoneController.clear();
-        _nationalityController.clear();
-        _emailController.clear();
+        _clearControllers();
       }
     });
   }
@@ -733,30 +758,43 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    if (_hasSavedInfo)
+                    if (_hasStoredInfo)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
                           children: [
-                              SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: Checkbox(
-                                  value: _useSavedInfo,
-                                  onChanged: (v) => _onUseSavedInfoChanged(v ?? true),
-                                  activeColor: const Color(0xFF2563EB),
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
+                            SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: Checkbox(
+                                value: _useStoredInfo,
+                                onChanged: (v) => _onUseSavedInfoChanged(v ?? true),
+                                activeColor: const Color(0xFF2563EB),
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                              const SizedBox(width: 10),
-                              GestureDetector(
-                                onTap: () => _onUseSavedInfoChanged(!_useSavedInfo),
-                                child: const Text(
-                                'Use my saved information',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF374151),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () => _onUseSavedInfoChanged(!_useStoredInfo),
+                              child: RichText(
+                                text: TextSpan(
+                                  text: 'Use saved info',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF374151),
+                                  ),
+                                  children: [
+                                    if (_savedInfoPreview.isNotEmpty)
+                                      TextSpan(
+                                        text: ' ($_savedInfoPreview)',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF6B7280),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -838,6 +876,19 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                         }
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded,
+                            size: 14, color: Color(0xFF9CA3AF)),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Your details are saved for future bookings',
+                          style: TextStyle(
+                              fontSize: 12, color: Color(0xFF9CA3AF)),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -6,6 +6,7 @@ class LocationField extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color iconColor;
+  final VoidCallback? onBrowse;
 
   const LocationField({
     super.key,
@@ -14,6 +15,7 @@ class LocationField extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.iconColor,
+    this.onBrowse,
   });
 
   @override
@@ -47,6 +49,22 @@ class LocationField extends StatelessWidget {
             ),
           ),
         ),
+        if (onBrowse != null)
+          GestureDetector(
+            onTap: onBrowse,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.list_rounded,
+                size: 18,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+          ),
       ],
     );
   }

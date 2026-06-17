@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/animations.dart';
 
 class SeeAllPromotionsScreen extends StatefulWidget {
   const SeeAllPromotionsScreen({super.key});
@@ -113,8 +114,9 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF2563EB)),
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: SkeletonList(count: 4),
             )
           : _promotions.isEmpty
               ? Center(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../services/notification_service.dart';
+import '../../widgets/animations.dart';
 
 class NotificationListScreen extends StatefulWidget {
   const NotificationListScreen({super.key});
@@ -66,7 +67,10 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: SkeletonList(count: 5),
+            )
           : _notifications.isEmpty
               ? _emptyState()
               : RefreshIndicator(

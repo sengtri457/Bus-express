@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/auth_helper.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../services/notification_service.dart';
+import '../../widgets/animations.dart';
 import '../../widgets/notification_bell.dart';
 import 'super_admin_operators_screen.dart';
 import 'super_admin_users_screen.dart';
@@ -176,7 +177,10 @@ class _DashboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: SkeletonList(count: 4),
+      );
     }
 
     return RefreshIndicator(

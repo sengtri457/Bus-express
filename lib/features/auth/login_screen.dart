@@ -64,13 +64,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final redirectUrl = kIsWeb ? Uri.base.toString() : null;
-      final launched = await AuthRepository()
-          .client
-          .auth
-          .signInWithOAuth(
-            OAuthProvider.google,
-            redirectTo: redirectUrl,
-          );
+      final launched = await AuthRepository().client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirectUrl,
+      );
 
       if (!launched || !mounted) {
         _showError('Could not launch Google sign-in. Please try again.');
@@ -80,7 +77,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
 
       _googleAuthSub?.cancel();
-      _googleAuthSub = AuthRepository().client.auth.onAuthStateChange.listen((data) async {
+      _googleAuthSub = AuthRepository().client.auth.onAuthStateChange.listen((
+        data,
+      ) async {
         if (!mounted) return;
         final session = data.session;
         if (session == null) return;
@@ -91,28 +90,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final user = session.user;
         final metadata = user.userMetadata ?? {};
 
-        final existing = await UserRepository()
-            .client
+        final existing = await UserRepository().client
             .from('users')
             .select('id, role, status')
             .eq('id', user.id)
             .maybeSingle();
 
         if (existing == null) {
-          await UserRepository()
-              .client
-              .from('users')
-              .insert({
-                'id': user.id,
-                'email': user.email,
-                'name': metadata['full_name'] ??
-                    metadata['name'] ??
-                    user.email?.split('@').first ??
-                    'User',
-                'phone': metadata['phone'] ?? '',
-                'role': 'passenger',
-                'status': 'active',
-              });
+          await UserRepository().client.from('users').insert({
+            'id': user.id,
+            'email': user.email,
+            'name':
+                metadata['full_name'] ??
+                metadata['name'] ??
+                user.email?.split('@').first ??
+                'User',
+            'phone': metadata['phone'] ?? '',
+            'role': 'passenger',
+            'status': 'active',
+          });
           if (!mounted) return;
           NavigationHelper.navigateByRole(context, 'passenger');
           return;
@@ -138,10 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
   }
 

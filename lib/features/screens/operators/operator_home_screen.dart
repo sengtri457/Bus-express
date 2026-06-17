@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/auth_helper.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../services/notification_service.dart';
+import '../../widgets/animations.dart';
 import '../../widgets/notification_bell.dart';
 import 'operator_buses_screen.dart';
 import 'operator_routes_screen.dart';
@@ -198,7 +199,10 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
         primaryColor: _primaryColor,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _primaryColor))
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: SkeletonList(count: 3),
+            )
           : IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: _OperatorNavBar(
         currentIndex: _selectedIndex,
@@ -443,7 +447,10 @@ class _DashboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: SkeletonList(count: 3, cardHeight: 80),
+      );
     }
 
     return RefreshIndicator(

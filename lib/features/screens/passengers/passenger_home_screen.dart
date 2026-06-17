@@ -15,6 +15,7 @@ import 'passenger_profile_screen.dart';
 import 'widgets/location_field.dart';
 import 'widgets/offers_section.dart';
 import 'widgets/popular_routes.dart';
+import 'widgets/route_selector_sheet.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   final VoidCallback? onProfileTap;
@@ -126,6 +127,26 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
     final temp = _originController.text;
     _originController.text = _destinationController.text;
     _destinationController.text = temp;
+  }
+
+  Future<void> _openRouteSelector() async {
+    final result = await showModalBottomSheet<MapEntry<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => RouteSelectorSheet(
+        onSelected: (origin, destination) {
+          Navigator.pop(context, MapEntry(origin, destination));
+        },
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _originController.text = result.key;
+        _destinationController.text = result.value;
+      });
+    }
   }
 
   void _searchRoutes() {
@@ -334,6 +355,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
               label: 'Origin',
               icon: Icons.radio_button_checked,
               iconColor: AppColors.primary,
+              onBrowse: _openRouteSelector,
             ),
             Row(
               children: [
@@ -367,6 +389,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
               label: 'Destination',
               icon: Icons.location_on_rounded,
               iconColor: AppColors.error,
+              onBrowse: _openRouteSelector,
             ),
             const SizedBox(height: 16),
             const Divider(color: AppColors.border),
@@ -440,7 +463,23 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
   Widget _buildOperatorsList() {
     if (_isLoadingOperators) {
-      return const Center(child: CircularProgressIndicator());
+      return SizedBox(
+        height: 110,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: 4,
+          itemBuilder: (_, __) => const Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Column(
+              children: [
+                ShimmerBox(width: 44, height: 44, borderRadius: 22),
+                SizedBox(height: 10),
+                ShimmerBox(width: 60, height: 11, borderRadius: 5),
+              ],
+            ),
+          ),
+        ),
+      );
     }
     if (_operators.isEmpty) {
       return const Text(

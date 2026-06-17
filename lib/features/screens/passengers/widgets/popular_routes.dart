@@ -24,7 +24,7 @@ class _PopularRoutesState extends State<PopularRoutes> {
   @override
   Widget build(BuildContext context) {
     if (widget.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonList(count: 3, cardHeight: 80);
     }
     if (widget.routes.isEmpty) {
       return Container(

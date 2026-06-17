@@ -10,6 +10,7 @@ import '../../../repositories/user_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/stat_card.dart';
+import '../../widgets/animations.dart';
 import '../../widgets/notification_bell.dart';
 import 'conductor_passengers_screen.dart';
 import 'conductor_scanner_screen.dart';
@@ -205,7 +206,10 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator()),
+        body: Padding(
+          padding: EdgeInsets.all(20),
+          child: SkeletonList(count: 4),
+        ),
       );
     }
 

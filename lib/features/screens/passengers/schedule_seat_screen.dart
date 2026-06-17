@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
 import '../../../repositories/trip_repository.dart';
+import '../../widgets/animations.dart';
 import 'booking_confirmation_screen.dart';
 
 class ScheduleSeatScreen extends StatefulWidget {
@@ -134,19 +135,6 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  String _seatLabel(int index) {
-    final row = (index ~/ 4) + 1;
-    final col = index % 4;
-    const cols = ['A', 'B', 'C', 'D'];
-    return '$row${cols[col]}';
-  }
-
-  SeatStatus _seatStatus(String seat) {
-    if (_bookedSeats.contains(seat)) return SeatStatus.booked;
-    if (_selectedSeats.contains(seat)) return SeatStatus.selected;
-    return SeatStatus.available;
   }
 
   void _toggleSeat(String seat) {
@@ -281,9 +269,19 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF2563EB),
+                ? SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: const Column(
+                      children: [
+                        SkeletonCard(height: 80),
+                        SizedBox(height: 16),
+                        SkeletonBlock(rows: 2),
+                        SizedBox(height: 20),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 40),
+                          child: SkeletonSeatGrid(rows: 6),
+                        ),
+                      ],
                     ),
                   )
                 : SingleChildScrollView(
@@ -364,101 +362,23 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF3F4F6),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.person_rounded,
-                                          size: 16,
-                                          color: Color(0xFF6B7280),
-                                        ),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Driver',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF6B7280),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF0F7FF),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      '${_capacity - _bookedSeats.length} seats left',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF2563EB),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              _FrontIndicator(
+                                availableCount: _capacity - _bookedSeats.length,
                               ),
                               const SizedBox(height: 16),
                               const Divider(color: Color(0xFFF3F4F6)),
                               const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: Row(
-                                  children: [
-                                    _ColHeader('A'),
-                                    _ColHeader('B'),
-                                    const SizedBox(width: 20),
-                                    _ColHeader('C'),
-                                    _ColHeader('D'),
-                                  ],
-                                ),
-                              ),
+                              const _ColumnHeaders(),
                               const SizedBox(height: 8),
-                              GridView.builder(
-                                shrinkWrap: true,
-                                physics:
-                                    const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 4,
-                                  mainAxisSpacing: 10,
-                                  crossAxisSpacing: 10,
-                                  childAspectRatio: 1,
-                                ),
-                                itemCount: _capacity,
-                                itemBuilder: (context, index) {
-                                  final seat = _seatLabel(index);
-                                  final status = _seatStatus(seat);
-                                  return _SeatWidget(
-                                    label: seat,
-                                    status: status,
-                                    onTap:
-                                        (status == SeatStatus.booked ||
-                                                _isExpired)
-                                            ? null
-                                            : () => _toggleSeat(seat),
-                                  );
-                                },
+                              _SeatGrid(
+                                capacity: _capacity,
+                                bookedSeats: _bookedSeats,
+                                selectedSeats: _selectedSeats,
+                                isExpired: _isExpired,
+                                onSeatTap: _toggleSeat,
                               ),
+                              const SizedBox(height: 12),
+                              const _BackIndicator(),
                             ],
                           ),
                         ),
@@ -665,21 +585,241 @@ class _LegendItem extends StatelessWidget {
   }
 }
 
-class _ColHeader extends StatelessWidget {
-  final String label;
-  const _ColHeader(this.label);
+class _BusLayout {
+  static const int seatsPerRow = 4;
+  static const List<String> colLetters = ['A', 'B', 'C', 'D'];
+  static const double aisleWidth = 28;
+
+  static int rowsFromCapacity(int capacity) =>
+      (capacity + seatsPerRow - 1) ~/ seatsPerRow;
+
+  static String seatLabel(int index) {
+    final row = (index ~/ seatsPerRow) + 1;
+    final col = index % seatsPerRow;
+    return '$row${colLetters[col]}';
+  }
+
+  static bool isEmptySlot(int index, int capacity) => index >= capacity;
+}
+
+class _FrontIndicator extends StatelessWidget {
+  final int availableCount;
+  const _FrontIndicator({required this.availableCount});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF9CA3AF),
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F7FF),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Color(0xFFBFDBFE)),
           ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.directions_bus_rounded,
+                  size: 16, color: Color(0xFF2563EB)),
+              const SizedBox(width: 6),
+              const Text('FRONT',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2563EB))),
+              const SizedBox(width: 4),
+              Container(
+                width: 1,
+                height: 12,
+                color: const Color(0xFFBFDBFE),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.meeting_room_rounded,
+                  size: 14, color: Color(0xFF2563EB)),
+              const SizedBox(width: 4),
+              const Text('DOOR',
+                  style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2563EB))),
+            ],
+          ),
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F7FF),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '$availableCount seats left',
+            style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF2563EB),
+                fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColumnHeaders extends StatelessWidget {
+  const _ColumnHeaders();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _headerLabel('A')),
+        Expanded(child: _headerLabel('B')),
+        _buildAisle(),
+        Expanded(child: _headerLabel('C')),
+        Expanded(child: _headerLabel('D')),
+      ],
+    );
+  }
+
+  static Widget _headerLabel(String label) {
+    return Center(
+      child: Text(label,
+          style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF9CA3AF))),
+    );
+  }
+
+  static Widget _buildAisle() {
+    return SizedBox(
+      width: _BusLayout.aisleWidth,
+      child: Center(
+        child: Container(
+          width: 2,
+          height: 24,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE5E7EB),
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SeatGrid extends StatelessWidget {
+  final int capacity;
+  final List<String> bookedSeats;
+  final List<String> selectedSeats;
+  final bool isExpired;
+  final void Function(String seat) onSeatTap;
+
+  const _SeatGrid({
+    required this.capacity,
+    required this.bookedSeats,
+    required this.selectedSeats,
+    required this.isExpired,
+    required this.onSeatTap,
+  });
+
+  SeatStatus _status(String seat) {
+    if (bookedSeats.contains(seat)) return SeatStatus.booked;
+    if (selectedSeats.contains(seat)) return SeatStatus.selected;
+    return SeatStatus.available;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = _BusLayout.rowsFromCapacity(capacity);
+    return Column(
+        children: List.generate(rows, (i) => _buildRow(i)));
+  }
+
+  Widget _buildRow(int rowIndex) {
+    final rowNum = rowIndex + 1;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          _buildSeat(rowNum, 0),
+          _buildSeat(rowNum, 1),
+          _buildAisleGap(),
+          _buildSeat(rowNum, 2),
+          _buildSeat(rowNum, 3),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeat(int row, int col) {
+    final index = (row - 1) * _BusLayout.seatsPerRow + col;
+    if (_BusLayout.isEmptySlot(index, capacity)) {
+      return const Expanded(child: SizedBox());
+    }
+    final seat = _BusLayout.seatLabel(index);
+    final status = _status(seat);
+    return Expanded(
+      child: _SeatWidget(
+        label: seat,
+        status: status,
+        onTap: (status == SeatStatus.booked || isExpired)
+            ? null
+            : () => onSeatTap(seat),
+      ),
+    );
+  }
+
+  static Widget _buildAisleGap() {
+    return SizedBox(
+      width: _BusLayout.aisleWidth,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: const Color(0xFFF3F4F6)),
+        ),
+        child: Center(
+          child: Container(
+            width: 2,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE5E7EB).withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BackIndicator extends StatelessWidget {
+  const _BackIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.directions_bus_rounded,
+                size: 14, color: const Color(0xFF9CA3AF)),
+            const SizedBox(width: 6),
+            const Text('BACK',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF9CA3AF))),
+          ],
         ),
       ),
     );
