@@ -3,6 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../l10n/tr_extension.dart';
 import '../../../../shared/widgets/trip_status_badge.dart';
 import '../../../../supabase_config.dart';
 import '../live_tracking_screen.dart';
@@ -96,9 +97,9 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
       if (departure.difference(DateTime.now()).inMinutes < 120) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Cannot cancel — departure is less than 2 hours away.',
+              context.tr.ticketDetailCancelTooLate,
             ),
             backgroundColor: AppColors.warning,
             behavior: SnackBarBehavior.floating,
@@ -130,8 +131,8 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
           SnackBar(
             content: Text(
               widget.bookings.length > 1
-                  ? '${widget.bookings.length} bookings cancelled'
-                  : 'Booking cancelled',
+                  ? context.tr.ticketDetailCancelledPlural(widget.bookings.length)
+                  : context.tr.ticketDetailCancelledSingular,
             ),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
@@ -143,7 +144,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
         setState(() => _isCancelling = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(context.tr.ticketDetailErrorPrefix('$e')),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -183,8 +184,8 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
               const SizedBox(height: 16),
               Text(
                 isMulti
-                    ? 'Cancel ${widget.bookings.length} Seats?'
-                    : 'Cancel Booking?',
+                    ? context.tr.ticketDetailConfirmCancelTitlePlural(widget.bookings.length)
+                    : context.tr.ticketDetailConfirmCancelTitleSingular,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -217,14 +218,14 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                   borderRadius: AppRadius.smR,
                   border: Border.all(color: const Color(0xFFFED7AA)),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.access_time_rounded, color: Color(0xFFF97316), size: 14),
-                    SizedBox(width: 8),
+                    const Icon(Icons.access_time_rounded, color: Color(0xFFF97316), size: 14),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Cancellations must be made at least 2 hours before departure.',
+                        context.tr.ticketDetailConfirmPolicy,
                         style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFF9A3412),
@@ -241,7 +242,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Keep It'),
+                      child: Text(context.tr.ticketDetailKeepIt),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -251,7 +252,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.error,
                       ),
-                      child: const Text('Yes, Cancel'),
+                      child: Text(context.tr.ticketDetailYesCancel),
                     ),
                   ),
                 ],
@@ -327,7 +328,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          '${widget.bookings.length} seat${widget.bookings.length > 1 ? 's' : ''}',
+                          context.tr.ticketDetailSeatCount(widget.bookings.length),
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.primary,
@@ -337,7 +338,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                         const Text('•', style: TextStyle(color: Color(0xFF93C5FD))),
                         const SizedBox(width: 8),
                         Text(
-                          'Total \$${_totalPrice.toStringAsFixed(2)}',
+                          context.tr.ticketDetailTotal('\$${_totalPrice.toStringAsFixed(2)}'),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -361,7 +362,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                           size: 18,
                         ),
                         label: Text(
-                          _isLive ? 'Track Live' : 'Track Bus',
+                          _isLive ? context.tr.ticketDetailTrackLive : context.tr.ticketDetailTrackBus,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -392,8 +393,8 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                             : const Icon(Icons.cancel_outlined, size: 18),
                         label: Text(
                           isMulti
-                              ? 'Cancel All ${widget.bookings.length} Seats'
-                              : 'Cancel Booking',
+                              ? context.tr.ticketDetailCancelAll(widget.bookings.length)
+                              : context.tr.ticketDetailCancelBooking,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -421,7 +422,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                         fontSize: 13,
                       ),
                       tabs: widget.bookings
-                          .map((b) => Tab(text: 'Seat ${b['seat_number']}'))
+                          .map((b) => Tab(text: context.tr.ticketDetailSeatTab('${b['seat_number']}')))
                           .toList(),
                     ),
                 ],
@@ -485,7 +486,7 @@ class _SingleTicketView extends StatelessWidget {
             child: Column(
               children: [
                 _DetailRow(
-                  label: 'Departure',
+                  label: context.tr.ticketDetailDeparture,
                   value: schedule != null
                       ? DateHelpers.formatTime(
                           schedule['departure_time'] as String,
@@ -494,7 +495,7 @@ class _SingleTicketView extends StatelessWidget {
                 ),
                 const Divider(height: 16, color: AppColors.border),
                 _DetailRow(
-                  label: 'Arrival',
+                  label: context.tr.ticketDetailArrival,
                   value: schedule != null
                       ? DateHelpers.formatTime(
                           schedule['arrival_time'] as String,
@@ -508,11 +509,14 @@ class _SingleTicketView extends StatelessWidget {
                 ),
                 const Divider(height: 16, color: AppColors.border),
                 _DetailRow(
-                  label: 'Ticket price',
+                  label: context.tr.ticketDetailTicketPrice,
                   value: '\$${(booking['total_price'] as num).toStringAsFixed(2)}',
                 ),
                 const Divider(height: 16, color: AppColors.border),
-                const _DetailRow(label: 'Payment', value: 'Cash on Board'),
+                _DetailRow(
+                  label: context.tr.ticketDetailPayment,
+                  value: context.tr.bookingCashOnBoard,
+                ),
               ],
             ),
           ),
@@ -553,13 +557,13 @@ class _QrCodeCard extends StatelessWidget {
             version: QrVersions.auto,
             size: 200,
             backgroundColor: Colors.white,
-            errorStateBuilder: (_, __) => const SizedBox(
+            errorStateBuilder: (_, __) => SizedBox(
               width: 200,
               height: 200,
               child: Center(
                 child: Text(
-                  'QR Error',
-                  style: TextStyle(color: AppColors.error),
+                  context.tr.ticketDetailQrError,
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             ),
@@ -593,19 +597,19 @@ class _TicketStatusPlaceholder extends StatelessWidget {
     switch (status) {
       case 'used':
         icon = Icons.check_circle_rounded;
-        message = 'Ticket already used';
+        message = context.tr.ticketDetailStatusUsed;
         color = AppColors.textSecondary;
       case 'cancelled':
         icon = Icons.cancel_rounded;
-        message = 'Ticket cancelled';
+        message = context.tr.ticketDetailStatusCancelled;
         color = AppColors.error;
       case 'expired':
         icon = Icons.timer_off_rounded;
-        message = 'Ticket expired';
+        message = context.tr.ticketDetailStatusExpired;
         color = AppColors.textHint;
       default:
         icon = Icons.help_outline_rounded;
-        message = 'No ticket data';
+        message = context.tr.ticketDetailStatusNoData;
         color = AppColors.textHint;
     }
 
@@ -684,35 +688,35 @@ class _InfoBanner extends StatelessWidget {
     switch (status) {
       case 'valid':
         icon = Icons.info_outline_rounded;
-        text = 'Show this QR code to the conductor. Pay cash when boarding.';
+        text = context.tr.ticketDetailInfoValid;
         bgColor = const Color(0xFFFFFBEB);
         borderColor = const Color(0xFFFDE68A);
         textColor = const Color(0xFF92400E);
         iconColor = AppColors.warning;
       case 'used':
         icon = Icons.check_circle_outline_rounded;
-        text = 'This ticket has already been used for boarding.';
+        text = context.tr.ticketDetailInfoUsed;
         bgColor = const Color(0xFFF3F4F6);
         borderColor = AppColors.border;
         textColor = AppColors.textSecondary;
         iconColor = AppColors.textSecondary;
       case 'cancelled':
         icon = Icons.cancel_outlined;
-        text = 'This booking has been cancelled.';
+        text = context.tr.ticketDetailInfoCancelled;
         bgColor = const Color(0xFFFEE2E2);
         borderColor = const Color(0xFFFCA5A5);
         textColor = const Color(0xFF991B1B);
         iconColor = AppColors.error;
       case 'expired':
         icon = Icons.timer_off_outlined;
-        text = 'This ticket has expired.';
+        text = context.tr.ticketDetailInfoExpired;
         bgColor = const Color(0xFFF3F4F6);
         borderColor = AppColors.border;
         textColor = AppColors.textSecondary;
         iconColor = AppColors.textHint;
       default:
         icon = Icons.help_outline_rounded;
-        text = 'Ticket status is unknown.';
+        text = context.tr.ticketDetailInfoUnknown;
         bgColor = const Color(0xFFFFFBEB);
         borderColor = const Color(0xFFFDE68A);
         textColor = const Color(0xFF92400E);

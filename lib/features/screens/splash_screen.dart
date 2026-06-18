@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../l10n/tr_extension.dart';
 import '../../core/utils/navigation_helper.dart';
 import '../../models/user_model.dart';
 import '../../core/error/result.dart';
@@ -132,15 +133,15 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
                   const SizedBox(height: 28),
-                  const Text(
-                    'Bus Express',
-                    style: TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.8,
+                    Text(
+                      context.tr.appTitle,
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.8,
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Premium Travel Made Simple',

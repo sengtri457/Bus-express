@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../l10n/tr_extension.dart';
 import '../../../../shared/widgets/trip_status_badge.dart';
 import '../trip_punctuality.dart';
 
@@ -18,7 +19,7 @@ class TodayTripCard extends StatelessWidget {
     final status = trip['status'] as String;
 
     if (schedule == null) {
-      return _buildNoScheduleCard(status);
+      return _buildNoScheduleCard(status, context);
     }
 
     return GestureDetector(
@@ -85,7 +86,7 @@ class TodayTripCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Tap to manage',
+                            context.tr.todayTripCardTapToManage,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 12,
@@ -124,7 +125,9 @@ class TodayTripCard extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              '${route?['duration_min'] ?? ''} min',
+                              context.tr.todayTripCardDurationMin(
+                                (route?['duration_min'] as num?)?.toInt() ?? 0,
+                              ),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.white.withValues(alpha: 0.7),
@@ -147,7 +150,9 @@ class TodayTripCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${route?['distance_km'] ?? ''} km',
+                              context.tr.todayTripCardDistanceKm(
+                                (route?['distance_km'] as num?)?.toInt() ?? 0,
+                              ),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.white.withValues(alpha: 0.7),
@@ -192,7 +197,10 @@ class TodayTripCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${bus?['model'] ?? ''} • ${bus?['plate_number'] ?? ''}',
+                        context.tr.todayTripCardBusInfo(
+                          '${bus?['model'] ?? ''}',
+                          '${bus?['plate_number'] ?? ''}',
+                        ),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13,
@@ -206,7 +214,9 @@ class TodayTripCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '${bus?['capacity'] ?? ''} seats',
+                        context.tr.todayTripCardCapacity(
+                          (bus?['capacity'] as num?)?.toInt() ?? 0,
+                        ),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13,
@@ -223,7 +233,7 @@ class TodayTripCard extends StatelessWidget {
     );
   }
 
-  Widget _buildNoScheduleCard(String status) {
+  Widget _buildNoScheduleCard(String status, BuildContext context) {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -266,11 +276,7 @@ class TodayTripCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    TripStatusBadge(status: status, fontSize: 12),
-                  ],
-                ),
+                Row(children: [TripStatusBadge(status: status, fontSize: 12)]),
                 const SizedBox(height: 20),
                 const Icon(
                   Icons.warning_amber_rounded,
@@ -278,9 +284,9 @@ class TodayTripCard extends StatelessWidget {
                   size: 40,
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'No schedule assigned',
-                  style: TextStyle(
+                Text(
+                  context.tr.todayTripCardNoSchedule,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -288,7 +294,7 @@ class TodayTripCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'This trip has no schedule linked.\nContact your operator to fix it.',
+                  context.tr.todayTripCardNoScheduleDesc,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.75),
@@ -310,7 +316,7 @@ class _PunctualityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final punctuality = TripPunctuality.calculate(trip);
+    final punctuality = TripPunctuality.calculate(trip, context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

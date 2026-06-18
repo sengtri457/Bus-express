@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   AppColors._();
@@ -32,6 +33,7 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     colorSchemeSeed: AppColors.primary,
+    textTheme: GoogleFonts.notoSansKhmerTextTheme(),
     scaffoldBackgroundColor: AppColors.background,
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.surface,

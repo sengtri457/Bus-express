@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/tr_extension.dart';
 
 class OperatorCard extends StatelessWidget {
   final Map<String, dynamic>? operatorInfo;
@@ -34,8 +35,8 @@ class OperatorCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  operatorInfo?['name'] ?? 'My Company',
+                  Text(
+                    operatorInfo?['name'] ?? context.tr.myCompany,
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -54,8 +55,8 @@ class OperatorCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Active Operator',
+                    Text(
+                      context.tr.activeOperator,
                       style: TextStyle(fontSize: 12, color: Colors.white70),
                     ),
                   ],

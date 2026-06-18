@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/auth_helper.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../widgets/animations.dart';
@@ -193,7 +194,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _OperatorAppBar(
-        companyName: _operatorInfo?['name'] ?? 'Operator Panel',
+        companyName: _operatorInfo?['name'] ?? context.tr.operatorPanel,
         onRefresh: _loadData,
         onSignOut: _signOut,
         primaryColor: _primaryColor,
@@ -236,33 +237,33 @@ class _OperatorAppBar extends StatelessWidget implements PreferredSizeWidget {
       foregroundColor: Colors.white,
       elevation: 0,
       titleSpacing: 16,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            companyName,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.1,
-            ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                companyName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.1,
+                ),
+              ),
+              Text(
+                context.tr.adminDashboard,
+                style: const TextStyle(fontSize: 11, color: Colors.white70),
+              ),
+            ],
           ),
-          const Text(
-            'Admin Dashboard',
-            style: TextStyle(fontSize: 11, color: Colors.white70),
-          ),
-        ],
-      ),
       actions: [
         const NotificationBell(),
         IconButton(
           icon: const Icon(Icons.refresh_rounded, size: 22),
-          tooltip: 'Refresh',
+          tooltip: context.tr.refresh,
           onPressed: onRefresh,
         ),
         IconButton(
           icon: const Icon(Icons.logout_rounded, size: 22),
-          tooltip: 'Sign out',
+          tooltip: context.tr.signOut,
           onPressed: onSignOut,
         ),
         const SizedBox(width: 4),
@@ -407,7 +408,7 @@ class _NavBarItem extends StatelessWidget {
                   ? Padding(
                       padding: const EdgeInsets.only(left: 6),
                       child: Text(
-                        item.label,
+                        _localizedLabel(context),
                         style: TextStyle(
                           color: activeColor,
                           fontSize: 12,
@@ -422,6 +423,23 @@ class _NavBarItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _localizedLabel(BuildContext context) {
+    switch (item.label) {
+      case 'Dashboard':
+        return context.tr.navDashboard;
+      case 'Routes':
+        return context.tr.navRoutes;
+      case 'Buses':
+        return context.tr.navBuses;
+      case 'Schedules':
+        return context.tr.navSchedules;
+      case 'Staff':
+        return context.tr.navStaff;
+      default:
+        return item.label;
+    }
   }
 }
 
@@ -464,13 +482,13 @@ class _DashboardTab extends StatelessWidget {
           children: [
             OperatorCard(operatorInfo: operatorInfo),
             const SizedBox(height: 28),
-            const SectionLabel(label: "Today's Summary"),
+              SectionLabel(label: context.tr.todaysSummary),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _StatCard(
-                    label: 'Bookings',
+                    label: context.tr.statBookings,
                     value: '${stats['today_bookings'] ?? 0}',
                     icon: Icons.confirmation_number_rounded,
                     color: AppColors.primary,
@@ -479,7 +497,7 @@ class _DashboardTab extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
-                    label: 'Upcoming Trips',
+                    label: context.tr.statUpcomingTrips,
                     value: '${stats['upcoming_trips'] ?? 0}',
                     icon: Icons.departure_board_rounded,
                     color: AppColors.warning,
@@ -488,7 +506,7 @@ class _DashboardTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 28),
-            const SectionLabel(label: 'Fleet Overview'),
+              SectionLabel(label: context.tr.fleetOverview),
             const SizedBox(height: 12),
             GridView.count(
               crossAxisCount: 2,
@@ -499,25 +517,25 @@ class _DashboardTab extends StatelessWidget {
               childAspectRatio: 1.65,
               children: [
                 _StatCard(
-                  label: 'Active Buses',
+                  label: context.tr.statActiveBuses,
                   value: '${stats['buses'] ?? 0}',
                   icon: Icons.directions_bus_rounded,
                   color: const Color(0xFF54282E),
                 ),
                 _StatCard(
-                  label: 'Active Routes',
+                  label: context.tr.statActiveRoutes,
                   value: '${stats['routes'] ?? 0}',
                   icon: Icons.route_rounded,
                   color: const Color(0xFF54282E),
                 ),
                 _StatCard(
-                  label: 'Schedules',
+                  label: context.tr.statSchedules,
                   value: '${stats['schedules'] ?? 0}',
                   icon: Icons.schedule_rounded,
                   color: const Color(0xFF54282E),
                 ),
                 _StatCard(
-                  label: 'Staff',
+                  label: context.tr.statStaff,
                   value: '${stats['staff'] ?? 0}',
                   icon: Icons.people_rounded,
                   color: const Color(0xFF54282E),
@@ -527,7 +545,7 @@ class _DashboardTab extends StatelessWidget {
             const SizedBox(height: 28),
             Row(
               children: [
-                const SectionLabel(label: 'Fleet Alerts'),
+                SectionLabel(label: context.tr.fleetAlerts),
                 const SizedBox(width: 8),
                 if (activeIncidents.isNotEmpty)
                   Container(
@@ -559,28 +577,28 @@ class _DashboardTab extends StatelessWidget {
                         .toList(),
                   ),
             const SizedBox(height: 28),
-            const SectionLabel(label: 'Quick Actions'),
+            SectionLabel(label: context.tr.quickActions),
             const SizedBox(height: 12),
             QuickAction(
               icon: Icons.add_road_rounded,
-              label: 'Add New Route',
-              subtitle: 'Create a new bus route',
+              label: context.tr.addNewRoute,
+              subtitle: context.tr.addNewRouteSubtitle,
               color: const Color(0xFF54282E),
               onTap: () => onTabSelected(1),
             ),
             const SizedBox(height: 10),
             QuickAction(
               icon: Icons.directions_bus_filled_rounded,
-              label: 'Add New Bus',
-              subtitle: 'Register a bus to your fleet',
+              label: context.tr.addNewBus,
+              subtitle: context.tr.addNewBusSubtitle,
               color: const Color(0xFF54282E),
               onTap: () => onTabSelected(2),
             ),
             const SizedBox(height: 10),
             QuickAction(
               icon: Icons.person_add_rounded,
-              label: 'Add Staff Member',
-              subtitle: 'Hire a driver or conductor',
+              label: context.tr.addStaffMember,
+              subtitle: context.tr.addStaffMemberSubtitle,
               color: const Color(0xFF54282E),
               onTap: () => onTabSelected(4),
             ),

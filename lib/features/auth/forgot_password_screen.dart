@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../supabase_config.dart';
 import 'widgets/auth_text_field.dart';
 import 'login_screen.dart';
+import '../../l10n/tr_extension.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -37,7 +38,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _sendResetEmail() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      _showError('Please enter a valid email address');
+      _showError(context.tr.enterValidEmailAddress);
       return;
     }
 
@@ -47,7 +48,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await SupabaseConfig.client.auth.resetPasswordForEmail(
         email,
         redirectTo: 'io.supabase.busbooking://reset-callback/',
-        // ↑ Change this to your app's deep link scheme
+        // Change this to your app's deep link scheme
       );
 
       if (!mounted) return;
@@ -60,7 +61,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (_) {
-      _showError('Something went wrong. Please try again.');
+      _showError(context.tr.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -68,11 +69,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _updatePassword() async {
     if (_newPasswordController.text != _confirmPasswordController.text) {
-      _showError('Passwords do not match');
+      _showError(context.tr.passwordsDoNotMatchValidator);
       return;
     }
     if (_newPasswordController.text.length < 8) {
-      _showError('Password must be at least 8 characters');
+      _showError(context.tr.passwordMinLength8);
       return;
     }
 
@@ -88,7 +89,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (_) {
-      _showError('Something went wrong. Please try again.');
+      _showError(context.tr.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -154,19 +155,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Password Reset!',
-                style: TextStyle(
+              Text(
+                context.tr.passwordResetTitle,
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Your password has been updated successfully. Please sign in with your new password.',
+              Text(
+                context.tr.passwordResetBody,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFF6B7280),
                   height: 1.6,
@@ -192,9 +193,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Back to Login',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  child: Text(
+                    context.tr.backToLogin,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                 ),
               ),
@@ -277,10 +278,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 28),
 
-        const Text(
-          'Forgot password?',
+        Text(
+          context.tr.forgotPasswordTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w800,
             color: Color(0xFF0F172A),
@@ -288,10 +289,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          "No worries! Enter your email and we'll send you a reset link.",
+        Text(
+          context.tr.forgotPasswordSubtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 15,
             color: Color(0xFF64748B),
             height: 1.5,
@@ -319,8 +320,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AuthTextField(
-                label: 'Email Address',
-                hint: 'you@example.com',
+                label: context.tr.emailAddressLabel,
+                hint: context.tr.emailAddressHint,
                 icon: Icons.email_outlined,
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -350,9 +351,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Send Reset Link',
-                          style: TextStyle(
+                      : Text(
+                          context.tr.sendResetLink,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -367,18 +368,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Center(
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.arrow_back_rounded,
                   size: 16,
                   color: Color(0xFF64748B),
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  'Back to Login',
-                  style: TextStyle(
+                  context.tr.backToLoginLink,
+                  style: const TextStyle(
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
@@ -420,10 +421,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 28),
 
-        const Text(
-          'Check your email',
+        Text(
+          context.tr.checkYourEmail,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
             color: Color(0xFF0F172A),
@@ -441,14 +442,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               fontFamily: 'Inter',
             ),
             children: [
-              const TextSpan(text: 'We sent a password reset link to\n'),
-              TextSpan(
-                text: _emailController.text.trim(),
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              TextSpan(text: context.tr.resetLinkSent(_emailController.text.trim())),
             ],
           ),
         ),
@@ -472,11 +466,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _InfoStep(number: '1', text: 'Open the email we sent you'),
+              _InfoStep(number: '1', text: context.tr.infoStep1),
               const SizedBox(height: 16),
-              _InfoStep(number: '2', text: 'Click the "Reset Password" link'),
+              _InfoStep(number: '2', text: context.tr.infoStep2),
               const SizedBox(height: 16),
-              _InfoStep(number: '3', text: 'Create a new strong password'),
+              _InfoStep(number: '3', text: context.tr.infoStep3),
             ],
           ),
         ),
@@ -486,8 +480,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         // Resend
         Center(
           child: Text(
-            "Didn't receive the email?",
-            style: TextStyle(
+            context.tr.didNotReceiveEmail,
+            style: const TextStyle(
               color: Color(0xFF64748B),
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -514,7 +508,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
             child: Text(
-              _canResend ? 'Resend Email' : 'Resend in ${_resendCountdown}s',
+              _canResend ? context.tr.resendEmail : context.tr.resendInCountdown(_resendCountdown),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
@@ -524,18 +518,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Center(
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.arrow_back_rounded,
                   size: 16,
                   color: Color(0xFF64748B),
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  'Back to Login',
-                  style: TextStyle(
+                  context.tr.backToLoginLink,
+                  style: const TextStyle(
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
@@ -576,10 +570,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 28),
 
-        const Text(
-          'Set new password',
+        Text(
+          context.tr.setNewPassword,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w800,
             color: Color(0xFF0F172A),
@@ -587,10 +581,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Your new password must be different from your previous password.',
+        Text(
+          context.tr.setNewPasswordSubtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 15,
             color: Color(0xFF64748B),
             height: 1.5,
@@ -618,28 +612,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AuthTextField(
-                label: 'New Password',
-                hint: '••••••••',
+                label: context.tr.newPasswordLabel,
+                hint: context.tr.newPasswordHint,
                 icon: Icons.lock_outline_rounded,
                 controller: _newPasswordController,
                 isPassword: true,
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Password is required';
-                  if (v.length < 8) return 'At least 8 characters';
+                  if (v == null || v.isEmpty) return context.tr.passwordRequired;
+                  if (v.length < 8) return context.tr.passwordMinLength8;
                   return null;
                 },
               ),
               const SizedBox(height: 20),
 
               AuthTextField(
-                label: 'Confirm New Password',
-                hint: '••••••••',
+                label: context.tr.confirmNewPasswordLabel,
+                hint: context.tr.confirmNewPasswordHint,
                 icon: Icons.lock_outline_rounded,
                 controller: _confirmPasswordController,
                 isPassword: true,
                 validator: (v) {
                   if (v != _newPasswordController.text) {
-                    return 'Passwords do not match';
+                    return context.tr.passwordsDoNotMatchValidator;
                   }
                   return null;
                 },
@@ -669,9 +663,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Reset Password',
-                          style: TextStyle(
+                      : Text(
+                          context.tr.resetPasswordButton,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),

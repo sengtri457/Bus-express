@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 
@@ -22,7 +23,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
   List<Map<String, dynamic>> _pastIncidents = [];
   
   Position? _currentPosition;
-  String _detectedLocationName = 'Detecting location...';
+  String _detectedLocationName = '';
   bool _isGeolocating = false;
 
   final List<Map<String, dynamic>> _types = [
@@ -65,7 +66,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
     if (_isGeolocating) return;
     setState(() {
       _isGeolocating = true;
-      _detectedLocationName = 'Accessing GPS...';
+      _detectedLocationName = context.tr.driverIncidentAccessingGps;
     });
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -75,7 +76,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         setState(() {
-          _detectedLocationName = 'GPS Permission Denied';
+          _detectedLocationName = context.tr.driverIncidentGpsDenied;
           _isGeolocating = false;
         });
         return;
@@ -89,7 +90,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
       if (!mounted) return;
       setState(() {
         _currentPosition = pos;
-        _detectedLocationName = 'Resolving address...';
+        _detectedLocationName = context.tr.driverIncidentResolvingAddress;
       });
 
       final url = Uri.parse(
@@ -121,7 +122,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
           
           name = parts.isNotEmpty ? parts.join(', ') : (data['display_name'] as String? ?? '');
         } else {
-          name = data['display_name'] as String? ?? 'Unknown Location';
+          name = data['display_name'] as String? ?? context.tr.driverIncidentUnknownLocation;
         }
         
         setState(() {
@@ -143,7 +144,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
         });
       } else {
         setState(() {
-          _detectedLocationName = 'Failed to detect location';
+          _detectedLocationName = context.tr.driverIncidentFailedDetect;
           _isGeolocating = false;
         });
       }
@@ -171,23 +172,23 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
 
   Future<void> _submitIncident() async {
     if (_descriptionController.text.trim().isEmpty) {
-      _showError('Please describe the incident');
+      _showError(context.tr.driverIncidentPleaseDescribe);
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       final user = SupabaseConfig.client.auth.currentUser;
-      if (user == null) throw Exception('Not logged in');
+      if (user == null) throw Exception(context.tr.driverIncidentNotLoggedIn);
 
       String finalDesc = _descriptionController.text.trim();
       if (_currentPosition != null &&
           _detectedLocationName.isNotEmpty &&
-          _detectedLocationName != 'GPS Permission Denied' &&
-          _detectedLocationName != 'Failed to detect location' &&
-          _detectedLocationName != 'Detecting location...' &&
-          _detectedLocationName != 'Accessing GPS...' &&
-          _detectedLocationName != 'Resolving address...') {
+          _detectedLocationName != context.tr.driverIncidentGpsDenied &&
+          _detectedLocationName != context.tr.driverIncidentFailedDetect &&
+          _detectedLocationName != '' &&
+          _detectedLocationName != context.tr.driverIncidentAccessingGps &&
+          _detectedLocationName != context.tr.driverIncidentResolvingAddress) {
         finalDesc = '[Location: $_detectedLocationName] $finalDesc';
       }
 
@@ -230,15 +231,15 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Incident Reported',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                context.tr.driverIncidentReportedTitle,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Your incident report has been submitted successfully.',
+              Text(
+                context.tr.driverIncidentReportedMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
+                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
               ),
             ],
           ),
@@ -255,14 +256,14 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text('OK'),
+                child: Text(context.tr.driverIncidentOK),
               ),
             ),
           ],
         ),
       );
     } on PostgrestException catch (e) {
-      _showError('Failed: ${e.message}');
+      _showError(context.tr.driverIncidentFailedError(e.message));
     } catch (e) {
       _showError(e.toString());
     } finally {
@@ -286,18 +287,13 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
 
       if (passengerIds.isEmpty) return;
 
-      final typeLabel = _types
-          .firstWhere(
-            (t) => t['value'] == _selectedType,
-            orElse: () => {'label': 'Issue'},
-          )['label'] as String;
+      final typeLabel = _typeLabel(_selectedType);
 
-      final delayMap = {'delay': '20', 'breakdown': '30', 'accident': '45', 'other': '15'};
-      final estDelay = delayMap[_selectedType] ?? '15';
+      final delayMap = {'delay': 20, 'breakdown': 30, 'accident': 45, 'other': 15};
+      final estDelay = delayMap[_selectedType] ?? 15;
 
-      final title = 'Trip Alert: $typeLabel';
-      final body =
-          'Your bus reported a $typeLabel. Estimated delay: $estDelay min. We apologize for the inconvenience.';
+      final title = context.tr.driverIncidentNotificationTitle(typeLabel);
+      final body = context.tr.driverIncidentNotificationBody(typeLabel, estDelay);
 
       for (final uid in passengerIds) {
         await NotificationService.instance.insertNotification(
@@ -312,6 +308,10 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
     } catch (e) {
       debugPrint('[IncidentNotify] Failed to notify passengers: $e');
     }
+  }
+
+  String _typeLabel(String value) {
+    return _typeLabelStatic(context, value);
   }
 
   void _showError(String message) {
@@ -333,9 +333,9 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Report Incident',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.driverIncidentAppBarTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SingleChildScrollView(
@@ -351,19 +351,19 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFFDE68A)),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.warning_amber_rounded,
                     color: Color(0xFFF59E0B),
                     size: 22,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Report any incidents that affect this trip immediately. Your report will be sent to the operator.',
-                      style: TextStyle(
+                      context.tr.driverIncidentHeaderWarning,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF92400E),
                         height: 1.5,
@@ -376,9 +376,9 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
             const SizedBox(height: 24),
 
             // Incident Type
-            const Text(
-              'Incident Type',
-              style: TextStyle(
+            Text(
+              context.tr.driverIncidentTypeLabel,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF111827),
@@ -422,7 +422,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          type['label'] as String,
+                          _typeLabel(type['value'] as String),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -440,9 +440,9 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
             const SizedBox(height: 24),
 
             // Incident Location Card
-            const Text(
-              'Incident Location',
-              style: TextStyle(
+            Text(
+              context.tr.driverIncidentLocationLabel,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF111827),
@@ -490,8 +490,8 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                       children: [
                         Text(
                           _isGeolocating 
-                              ? 'Auto-detecting Location...' 
-                              : (_currentPosition != null ? 'Auto-detected Location' : 'Location Service'),
+                              ? context.tr.driverIncidentAutoDetecting
+                              : (_currentPosition != null ? context.tr.driverIncidentAutoDetected : context.tr.driverIncidentLocationService),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -518,7 +518,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                     IconButton(
                       icon: const Icon(Icons.refresh_rounded, color: Color(0xFF4B5563)),
                       onPressed: _detectLocation,
-                      tooltip: 'Refresh Location',
+                      tooltip: context.tr.driverIncidentRefreshLocation,
                     ),
                 ],
               ),
@@ -526,9 +526,9 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
             const SizedBox(height: 24),
 
             // Description
-            const Text(
-              'Description',
-              style: TextStyle(
+            Text(
+              context.tr.driverIncidentDescriptionLabel,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF111827),
@@ -545,10 +545,9 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                 controller: _descriptionController,
                 maxLines: 5,
                 style: const TextStyle(fontSize: 14),
-                decoration: const InputDecoration(
-                  hintText:
-                      'Describe what happened in detail...\n\ne.g. "Bus broke down near Kampong Thom, waiting for repair. Estimated delay: 30 minutes."',
-                  hintStyle: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: context.tr.driverIncidentHintText,
+                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
                 ),
@@ -572,9 +571,9 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                         ),
                       )
                     : const Icon(Icons.send_rounded, size: 20),
-                label: const Text(
-                  'Submit Report',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                label: Text(
+                  context.tr.driverIncidentSubmitReport,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEF4444),
@@ -590,9 +589,9 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
             // Past incidents
             if (_pastIncidents.isNotEmpty) ...[
               const SizedBox(height: 32),
-              const Text(
-                'Previous Reports This Trip',
-                style: TextStyle(
+              Text(
+                context.tr.driverIncidentPreviousReports,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF111827),
@@ -664,7 +663,7 @@ class _IncidentTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      typeConfig['label'] as String,
+                      _typeLabelStatic(context, typeConfig['value'] as String),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -703,5 +702,20 @@ class _IncidentTile extends StatelessWidget {
     final period = h >= 12 ? 'PM' : 'AM';
     final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
     return '$dh:${dt.minute.toString().padLeft(2, '0')} $period';
+  }
+}
+
+String _typeLabelStatic(BuildContext context, String value) {
+  switch (value) {
+    case 'delay':
+      return context.tr.driverIncidentTypeDelay;
+    case 'breakdown':
+      return context.tr.driverIncidentTypeBreakdown;
+    case 'accident':
+      return context.tr.driverIncidentTypeAccident;
+    case 'other':
+      return context.tr.driverIncidentTypeOther;
+    default:
+      return context.tr.driverIncidentIssueFallback;
   }
 }

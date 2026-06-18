@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../models/operator_model.dart';
 import '../../../models/route_model.dart';
 import '../../../models/user_model.dart';
@@ -153,8 +154,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
     if (_originController.text.trim().isEmpty ||
         _destinationController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter origin and destination'),
+        SnackBar(
+          content: Text(context.tr.homeErrorOriginDestination),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -225,7 +226,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hello, ${_userName.split(' ').first} 👋',
+                              context.tr.homeHelloName(_userName.split(' ').first),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -233,7 +234,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                               ),
                             ),
                             Text(
-                              'Where are you going today?',
+                              context.tr.homeWhereGoing,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.white.withValues(alpha: 0.85),
@@ -281,9 +282,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                     children: [
                       _buildSearchCard(),
                       const SizedBox(height: 28),
-                      const Text(
-                        'Our Partners',
-                        style: TextStyle(
+                      Text(
+                        context.tr.homeOurPartners,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -292,9 +293,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                       const SizedBox(height: 14),
                       _buildOperatorsList(),
                       const SizedBox(height: 28),
-                      const Text(
-                        'Popular Routes',
-                        style: TextStyle(
+                      Text(
+                        context.tr.homePopularRoutes,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -351,8 +352,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
           children: [
             LocationField(
               controller: _originController,
-              hint: 'From where?',
-              label: 'Origin',
+              hint: context.tr.homeOriginHint,
+              label: context.tr.homeOriginLabel,
               icon: Icons.radio_button_checked,
               iconColor: AppColors.primary,
               onBrowse: _openRouteSelector,
@@ -385,8 +386,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             ),
             LocationField(
               controller: _destinationController,
-              hint: 'Where to?',
-              label: 'Destination',
+              hint: context.tr.homeDestinationHint,
+              label: context.tr.homeDestinationLabel,
               icon: Icons.location_on_rounded,
               iconColor: AppColors.error,
               onBrowse: _openRouteSelector,
@@ -414,9 +415,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Travel Date',
-                        style: TextStyle(
+                      Text(
+                        context.tr.homeTravelDate,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
@@ -446,9 +447,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
               child: ElevatedButton.icon(
                 onPressed: _searchRoutes,
                 icon: const Icon(Icons.search_rounded, size: 20),
-                label: const Text(
-                  'Search Buses',
-                  style: TextStyle(
+                label: Text(
+                  context.tr.homeSearchBuses,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -482,9 +483,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
       );
     }
     if (_operators.isEmpty) {
-      return const Text(
-        'No operators available at the moment',
-        style: TextStyle(color: AppColors.textHint),
+      return Text(
+        context.tr.homeNoOperators,
+        style: const TextStyle(color: AppColors.textHint),
       );
     }
     return SizedBox(

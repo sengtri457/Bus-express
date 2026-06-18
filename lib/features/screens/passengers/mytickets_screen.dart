@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../repositories/booking_repository.dart';
 import '../../widgets/animations.dart';
 import 'widgets/ticket_card.dart';
@@ -141,8 +142,8 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
               const SizedBox(height: 20),
               Text(
                 count > 1
-                    ? '$count Seats Confirmed!'
-                    : 'Booking Confirmed!',
+                    ? context.tr.myTicketsSuccessPlural(count)
+                    : context.tr.myTicketsSuccessSingular,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -152,8 +153,8 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
               const SizedBox(height: 12),
               Text(
                 count > 1
-                    ? 'Your $count tickets are ready. Each seat has its own QR code.'
-                    : 'Your ticket is ready. Show the QR code to the conductor when boarding.',
+                    ? context.tr.myTicketsSuccessDescPlural(count)
+                    : context.tr.myTicketsSuccessDescSingular,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
@@ -168,7 +169,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    count > 1 ? 'View My Tickets' : 'View My Ticket',
+                    count > 1 ? context.tr.myTicketsViewPlural : context.tr.myTicketsViewSingular,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -185,9 +186,9 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'My Tickets',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.myTicketsTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
@@ -205,8 +206,8 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
             fontSize: 14,
           ),
           tabs: [
-            Tab(text: 'Upcoming (${_upcomingGroups.length})'),
-            Tab(text: 'Past (${_pastGroups.length})'),
+            Tab(text: context.tr.myTicketsUpcoming(_upcomingGroups.length)),
+            Tab(text: context.tr.myTicketsPast(_pastGroups.length)),
           ],
         ),
       ),
@@ -220,16 +221,16 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
               children: [
                 _TicketList(
                   groups: _upcomingGroups,
-                  emptyMessage: 'No upcoming trips',
-                  emptySubMessage: 'Book a bus ticket to see it here',
+                  emptyMessage: context.tr.myTicketsNoUpcoming,
+                  emptySubMessage: context.tr.myTicketsNoUpcomingSub,
                   emptyIcon: Icons.confirmation_number_outlined,
                   highlightId: widget.newBookingId,
                   onRefresh: _loadTickets,
                 ),
                 _TicketList(
                   groups: _pastGroups,
-                  emptyMessage: 'No past trips',
-                  emptySubMessage: 'Your completed trips will appear here',
+                  emptyMessage: context.tr.myTicketsNoPast,
+                  emptySubMessage: context.tr.myTicketsNoPastSub,
                   emptyIcon: Icons.history_rounded,
                   onRefresh: _loadTickets,
                 ),

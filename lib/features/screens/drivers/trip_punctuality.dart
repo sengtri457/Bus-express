@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 
 class TripPunctuality {
   final String status; // 'on_time', 'delayed', 'early', 'unknown'
@@ -16,7 +17,7 @@ class TripPunctuality {
   });
 
   /// Computes punctuality status dynamically based on trip & schedules data.
-  static TripPunctuality calculate(Map<String, dynamic> trip) {
+  static TripPunctuality calculate(Map<String, dynamic> trip, BuildContext context) {
     try {
       final tripStatus = trip['status'] as String? ?? 'scheduled';
       final tripDateStr = trip['trip_date'] as String?;
@@ -25,8 +26,8 @@ class TripPunctuality {
       if (tripDateStr == null || schedule == null) {
         return TripPunctuality(
           status: 'unknown',
-          label: 'Scheduled',
-          message: 'Status: scheduled',
+          label: context.tr.tripPunctScheduled,
+          message: context.tr.tripPunctTripStatus(tripStatus),
           color: const Color(0xFF1A73E8),
           icon: Icons.schedule_rounded,
         );
@@ -38,8 +39,8 @@ class TripPunctuality {
       if (departureTimeStr == null) {
         return TripPunctuality(
           status: 'unknown',
-          label: 'Scheduled',
-          message: 'Status: scheduled',
+          label: context.tr.tripPunctScheduled,
+          message: context.tr.tripPunctTripStatus(tripStatus),
           color: const Color(0xFF1A73E8),
           icon: Icons.schedule_rounded,
         );
@@ -57,16 +58,16 @@ class TripPunctuality {
         if (diff.inMinutes > 5) {
           return TripPunctuality(
             status: 'delayed',
-            label: 'Delayed Departure',
-            message: 'Overdue by ${diff.inMinutes} mins',
+            label: context.tr.tripPunctDelayedDeparture,
+            message: context.tr.tripPunctOverdueMins(diff.inMinutes),
             color: const Color(0xFFEF4444), // Premium red
             icon: Icons.alarm_rounded,
           );
         } else {
           return TripPunctuality(
             status: 'on_time',
-            label: 'On Time',
-            message: 'Ready to depart on time',
+            label: context.tr.tripPunctOnTime,
+            message: context.tr.tripPunctReadyDepart,
             color: const Color(0xFF16A34A), // Premium green
             icon: Icons.check_circle_rounded,
           );
@@ -79,8 +80,8 @@ class TripPunctuality {
         if (departedAtStr == null) {
           return TripPunctuality(
             status: 'on_time',
-            label: 'On Track',
-            message: 'Trip in progress',
+            label: context.tr.tripPunctOnTrack,
+            message: context.tr.tripPunctInProgress,
             color: const Color(0xFF16A34A),
             icon: Icons.directions_bus_rounded,
           );
@@ -91,11 +92,11 @@ class TripPunctuality {
 
         String depMessage;
         if (depDiff > 5) {
-          depMessage = 'Departed $depDiff mins late';
+          depMessage = context.tr.tripPunctDepartedLate(depDiff);
         } else if (depDiff < -5) {
-          depMessage = 'Departed ${depDiff.abs()} mins early';
+          depMessage = context.tr.tripPunctDepartedEarly(depDiff.abs());
         } else {
-          depMessage = 'Departed on time';
+          depMessage = context.tr.tripPunctDepartedOnTime;
         }
 
         // Check if currently running past scheduled arrival
@@ -107,8 +108,8 @@ class TripPunctuality {
             if (arrDiff > 5) {
               return TripPunctuality(
                 status: 'delayed',
-                label: 'Running Late',
-                message: '$depMessage • Overdue by $arrDiff mins',
+                label: context.tr.tripPunctRunningLate,
+                message: '$depMessage • ${context.tr.tripPunctOverdueMins(arrDiff)}',
                 color: const Color(0xFFF59E0B), // Premium Amber/Orange
                 icon: Icons.warning_amber_rounded,
               );
@@ -118,7 +119,7 @@ class TripPunctuality {
 
         return TripPunctuality(
           status: depDiff > 5 ? 'delayed' : (depDiff < -5 ? 'early' : 'on_time'),
-          label: depDiff > 5 ? 'Delayed' : 'On Time',
+          label: depDiff > 5 ? context.tr.tripPunctDelayed : context.tr.tripPunctOnTime,
           message: depMessage,
           color: depDiff > 5 ? const Color(0xFFF59E0B) : const Color(0xFF16A34A),
           icon: depDiff > 5 ? Icons.alarm_on_rounded : Icons.check_circle_rounded,
@@ -131,8 +132,8 @@ class TripPunctuality {
         if (arrivedAtStr == null) {
           return TripPunctuality(
             status: 'on_time',
-            label: 'Completed',
-            message: 'Trip finished',
+            label: context.tr.tripPunctCompleted,
+            message: context.tr.tripPunctTripFinished,
             color: const Color(0xFF6B7280),
             icon: Icons.check_circle_rounded,
           );
@@ -142,8 +143,8 @@ class TripPunctuality {
         if (arrivalTimeStr == null) {
           return TripPunctuality(
             status: 'on_time',
-            label: 'Completed',
-            message: 'Arrived at ${_formatTimeOnly(actualArrival)}',
+            label: context.tr.tripPunctCompleted,
+            message: context.tr.tripPunctArrivedAt(_formatTimeOnly(actualArrival)),
             color: const Color(0xFF6B7280),
             icon: Icons.check_circle_rounded,
           );
@@ -154,16 +155,16 @@ class TripPunctuality {
 
         String arrMessage;
         if (arrDiff > 5) {
-          arrMessage = 'Arrived $arrDiff mins late';
+          arrMessage = context.tr.tripPunctArrivedLate(arrDiff);
         } else if (arrDiff < -5) {
-          arrMessage = 'Arrived ${arrDiff.abs()} mins early';
+          arrMessage = context.tr.tripPunctArrivedEarly(arrDiff.abs());
         } else {
-          arrMessage = 'Arrived on time';
+          arrMessage = context.tr.tripPunctArrivedOnTime;
         }
 
         return TripPunctuality(
           status: arrDiff > 5 ? 'delayed' : (arrDiff < -5 ? 'early' : 'on_time'),
-          label: arrDiff > 5 ? 'Delayed Arrival' : 'On Time Arrival',
+          label: arrDiff > 5 ? context.tr.tripPunctDelayedArrival : context.tr.tripPunctOnTimeArrival,
           message: arrMessage,
           color: arrDiff > 5 ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
           icon: arrDiff > 5 ? Icons.error_outline_rounded : Icons.check_circle_rounded,
@@ -174,8 +175,8 @@ class TripPunctuality {
       if (tripStatus == 'cancelled') {
         return TripPunctuality(
           status: 'unknown',
-          label: 'Cancelled',
-          message: 'Trip was cancelled',
+          label: context.tr.tripPunctCancelled,
+          message: context.tr.tripPunctMessageCancelled,
           color: const Color(0xFFEF4444),
           icon: Icons.cancel_rounded,
         );
@@ -184,8 +185,8 @@ class TripPunctuality {
       // Fallback
       return TripPunctuality(
         status: 'unknown',
-        label: 'Scheduled',
-        message: 'Trip status: $tripStatus',
+        label: context.tr.tripPunctScheduled,
+        message: context.tr.tripPunctTripStatus(tripStatus),
         color: const Color(0xFF1A73E8),
         icon: Icons.schedule_rounded,
       );
@@ -193,8 +194,8 @@ class TripPunctuality {
       debugPrint('[Punctuality Calculation] Error: $e');
       return TripPunctuality(
         status: 'unknown',
-        label: 'Error',
-        message: 'Error computing status',
+        label: context.tr.tripPunctErrorComputing,
+        message: context.tr.tripPunctErrorComputing,
         color: Colors.grey,
         icon: Icons.error_outline_rounded,
       );

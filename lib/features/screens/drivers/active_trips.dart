@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 
 class ActiveTripScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
   StreamSubscription<Position>? _posStream;
   Position? _currentPosition;
   _GpsState _gpsState = _GpsState.idle;
-  String _gpsMessage = 'GPS not started';
+  String _gpsMessage = '';
   DateTime? _lastGpsSync;
   static const Duration _gpsThrottle = Duration(seconds: 5);
 
@@ -62,13 +63,13 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
   Future<void> _startGps() async {
     setState(() {
       _gpsState = _GpsState.requesting;
-      _gpsMessage = 'Requesting location permission…';
+      _gpsMessage = context.tr.activeTripRequestingPermission;
     });
 
     try {
       final serviceOn = await Geolocator.isLocationServiceEnabled();
       if (!serviceOn) {
-        _setGpsError('Location service is disabled. Enable it in Settings.');
+        _setGpsError(context.tr.activeTripGpsDisabled);
         return;
       }
 
@@ -78,17 +79,17 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
       }
       if (perm == LocationPermission.deniedForever ||
           perm == LocationPermission.denied) {
-        _setGpsError('Location permission denied. Enable it in Settings.');
+        _setGpsError(context.tr.activeTripPermissionDenied);
         return;
       }
     } catch (e) {
-      _setGpsError('Permission check failed: $e');
+        _setGpsError(context.tr.activeTripPermissionFailed(e.toString()));
       return;
     }
 
     setState(() {
       _gpsState = _GpsState.active;
-      _gpsMessage = 'GPS active – tracking location';
+      _gpsMessage = context.tr.activeTripGpsActiveMessage;
     });
 
     // Get initial location immediately so we don't start with null coordinates!
@@ -112,7 +113,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
         '[GPS Sync] Initial driver position synced: ${initialPos.latitude}, ${initialPos.longitude}',
       );
     } catch (e) {
-      _setGpsError('Could not get GPS position: $e');
+      _setGpsError(context.tr.activeTripGpsPositionError(e.toString()));
     }
 
     _posStream =
@@ -140,7 +141,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
                 .eq('id', _trip['id'] as String)
                 .catchError((err) => debugPrint('[GPS] Sync error: $err'));
           }
-        }, onError: (_) => _setGpsError('GPS signal lost. Retrying…'));
+        }, onError: (_) => _setGpsError(context.tr.activeTripGpsSignalLost));
   }
 
   void _setGpsError(String msg) {
@@ -201,7 +202,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
       final isFull = capacity > 0 && boardedCount >= capacity;
       
       if (!isFull && !allowedByConductor) {
-        _showError('Bus is not full ($boardedCount/$capacity). Waiting for Conductor permission.');
+        _showError(context.tr.driverTripBusNotFull(boardedCount, capacity));
         return; // Early return, loading state will be reset in finally block
       }
 
@@ -219,7 +220,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
       await _startGps();
       _startElapsedTimer();
     } catch (e) {
-      _showError('Could not start trip. Try again.');
+      _showError(context.tr.activeTripCouldNotStart);
     } finally {
       if (mounted) setState(() => _startLoading = false);
     }
@@ -227,9 +228,9 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
 
   Future<void> _endTrip() async {
     final confirmed = await _showConfirmDialog(
-      title: 'End this trip?',
-      message: 'Make sure all passengers have boarded. This cannot be undone.',
-      confirmLabel: 'End trip',
+      title: context.tr.activeTripEndDialogTitle,
+      message: context.tr.activeTripEndDialogMessage,
+      confirmLabel: context.tr.activeTripEndTripLabel,
       confirmColor: const Color(0xFFDC2626),
     );
     if (!confirmed) return;
@@ -249,21 +250,21 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
         _trip['status'] = 'completed';
         _trip['arrived_at'] = now;
         _gpsState = _GpsState.idle;
-        _gpsMessage = 'GPS stopped';
+        _gpsMessage = context.tr.activeTripGpsStopped;
       });
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Trip completed. Great job!'),
-          backgroundColor: Color(0xFF16A34A),
+        SnackBar(
+          content: Text(context.tr.activeTripCompletedSnack),
+          backgroundColor: const Color(0xFF16A34A),
         ),
       );
 
       // Go back to home
       Navigator.of(context).pop();
     } catch (_) {
-      _showError('Could not end trip. Try again.');
+      _showError(context.tr.activeTripCouldNotEnd);
     } finally {
       if (mounted) setState(() => _endLoading = false);
     }
@@ -296,9 +297,9 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF6B7280)),
+            child: Text(
+              context.tr.cancel,
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
           ),
           ElevatedButton(
@@ -352,9 +353,9 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
         backgroundColor: const Color(0xFF1A73E8),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Active Trip',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          context.tr.activeTripAppBarTitle,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -398,7 +399,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
                   // Action
                   if (_isScheduled)
                     _ActionButton(
-                      label: 'Start Trip',
+                      label: context.tr.activeTripStartTrip,
                       icon: Icons.play_arrow_rounded,
                       color: const Color(0xFF1A73E8),
                       loading: _startLoading,
@@ -406,7 +407,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen> {
                     )
                   else if (_isInProgress)
                     _ActionButton(
-                      label: 'End Trip',
+                      label: context.tr.activeTripEndTripLabel,
                       icon: Icons.flag_rounded,
                       color: const Color(0xFFDC2626),
                       loading: _endLoading,
@@ -560,9 +561,9 @@ class _StatusCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Trip Status',
-                style: TextStyle(
+              Text(
+                context.tr.activeTripTripStatus,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF111827),
@@ -593,7 +594,7 @@ class _StatusCard extends StatelessWidget {
           const SizedBox(height: 16),
           _TimelineRow(
             icon: Icons.play_circle_outline_rounded,
-            label: 'Departed',
+            label: context.tr.activeTripDepartedLabel,
             value: departedAt,
             done: departedAt != '–',
             activeColor: const Color(0xFF16A34A),
@@ -611,7 +612,7 @@ class _StatusCard extends StatelessWidget {
           ),
           _TimelineRow(
             icon: Icons.flag_rounded,
-            label: 'Arrived',
+            label: context.tr.activeTripArrivedLabel,
             value: arrivedAt,
             done: arrivedAt != '–',
             activeColor: const Color(0xFF1A73E8),
@@ -764,9 +765,9 @@ class _GpsCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'GPS Tracking',
-                      style: TextStyle(
+                    Text(
+                      context.tr.activeTripGpsTracking,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF111827),
@@ -791,17 +792,17 @@ class _GpsCard extends StatelessWidget {
             Row(
               children: [
                 _CoordChip(
-                  label: 'LAT',
+                  label: context.tr.activeTripCoordLat,
                   value: position!.latitude.toStringAsFixed(6),
                 ),
                 const SizedBox(width: 8),
                 _CoordChip(
-                  label: 'LNG',
+                  label: context.tr.activeTripCoordLng,
                   value: position!.longitude.toStringAsFixed(6),
                 ),
                 const SizedBox(width: 8),
                 _CoordChip(
-                  label: 'ACC',
+                  label: context.tr.activeTripCoordAcc,
                   value: '${position!.accuracy.toStringAsFixed(0)}m',
                 ),
               ],
@@ -897,7 +898,7 @@ class _ActionButton extends StatelessWidget {
               )
             : Icon(icon, size: 22),
         label: Text(
-          loading ? 'Please wait…' : label,
+          loading ? context.tr.activeTripPleaseWait : label,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -930,16 +931,16 @@ class _CompletedBadge extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Trip Completed',
-                style: TextStyle(
+              Text(
+                context.tr.activeTripCompletedBadge,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF16A34A),
                 ),
               ),
               Text(
-                'Arrived at $arrivedAt',
+                context.tr.activeTripArrivedAt(arrivedAt),
                 style: const TextStyle(fontSize: 13, color: Color(0xFF16A34A)),
               ),
             ],

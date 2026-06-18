@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../repositories/trip_repository.dart';
 import '../../widgets/animations.dart';
 import 'booking_confirmation_screen.dart';
@@ -150,9 +151,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
   void _proceedToBooking() {
     if (_selectedSeats.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one seat'),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(context.tr.schedulePleaseSelectSeat),
+          backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -184,9 +185,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Select Seat',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.scheduleSelectSeat,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: Column(
@@ -293,18 +294,18 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                           children: [
                             _LegendItem(
                               color: const Color(0xFFE5E7EB),
-                              label: 'Available',
+                              label: context.tr.scheduleAvailable,
                             ),
                             const SizedBox(width: 20),
                             _LegendItem(
                               color: const Color(0xFF2563EB),
-                              label: 'Selected',
+                              label: context.tr.scheduleSelected,
                             ),
                             const SizedBox(width: 20),
                             _LegendItem(
                               color:
                                   const Color(0xFFEF4444).withValues(alpha: 0.15),
-                              label: 'Booked',
+                              label: context.tr.scheduleBooked,
                               textColor: const Color(0xFFEF4444),
                             ),
                           ],
@@ -334,10 +335,10 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                                 const SizedBox(width: 8),
                                 Text(
                                   _tripStatus == 'completed'
-                                      ? 'This trip has ended / is completed.'
+                                      ? context.tr.scheduleTripEnded
                                       : _tripStatus == 'cancelled'
-                                          ? 'This trip has been cancelled.'
-                                          : 'This trip is over / has departed (Time over).',
+                                          ? context.tr.scheduleTripCancelled
+                                          : context.tr.scheduleTripOver,
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFFEF4444),
@@ -409,8 +410,8 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
               children: [
                 Text(
                   _selectedSeats.isEmpty
-                      ? 'No seat selected'
-                      : '${_selectedSeats.length} seat${_selectedSeats.length > 1 ? 's' : ''}: ${_selectedSeats.join(', ')}',
+                      ? context.tr.scheduleNoSeatSelected
+                      : context.tr.scheduleSeatCount(_selectedSeats.length, _selectedSeats.join(', ')),
                   style: TextStyle(
                     fontSize: 12,
                     color: _selectedSeats.isNotEmpty
@@ -461,9 +462,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(
+                  child: Text(
+                    context.tr.scheduleContinue,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -623,8 +624,8 @@ class _FrontIndicator extends StatelessWidget {
               const Icon(Icons.directions_bus_rounded,
                   size: 16, color: Color(0xFF2563EB)),
               const SizedBox(width: 6),
-              const Text('FRONT',
-                  style: TextStyle(
+              Text(context.tr.scheduleFrontLabel,
+                  style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF2563EB))),
@@ -638,8 +639,8 @@ class _FrontIndicator extends StatelessWidget {
               const Icon(Icons.meeting_room_rounded,
                   size: 14, color: Color(0xFF2563EB)),
               const SizedBox(width: 4),
-              const Text('DOOR',
-                  style: TextStyle(
+              Text(context.tr.scheduleDoorLabel,
+                  style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF2563EB))),
@@ -654,7 +655,7 @@ class _FrontIndicator extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            '$availableCount seats left',
+            context.tr.scheduleSeatsLeft(availableCount),
             style: const TextStyle(
                 fontSize: 12,
                 color: Color(0xFF2563EB),
@@ -814,8 +815,8 @@ class _BackIndicator extends StatelessWidget {
             Icon(Icons.directions_bus_rounded,
                 size: 14, color: const Color(0xFF9CA3AF)),
             const SizedBox(width: 6),
-            const Text('BACK',
-                style: TextStyle(
+            Text(context.tr.scheduleBackLabel,
+                style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF9CA3AF))),

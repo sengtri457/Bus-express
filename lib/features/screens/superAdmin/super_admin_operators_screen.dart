@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 
 class SuperAdminOperatorsScreen extends StatefulWidget {
@@ -78,7 +79,7 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
 
   Future<void> _toggleStatus(String id, String current) async {
     final newStatus = current == 'active' ? 'inactive' : 'active';
-    final action = newStatus == 'active' ? 'Activate' : 'Suspend';
+    final action = newStatus == 'active' ? context.tr.activate : context.tr.suspend;
     final color = newStatus == 'active'
         ? const Color(0xFF059669)
         : const Color(0xFFEF4444);
@@ -93,16 +94,16 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
         ),
         content: Text(
           newStatus == 'inactive'
-              ? 'Suspending this operator will prevent their buses from appearing in searches. Continue?'
-              : 'This will reactivate the operator and their services. Continue?',
+              ? context.tr.suspendOperatorConfirm
+              : context.tr.reactivateOperatorConfirm,
           style: const TextStyle(color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF6B7280)),
+            child: Text(
+              context.tr.cancel,
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
           ),
           ElevatedButton(
@@ -130,11 +131,11 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
           .eq('id', id);
       _loadOperators();
       _showSnack(
-        newStatus == 'active' ? 'Operator activated ✅' : 'Operator suspended ⛔',
+        newStatus == 'active' ? context.tr.operatorActivated : context.tr.operatorSuspended,
         isError: newStatus == 'inactive',
       );
     } catch (e) {
-      _showSnack('Error: $e', isError: true);
+      _showSnack(context.tr.failedToUpdate(e.toString()), isError: true);
     }
   }
 
@@ -173,7 +174,7 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
             child: Row(
               children: [
                 _FilterChip(
-                  label: 'All',
+                  label: context.tr.allFilter,
                   isSelected: _filter == 'all',
                   onTap: () {
                     setState(() => _filter = 'all');
@@ -182,7 +183,7 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Active',
+                  label: context.tr.activeFilter,
                   isSelected: _filter == 'active',
                   color: const Color(0xFF059669),
                   onTap: () {
@@ -192,7 +193,7 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Inactive',
+                  label: context.tr.inactiveFilter,
                   isSelected: _filter == 'inactive',
                   color: const Color(0xFF9CA3AF),
                   onTap: () {
@@ -210,10 +211,10 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
                 : RefreshIndicator(
                     onRefresh: _loadOperators,
                     child: _operators.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
-                              'No operators found',
-                              style: TextStyle(color: Color(0xFF9CA3AF)),
+                              context.tr.noOperatorsFound,
+                              style: const TextStyle(color: Color(0xFF9CA3AF)),
                             ),
                           )
                         : ListView.builder(
@@ -238,9 +239,9 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
         backgroundColor: const Color(0xFF111827),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_business_rounded),
-        label: const Text(
-          'Add Operator',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        label: Text(
+          context.tr.addOperator,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -348,7 +349,7 @@ class _OperatorCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            isActive ? 'Active' : 'Inactive',
+                            isActive ? context.tr.active : context.tr.inactive,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -368,19 +369,19 @@ class _OperatorCard extends StatelessWidget {
                 Row(
                   children: [
                     _MiniStat(
-                      label: 'Buses',
+                      label: context.tr.busesLabel,
                       value: '${operator['buses_count'] ?? 0}',
                       icon: Icons.directions_bus_rounded,
                     ),
                     const SizedBox(width: 16),
                     _MiniStat(
-                      label: 'Routes',
+                      label: context.tr.routesLabel,
                       value: '${operator['routes_count'] ?? 0}',
                       icon: Icons.route_rounded,
                     ),
                     const SizedBox(width: 16),
                     _MiniStat(
-                      label: 'Staff',
+                      label: context.tr.staffLabel,
                       value: '${operator['staff_count'] ?? 0}',
                       icon: Icons.people_rounded,
                     ),
@@ -411,7 +412,7 @@ class _OperatorCard extends StatelessWidget {
                         : Icons.play_circle_outline_rounded,
                     size: 16,
                   ),
-                  label: Text(isActive ? 'Suspend' : 'Activate'),
+                  label: Text(isActive ? context.tr.suspend : context.tr.activate),
                   style: TextButton.styleFrom(
                     foregroundColor: isActive
                         ? const Color(0xFFEF4444)
@@ -650,9 +651,9 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
         Navigator.pop(context);
         widget.onSaved();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Operator created ✅'),
-            backgroundColor: Color(0xFF059669),
+          SnackBar(
+            content: Text(context.tr.operatorCreated),
+            backgroundColor: const Color(0xFF059669),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -661,7 +662,7 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(context.tr.failedToUpdate(e.toString())),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
@@ -698,9 +699,9 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Text(
-                'Add New Operator',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                context.tr.addNewOperator,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 20),
               GestureDetector(
@@ -734,10 +735,10 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Logo',
-                              style: TextStyle(
+                              context.tr.logo,
+                              style: const TextStyle(
                                 fontSize: 11,
-                                color: const Color(0xFF9CA3AF),
+                                color: Color(0xFF9CA3AF),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -748,19 +749,19 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
               const SizedBox(height: 20),
               _Field(
                 controller: _nameCtrl,
-                label: 'Company Name',
-                hint: 'e.g. Capitol Express',
+                label: context.tr.companyName,
+                hint: context.tr.companyNameHint,
                 icon: Icons.business_rounded,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
               _Field(
                 controller: _contactCtrl,
-                label: 'Contact Number',
-                hint: '+855 23 123 456',
+                label: context.tr.contactNumber,
+                hint: context.tr.contactNumberHint,
                 icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -785,9 +786,9 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Create Operator',
-                          style: TextStyle(
+                      : Text(
+                          context.tr.createOperator,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),

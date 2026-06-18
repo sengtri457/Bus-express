@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../services/notification_service.dart';
 import '../../widgets/animations.dart';
 
@@ -39,9 +40,9 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.notifications,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
@@ -59,9 +60,9 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
                 }
                 if (mounted) setState(() {});
               },
-              child: const Text(
-                'Mark all read',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+              child: Text(
+                context.tr.markAllRead,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
             ),
         ],
@@ -98,7 +99,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No notifications yet',
+            context.tr.noNotificationsYet,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -107,7 +108,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Booking updates and trip alerts will appear here.',
+            context.tr.noNotificationsSubtitle,
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           ),
         ],
@@ -256,13 +257,14 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
       final now = DateTime.now();
       final diff = now.difference(dt);
 
-      if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      if (diff.inMinutes < 1) return context.tr.justNow;
+      if (diff.inMinutes < 60) return context.tr.minutesAgo(diff.inMinutes);
+      if (diff.inHours < 24) return context.tr.hoursAgo(diff.inHours);
+      if (diff.inDays < 7) return context.tr.daysAgo(diff.inDays);
       return DateFormat('MMM d, yyyy').format(dt);
     } catch (_) {
       return '';
     }
   }
 }
+

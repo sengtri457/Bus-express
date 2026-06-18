@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 
 class LiveTrackingScreen extends StatefulWidget {
@@ -261,14 +262,14 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
         }
       } else if (mounted) {
         setState(() {
-          _errorMessage = 'Trip not found. It may have been cancelled.';
+          _errorMessage = context.tr.liveTripNotFound;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Could not load tracking data. Check your connection.';
+          _errorMessage = context.tr.liveCouldNotLoad;
           _isLoading = false;
         });
       }
@@ -416,7 +417,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              _errorMessage ?? 'Something went wrong.',
+              _errorMessage ?? context.tr.liveSomethingWrong,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 15,
@@ -434,7 +435,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                 _loadInitialData();
               },
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Retry'),
+              label: Text(context.tr.liveRetry),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A73E8),
                 foregroundColor: Colors.white,
@@ -467,7 +468,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
             Text(
-              'Live Tracking',
+              context.tr.liveTrackingAppBar,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withOpacity(0.85),
@@ -484,7 +485,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                   : Icons.directions_bus_outlined,
               color: Colors.white,
             ),
-            tooltip: _followBus ? 'Following bus' : 'Follow bus',
+            tooltip: _followBus ? context.tr.liveTooltipFollowingBus : context.tr.liveTooltipFollowBus,
             onPressed: () {
               setState(() => _followBus = !_followBus);
               if (_followBus && _busPosition != null && _mapReady) {
@@ -663,26 +664,26 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
+                        children: [
+                          const Icon(
                             Icons.schedule_rounded,
                             size: 48,
                             color: Color(0xFF9CA3AF),
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           Text(
-                            'Trip Not Started Yet',
-                            style: TextStyle(
+                            context.tr.liveTripNotStarted,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF374151),
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            'The bus will appear on the map once the driver starts the trip.',
+                            context.tr.liveTripNotStartedDesc,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
                               color: Color(0xFF9CA3AF),
                               height: 1.5,
@@ -839,27 +840,27 @@ class _StatusOverlayCard extends StatelessWidget {
         if (busPosition != null) {
           color = const Color(0xFF10B981);
           icon = Icons.play_circle_rounded;
-          label = 'Bus is on the way';
+          label = context.tr.liveStatusOnWay;
         } else {
           color = const Color(0xFFF59E0B);
           icon = Icons.gps_fixed_rounded;
-          label = 'Locating bus...';
+          label = context.tr.liveStatusLocating;
         }
         break;
       case 'completed':
         color = const Color(0xFF6B7280);
         icon = Icons.check_circle_rounded;
-        label = 'Trip completed';
+        label = context.tr.liveStatusCompleted;
         break;
       case 'cancelled':
         color = const Color(0xFFEF4444);
         icon = Icons.cancel_rounded;
-        label = 'Trip cancelled';
+        label = context.tr.liveStatusCancelled;
         break;
       default:
         color = const Color(0xFF1A73E8);
         icon = Icons.schedule_rounded;
-        label = 'Waiting for departure';
+        label = context.tr.liveStatusWaiting;
     }
 
     return Container(
@@ -900,7 +901,7 @@ class _StatusOverlayCard extends StatelessWidget {
                 ),
                 if (departedAt != null && status == 'in_progress')
                   Text(
-                    'Departed at ${_formatTime(departedAt!)}',
+                    context.tr.liveDepartedAt(_formatTime(departedAt!)),
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF9CA3AF),
@@ -922,9 +923,9 @@ class _StatusOverlayCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Text(
-                  'LIVE',
-                  style: TextStyle(
+                Text(
+                  context.tr.liveBadge,
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF10B981),
@@ -1072,9 +1073,9 @@ class _BottomInfoCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text(
-                      'Bus Location',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                    Text(
+                      context.tr.liveBusLocation,
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1109,9 +1110,9 @@ class _BottomInfoCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Scheduled Schedule',
-                    style: TextStyle(
+                  Text(
+                    context.tr.liveScheduledSchedule,
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF9CA3AF),
@@ -1137,8 +1138,8 @@ class _BottomInfoCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
-                    'Estimated Arrival',
+                  Text(
+                    context.tr.liveEstimatedArrival,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -1158,7 +1159,7 @@ class _BottomInfoCard extends StatelessWidget {
                             border: Border.all(color: const Color(0xFFFCA5A5)),
                           ),
                           child: Text(
-                            '+$totalDelay min',
+                            context.tr.liveDelayMinutes(totalDelay),
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -1203,8 +1204,8 @@ class _BottomInfoCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   tripStatus == 'in_progress'
-                      ? 'Location updates every 5 seconds'
-                      : 'Tracking starts when driver departs',
+                      ? context.tr.liveUpdatesEvery5
+                      : context.tr.liveTrackingStarts,
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF6B7280),
@@ -1294,7 +1295,7 @@ class _IncidentAlertBannerState extends State<_IncidentAlertBanner> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${type[0].toUpperCase()}${type.substring(1)} Reported',
+                            context.tr.liveIncidentReported('${type[0].toUpperCase()}${type.substring(1)}'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -1518,8 +1519,8 @@ class _LocatingBusChipState extends State<_LocatingBusChip>
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            SizedBox(
+          children: [
+            const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(
@@ -1527,10 +1528,10 @@ class _LocatingBusChipState extends State<_LocatingBusChip>
                 color: Colors.white,
               ),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
-              'Locating bus...',
-              style: TextStyle(
+              context.tr.liveStatusLocating,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

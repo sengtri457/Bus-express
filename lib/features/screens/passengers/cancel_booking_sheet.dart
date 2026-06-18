@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/date_helpers.dart';
+import '../../../l10n/tr_extension.dart';
 import 'services/booking_cancellation_service.dart';
 
 /// Call this from any screen:
@@ -99,9 +100,9 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Booking Cancelled',
-                style: TextStyle(
+              Text(
+                context.tr.cancelSuccessTitle,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF111827),
@@ -109,7 +110,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Your booking for ${widget.origin} → ${widget.destination} (Seat ${widget.seatNumber}) has been cancelled.',
+                context.tr.cancelSuccessDesc(widget.origin, widget.destination, widget.seatNumber),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
@@ -125,18 +126,18 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.info_outline_rounded,
                       color: Color(0xFF059669),
                       size: 16,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Cash bookings are cancelled instantly. No refund is required since payment was on board.',
-                        style: TextStyle(
+                        context.tr.cancelSuccessNote,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF065F46),
                           height: 1.5,
@@ -163,9 +164,9 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  child: Text(
+                    context.tr.cancelSheetDone,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -243,9 +244,9 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
           ),
           const SizedBox(height: 16),
 
-          const Text(
-            'Cancel Booking?',
-            style: TextStyle(
+          Text(
+            context.tr.cancelSheetTitle,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Color(0xFF111827),
@@ -253,7 +254,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Are you sure you want to cancel your trip?',
+            context.tr.cancelSheetConfirm,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
           ),
@@ -272,25 +273,25 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
               children: [
                 _SummaryRow(
                   icon: Icons.route_rounded,
-                  label: 'Route',
+                  label: context.tr.cancelSheetRoute,
                   value: '${widget.origin} → ${widget.destination}',
                 ),
                 const Divider(height: 16, color: Color(0xFFE5E7EB)),
                  _SummaryRow(
                   icon: Icons.calendar_today_rounded,
-                  label: 'Date',
+                  label: context.tr.bookingDate,
                   value: DateHelpers.formatDate(widget.tripDate),
                 ),
                 const Divider(height: 16, color: Color(0xFFE5E7EB)),
                 _SummaryRow(
                   icon: Icons.event_seat_rounded,
-                  label: 'Seat',
+                  label: context.tr.cancelSheetSeat,
                   value: widget.seatNumber,
                 ),
                 const Divider(height: 16, color: Color(0xFFE5E7EB)),
                 _SummaryRow(
                   icon: Icons.attach_money_rounded,
-                  label: 'Amount',
+                  label: context.tr.cancelSheetAmount,
                   value: '\$${widget.totalPrice.toStringAsFixed(2)}',
                 ),
               ],
@@ -306,19 +307,19 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFFFED7AA)),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
+                const Icon(
                   Icons.access_time_rounded,
                   color: Color(0xFFF97316),
                   size: 16,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Cancellations must be made at least 2 hours before departure. Trips already in progress cannot be cancelled.',
-                    style: TextStyle(
+                    context.tr.cancelSheetPolicy,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF9A3412),
                       height: 1.5,
@@ -344,9 +345,9 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text(
-                    'Keep Booking',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  child: Text(
+                    context.tr.cancelSheetKeep,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -373,8 +374,8 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Yes, Cancel',
+                      : Text(
+                          context.tr.cancelSheetYesCancel,
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                 ),

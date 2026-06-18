@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/tr_extension.dart';
 import '../../../../supabase_config.dart';
 
 class RouteOption {
@@ -120,9 +121,9 @@ class _RouteSelectorSheetState extends State<RouteSelectorSheet> {
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                 child: Row(
                   children: [
-                    const Text(
-                      'Select Route',
-                      style: TextStyle(
+                    Text(
+                      context.tr.routeSelectorTitle,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF111827),
@@ -149,7 +150,7 @@ class _RouteSelectorSheetState extends State<RouteSelectorSheet> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search destinations...',
+                    hintText: context.tr.routeSelectorSearchHint,
                     hintStyle: const TextStyle(
                         color: Color(0xFF9CA3AF), fontSize: 14),
                     prefixIcon: const Icon(Icons.search_rounded,
@@ -182,8 +183,8 @@ class _RouteSelectorSheetState extends State<RouteSelectorSheet> {
                         ? Center(
                             child: Text(
                               _searchController.text.isEmpty
-                                  ? 'No routes available'
-                                  : 'No routes match "$_searchController"',
+                                  ? context.tr.routeSelectorNoRoutes
+                                  : context.tr.routeSelectorNoMatch(_searchController.text),
                               style: const TextStyle(
                                   color: Color(0xFF9CA3AF), fontSize: 14),
                             ),

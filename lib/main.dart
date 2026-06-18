@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/screens/splash_screen.dart';
+import 'l10n/app_localizations.dart';
+import 'providers/locale_provider.dart';
 import 'services/notification_service.dart';
 import 'supabase_config.dart';
 
@@ -29,18 +31,21 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
     return MaterialApp(
       useInheritedMediaQuery: true,
       builder: DevicePreview.appBuilder,
-      locale: DevicePreview.locale(context),
+      locale: locale,
       title: 'Bus Express',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const SplashScreen(),
     );
   }

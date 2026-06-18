@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 
@@ -48,8 +49,8 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
         _showResult(
           _ScanResult(
             success: false,
-            message: 'Invalid QR Code',
-            subMessage: 'This ticket was not found in the system.',
+            message: context.tr.conductorScanInvalidQr,
+            subMessage: context.tr.conductorScanTicketNotFound,
             icon: Icons.qr_code_rounded,
           ),
         );
@@ -69,8 +70,8 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
         _showResult(
           _ScanResult(
             success: false,
-            message: 'No Booking Found',
-            subMessage: 'This ticket is not associated with a booking.',
+            message: context.tr.conductorScanNoBooking,
+            subMessage: context.tr.conductorScanNoBookingDesc,
             icon: Icons.error_outline_rounded,
           ),
         );
@@ -85,9 +86,8 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
         _showResult(
           _ScanResult(
             success: false,
-            message: 'Wrong Trip',
-            subMessage:
-                'This ticket is not for this trip. Please check the bus.',
+            message: context.tr.conductorScanWrongTrip,
+            subMessage: context.tr.conductorScanWrongTripDesc,
             icon: Icons.wrong_location_rounded,
           ),
         );
@@ -100,10 +100,10 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
         _showResult(
           _ScanResult(
             success: false,
-            message: 'Already Scanned',
+            message: context.tr.conductorScanAlreadyScanned,
             subMessage: scannedAt != null
-                ? 'Scanned at ${_formatTimestamp(scannedAt)}'
-                : 'This ticket has already been used.',
+                ? context.tr.conductorScanScannedAt(_formatTimestamp(scannedAt))
+                : context.tr.conductorScanAlreadyUsed,
             icon: Icons.warning_amber_rounded,
             color: const Color(0xFFF59E0B),
           ),
@@ -115,8 +115,8 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
         _showResult(
           _ScanResult(
             success: false,
-            message: 'Invalid Ticket',
-            subMessage: 'This ticket is $ticketStatus and cannot be used.',
+            message: context.tr.conductorScanInvalidTicket,
+            subMessage: context.tr.conductorScanTicketStatusInvalid(ticketStatus),
             icon: Icons.cancel_rounded,
           ),
         );
@@ -145,9 +145,10 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
         unawaited(
           NotificationService.instance.insertNotification(
             userId: passengerId,
-            title: 'Ticket Validated',
-            body:
-                'Your ticket for seat ${booking['seat_number']} has been scanned. Enjoy your trip!',
+            title: context.tr.conductorScanNotifTitle,
+            body: context.tr.conductorScanNotifBody(
+              '${booking['seat_number']}',
+            ),
             type: 'ticket_scanned',
             referenceType: 'booking',
             referenceId: booking['id'] as String?,
@@ -168,9 +169,11 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
       _showResult(
         _ScanResult(
           success: true,
-          message: 'Boarded! ✅',
-          subMessage:
-              '${passenger?['name'] ?? 'Passenger'} • Seat ${booking['seat_number']}',
+          message: context.tr.conductorScanBoardedSuccess,
+          subMessage: context.tr.conductorScanPassengerSeat(
+            '${passenger?['name'] ?? 'Passenger'}',
+            '${booking['seat_number']}',
+          ),
           icon: Icons.check_circle_rounded,
           passengerName: passenger?['name'],
           seatNumber: booking['seat_number'],
@@ -180,7 +183,7 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
       _showResult(
         _ScanResult(
           success: false,
-          message: 'Scan Error',
+          message: context.tr.conductorScanScanError,
           subMessage: e.toString(),
           icon: Icons.error_outline_rounded,
         ),
@@ -214,9 +217,9 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Scan Ticket',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.conductorScanAppBarTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
@@ -290,8 +293,8 @@ class _ConductorScannerScreenState extends State<ConductorScannerScreen> {
                   ),
                   child: Text(
                     _isProcessing
-                        ? 'Processing...'
-                        : 'Point camera at passenger QR code',
+                        ? context.tr.conductorScanProcessing
+                        : context.tr.conductorScanHintText,
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),

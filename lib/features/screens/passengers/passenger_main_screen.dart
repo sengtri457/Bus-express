@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 import 'passenger_home_screen.dart';
 import 'mytickets_screen.dart';
 import 'passenger_profile_screen.dart';
@@ -77,21 +78,21 @@ class _BottomNavBar extends StatelessWidget {
   final Color inactiveColor;
   final Color backgroundColor;
 
-  static const _items = [
+  static List<_NavItem> _items(BuildContext context) => [
     _NavItem(
       icon: Icons.directions_bus_outlined,
       activeIcon: Icons.directions_bus_rounded,
-      label: 'Book Bus',
+      label: context.tr.navBookBus,
     ),
     _NavItem(
       icon: Icons.confirmation_number_outlined,
       activeIcon: Icons.confirmation_number_rounded,
-      label: 'My Tickets',
+      label: context.tr.navMyTickets,
     ),
     _NavItem(
       icon: Icons.person_outline_rounded,
       activeIcon: Icons.person_rounded,
-      label: 'Profile',
+      label: context.tr.navProfile,
     ),
   ];
 
@@ -124,9 +125,9 @@ class _BottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(
-              _items.length,
+              _items(context).length,
               (i) => _NavBarItem(
-                item: _items[i],
+                item: _items(context)[i],
                 isActive: currentIndex == i,
                 activeColor: primaryColor,
                 inactiveColor: inactiveColor,

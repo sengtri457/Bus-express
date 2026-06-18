@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 import 'operator_routes_screen.dart';
 
@@ -68,21 +69,21 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
           .eq('id', id);
       _loadSchedules();
     } catch (e) {
-      _showSnack('Error: $e', isError: true);
+      _showSnack(context.tr.failedToUpdate('$e'), isError: true);
     }
   }
 
   Future<void> _delete(String id) async {
     final confirm = await _confirmDialog(
-      'Delete Schedule',
-      'This will remove the schedule permanently.',
+      context.tr.deleteSchedule,
+      context.tr.deleteScheduleConfirm,
     );
     if (!confirm) return;
     try {
       await SupabaseConfig.client.from('schedules').delete().eq('id', id);
       _loadSchedules();
     } catch (e) {
-      _showSnack('Error: $e', isError: true);
+      _showSnack(context.tr.failedToUpdate('$e'), isError: true);
     }
   }
 
@@ -99,9 +100,9 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF6B7280)),
+            child: Text(
+              context.tr.cancel,
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
           ),
           ElevatedButton(
@@ -114,7 +115,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Confirm'),
+            child: Text(context.tr.confirm),
           ),
         ],
       ),
@@ -134,7 +135,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
     );
   }
 
-  String _formatDays(String days) {
+  String _formatDays(String days, BuildContext context) {
     const map = {
       '1': 'Mon',
       '2': 'Tue',
@@ -145,17 +146,17 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
       '7': 'Sun',
     };
     final parts = days.split(',');
-    if (parts.length == 7) return 'Every day';
+    if (parts.length == 7) return context.tr.everyDay;
     if (parts.length == 5 && !parts.contains('6') && !parts.contains('7')) {
-      return 'Weekdays';
+      return context.tr.weekdays;
     }
     return parts.map((d) => map[d.trim()] ?? d).join(', ');
   }
 
-  String _formatTime(String t) {
+  String _formatTime(String t, BuildContext context) {
     final p = t.split(':');
     final h = int.parse(p[0]);
-    final period = h >= 12 ? 'PM' : 'AM';
+    final period = h >= 12 ? context.tr.pm : context.tr.am;
     final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
     return '$dh:${p[1]} $period';
   }
@@ -171,8 +172,8 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
               child: _schedules.isEmpty
                   ? _EmptyState(
                       icon: Icons.schedule_rounded,
-                      message: 'No schedules yet',
-                      subtitle: 'Create a schedule to start taking bookings',
+                      message: context.tr.noSchedulesYet,
+                      subtitle: context.tr.createScheduleSubtitle,
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -229,7 +230,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                             ),
                                           ),
                                           child: Text(
-                                            isActive ? 'Active' : 'Cancelled',
+                                            isActive ? context.tr.scheduleActive : context.tr.cancelled,
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -250,15 +251,15 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              _formatTime(s['departure_time']),
+                                              _formatTime(s['departure_time'], context),
                                               style: const TextStyle(
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.w700,
                                                 color: Color(0xFF111827),
                                               ),
                                             ),
-                                            const Text(
-                                              'Departure',
+                                            Text(
+                                              context.tr.departureLabel,
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 color: Color(0xFF9CA3AF),
@@ -281,15 +282,15 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              _formatTime(s['arrival_time']),
+                                              _formatTime(s['arrival_time'], context),
                                               style: const TextStyle(
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.w700,
                                                 color: Color(0xFF111827),
                                               ),
                                             ),
-                                            const Text(
-                                              'Arrival',
+                                            Text(
+                                              context.tr.arrivalLabel,
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 color: Color(0xFF9CA3AF),
@@ -310,8 +311,8 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                                 color: Color(0xFF059669),
                                               ),
                                             ),
-                                            const Text(
-                                              'per seat',
+                                            Text(
+                                              context.tr.perSeat,
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 color: Color(0xFF9CA3AF),
@@ -331,7 +332,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                         ),
                                         const SizedBox(width: 5),
                                         Text(
-                                          _formatDays(s['days_of_week']),
+                                          _formatDays(s['days_of_week'], context),
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: Color(0xFF6B7280),
@@ -397,7 +398,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                         Icons.edit_rounded,
                                         size: 16,
                                       ),
-                                      label: const Text('Edit'),
+                                      label: Text(context.tr.edit),
                                       style: TextButton.styleFrom(
                                         foregroundColor: const Color(
                                           0xFF1A73E8,
@@ -414,7 +415,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                         size: 16,
                                       ),
                                       label: Text(
-                                        isActive ? 'Deactivate' : 'Activate',
+                                        isActive ? context.tr.deactivate : context.tr.activate,
                                       ),
                                       style: TextButton.styleFrom(
                                         foregroundColor: isActive
@@ -446,9 +447,9 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
         backgroundColor: const Color(0xFF54282E),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Add Schedule',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        label: Text(
+          context.tr.addSchedule,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -619,26 +620,26 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
 
   String _formatTime(TimeOfDay t) {
     final h = t.hour;
-    final period = h >= 12 ? 'PM' : 'AM';
+    final period = h >= 12 ? context.tr.pm : context.tr.am;
     final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
     return '$dh:${t.minute.toString().padLeft(2, '0')} $period';
   }
 
   Future<void> _save() async {
     if (_selectedRouteId == null) {
-      _showSnack('Please select a route', isError: true);
+      _showSnack(context.tr.pleaseSelectRoute, isError: true);
       return;
     }
     if (_selectedBusId == null) {
-      _showSnack('Please select a bus', isError: true);
+      _showSnack(context.tr.pleaseSelectBus, isError: true);
       return;
     }
     if (_selectedDriverId == null) {
-      _showSnack('Please select a driver', isError: true);
+      _showSnack(context.tr.pleaseSelectDriver, isError: true);
       return;
     }
     if (_priceCtrl.text.trim().isEmpty) {
-      _showSnack('Please enter a price', isError: true);
+      _showSnack(context.tr.pleaseEnterPrice, isError: true);
       return;
     }
 
@@ -648,7 +649,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
         .join(',');
 
     if (selectedDays.isEmpty) {
-      _showSnack('Please select at least one day', isError: true);
+      _showSnack(context.tr.pleaseSelectAtLeastOneDay, isError: true);
       return;
     }
 
@@ -679,11 +680,11 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
         Navigator.pop(context);
         widget.onSaved();
         _showSnack(
-          widget.existing != null ? 'Schedule updated ✅' : 'Schedule created ✅',
+          widget.existing != null ? context.tr.scheduleUpdated : context.tr.scheduleCreated,
         );
       }
     } catch (e) {
-      _showSnack('Error: $e', isError: true);
+      _showSnack(context.tr.failedToUpdate('$e'), isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -736,7 +737,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
                       ),
                     ),
                     Text(
-                      isEdit ? 'Edit Schedule' : 'New Schedule',
+                      isEdit ? context.tr.editSchedule : context.tr.newSchedule,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -746,7 +747,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
 
                     // Route
                     _DropdownField(
-                      label: 'Route',
+                      label: context.tr.routeDropdown,
                       value: _selectedRouteId,
                       items: _routes
                           .map(
@@ -764,7 +765,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
 
                     // Bus
                     _DropdownField(
-                      label: 'Bus',
+                      label: context.tr.busDropdown,
                       value: _selectedBusId,
                       items: _buses
                           .map(
@@ -782,7 +783,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
 
                     // Driver
                     _DropdownField(
-                      label: 'Driver',
+                      label: context.tr.driverDropdown,
                       value: _selectedDriverId,
                       items: _drivers
                           .map(
@@ -798,12 +799,12 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
 
                     // Conductor (optional)
                     _DropdownField(
-                      label: 'Conductor (optional)',
+                      label: context.tr.conductorOptional,
                       value: _selectedConductorId,
                       items: [
-                        const DropdownMenuItem(
+                        DropdownMenuItem(
                           value: null,
-                          child: Text('No conductor'),
+                          child: Text(context.tr.noConductor),
                         ),
                         ..._conductors.map(
                           (c) => DropdownMenuItem(
@@ -822,7 +823,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
                       children: [
                         Expanded(
                           child: _TimePicker(
-                            label: 'Departure',
+                            label: context.tr.departureLabel,
                             time: _formatTime(_departureTime),
                             onTap: () => _pickTime(true),
                           ),
@@ -830,7 +831,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _TimePicker(
-                            label: 'Arrival',
+                            label: context.tr.arrivalLabel,
                             time: _formatTime(_arrivalTime),
                             onTap: () => _pickTime(false),
                           ),
@@ -842,16 +843,16 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
                     // Price
                     _FormField(
                       controller: _priceCtrl,
-                      label: 'Price per seat (\$)',
-                      hint: 'e.g. 12.00',
+                      label: context.tr.pricePerSeat,
+                      hint: context.tr.priceHint,
                       icon: Icons.attach_money_rounded,
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 20),
 
                     // Days of week
-                    const Text(
-                      'Operating Days',
+                    Text(
+                      context.tr.operatingDays,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -916,7 +917,7 @@ class _ScheduleFormSheetState extends State<_ScheduleFormSheet> {
                                 ),
                               )
                             : Text(
-                                isEdit ? 'Save Changes' : 'Create Schedule',
+                                isEdit ? context.tr.saveChanges : context.tr.createSchedule,
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/auth_helper.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../repositories/user_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../widgets/animations.dart';
@@ -104,16 +105,16 @@ class _SuperAdminHomeScreenState extends State<SuperAdminHomeScreen> {
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Super Admin',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              context.tr.superAdmin,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             Text(
-              'System Control Panel',
-              style: TextStyle(fontSize: 11, color: Colors.white54),
+              context.tr.systemControlPanel,
+              style: const TextStyle(fontSize: 11, color: Colors.white54),
             ),
           ],
         ),
@@ -227,20 +228,20 @@ class _DashboardTab extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 14),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'System Overview',
-                            style: TextStyle(
+                            context.tr.systemOverview,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
                           ),
                           Text(
-                            'All operators & users',
-                            style: TextStyle(
+                            context.tr.allOperatorsAndUsers,
+                            style: const TextStyle(
                               fontSize: 13,
                               color: Colors.white54,
                             ),
@@ -253,19 +254,19 @@ class _DashboardTab extends StatelessWidget {
                   Row(
                     children: [
                       _HeroStat(
-                        label: 'Live Trips',
+                        label: context.tr.liveTrips,
                         value: '${stats['live_trips'] ?? 0}',
                         color: const Color(0xFF10B981),
                       ),
                       const SizedBox(width: 24),
                       _HeroStat(
-                        label: "Today's Trips",
+                        label: context.tr.todaysTrips,
                         value: '${stats['today_trips'] ?? 0}',
                         color: const Color(0xFF60A5FA),
                       ),
                       const SizedBox(width: 24),
                       _HeroStat(
-                        label: 'Bookings',
+                        label: context.tr.statBookings,
                         value: '${stats['pending_bookings'] ?? 0}',
                         color: const Color(0xFFFBBF24),
                       ),
@@ -275,9 +276,9 @@ class _DashboardTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Operators',
-              style: TextStyle(
+            Text(
+              context.tr.operatorsSection,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF2563EB),
@@ -288,7 +289,7 @@ class _DashboardTab extends StatelessWidget {
               children: [
                 Expanded(
                   child: _StatCard(
-                    label: 'Active',
+                    label: context.tr.statActive,
                     value: '${stats['active_operators'] ?? 0}',
                     icon: Icons.business_rounded,
                     color: AppColors.success,
@@ -306,9 +307,9 @@ class _DashboardTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Users',
-              style: TextStyle(
+            Text(
+              context.tr.usersSection,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF2563EB),
@@ -319,7 +320,7 @@ class _DashboardTab extends StatelessWidget {
               children: [
                 Expanded(
                   child: _StatCard(
-                    label: 'Passengers',
+                    label: context.tr.passengers,
                     value: '${stats['passengers'] ?? 0}',
                     icon: Icons.person_rounded,
                     color: AppColors.primary,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../l10n/tr_extension.dart';
 
 class AllClearCard extends StatelessWidget {
   const AllClearCard({super.key});
@@ -36,22 +37,22 @@ class AllClearCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'All Systems Normal',
-                  style: TextStyle(
+                  context.tr.allSystemsNormal,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'All fleet vehicles operating normally.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  context.tr.allSystemsNormalSubtitle,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),

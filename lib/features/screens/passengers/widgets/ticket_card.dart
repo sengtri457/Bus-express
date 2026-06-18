@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../l10n/tr_extension.dart';
 import '../../../../shared/widgets/trip_status_badge.dart';
 import '../live_tracking_screen.dart';
 import '../receipt_screen.dart';
@@ -108,18 +109,18 @@ class TicketGroupCard extends StatelessWidget {
                         color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.fiber_new_rounded,
                             color: AppColors.primary,
                             size: 14,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'New Booking',
-                            style: TextStyle(
+                            context.tr.ticketCardNewBooking,
+                            style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
@@ -152,7 +153,7 @@ class TicketGroupCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '${bookings.length} seats',
+                            context.tr.ticketCardSeats(bookings.length),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -232,7 +233,7 @@ class TicketGroupCard extends StatelessWidget {
                           size: 16,
                         ),
                         label: Text(
-                          isLive ? 'Track Live' : 'Track Bus',
+                          isLive ? context.tr.ticketCardTrackLive : context.tr.ticketCardTrackBus,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -278,8 +279,8 @@ class TicketGroupCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     isMulti
-                        ? 'Tap to view ${bookings.length} QR codes'
-                        : 'Tap to view QR code',
+                        ? context.tr.ticketCardViewQrPlural(bookings.length)
+                        : context.tr.ticketCardViewQrSingular,
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -312,8 +313,8 @@ class TicketGroupCard extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'View Receipt',
+                      Text(
+                        context.tr.ticketCardViewReceipt,
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,

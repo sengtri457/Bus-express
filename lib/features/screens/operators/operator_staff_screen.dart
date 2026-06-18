@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 import 'operator_routes_screen.dart';
 
@@ -75,10 +76,10 @@ class _OperatorStaffScreenState extends State<OperatorStaffScreen>
           .eq('id', id);
       _loadStaff();
       _showSnack(
-        newStatus == 'active' ? 'Staff activated ✅' : 'Staff suspended ⛔',
+        newStatus == 'active' ? context.tr.staffActivated : context.tr.staffSuspended,
       );
     } catch (e) {
-      _showSnack('Error: $e', isError: true);
+      _showSnack(context.tr.failedToUpdate('$e'), isError: true);
     }
   }
 
@@ -114,8 +115,8 @@ class _OperatorStaffScreenState extends State<OperatorStaffScreen>
                 fontSize: 14,
               ),
               tabs: [
-                Tab(text: 'Drivers (${_drivers.length})'),
-                Tab(text: 'Conductors (${_conductors.length})'),
+                Tab(text: context.tr.driversTab(_drivers.length)),
+                Tab(text: context.tr.conductorsTab(_conductors.length)),
               ],
             ),
           ),
@@ -129,15 +130,15 @@ class _OperatorStaffScreenState extends State<OperatorStaffScreen>
                       _StaffList(
                         staff: _drivers,
                         role: 'driver',
-                        emptyMessage: 'No drivers yet',
-                        emptySubtitle: 'Add a driver to assign to trips',
+                        emptyMessage: context.tr.noDriversYet,
+                        emptySubtitle: context.tr.addDriverSubtitle,
                         onToggle: _toggleStatus,
                       ),
                       _StaffList(
                         staff: _conductors,
                         role: 'conductor',
-                        emptyMessage: 'No conductors yet',
-                        emptySubtitle: 'Add a conductor to manage boarding',
+                        emptyMessage: context.tr.noConductorsYet,
+                        emptySubtitle: context.tr.addConductorSubtitle,
                         onToggle: _toggleStatus,
                       ),
                     ],
@@ -154,7 +155,7 @@ class _OperatorStaffScreenState extends State<OperatorStaffScreen>
         foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add_rounded),
         label: Text(
-          _tabController.index == 0 ? 'Add Driver' : 'Add Conductor',
+          _tabController.index == 0 ? context.tr.addDriver : context.tr.addConductor,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
@@ -368,7 +369,7 @@ class _StaffCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 5),
                             Text(
-                              isActive ? 'Active' : 'Suspended',
+                              isActive ? context.tr.activeStatus : context.tr.suspendedStatus,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -395,7 +396,7 @@ class _StaffCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            isActive ? 'Suspend' : 'Activate',
+                            isActive ? context.tr.suspend : context.tr.activate,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -508,7 +509,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(context.tr.failedToUpdate('$e')),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -548,9 +549,9 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Text(
-                'Add Staff Member',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                context.tr.addStaffMember,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 20),
 
@@ -582,32 +583,32 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
 
               _FormField(
                 controller: _nameCtrl,
-                label: 'Full Name',
-                hint: 'e.g. Sok Dara',
+                label: context.tr.staffFullName,
+                hint: context.tr.staffFullNameHint,
                 icon: Icons.person_outline_rounded,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
               _FormField(
                 controller: _emailCtrl,
-                label: 'Email',
-                hint: 'driver@example.com',
+                label: context.tr.staffEmail,
+                hint: context.tr.staffEmailHint,
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
-                  if (v!.isEmpty) return 'Required';
-                  if (!v.contains('@')) return 'Invalid email';
+                  if (v!.isEmpty) return context.tr.required;
+                  if (!v.contains('@')) return context.tr.invalidEmail;
                   return null;
                 },
               ),
               const SizedBox(height: 14),
               _FormField(
                 controller: _phoneCtrl,
-                label: 'Phone',
-                hint: '012 345 678',
+                label: context.tr.staffPhone,
+                hint: context.tr.staffPhoneHint,
                 icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
 
@@ -615,9 +616,9 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Temporary Password',
-                    style: TextStyle(
+                  Text(
+                    context.tr.temporaryPassword,
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF374151),
@@ -628,12 +629,12 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                     controller: _passwordCtrl,
                     obscureText: _obscurePassword,
                     validator: (v) {
-                      if (v!.isEmpty) return 'Required';
-                      if (v.length < 8) return 'At least 8 characters';
+                      if (v!.isEmpty) return context.tr.required;
+                      if (v.length < 8) return context.tr.min8Chars;
                       return null;
                     },
                     decoration: InputDecoration(
-                      hintText: 'Min 8 characters',
+                      hintText: context.tr.min8Chars,
                       hintStyle: const TextStyle(
                         color: Color(0xFF9CA3AF),
                         fontSize: 14,
@@ -693,19 +694,19 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.info_outline_rounded,
                       color: Color(0xFFF59E0B),
                       size: 14,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Share the email and password with the staff member. They can change their password after logging in.',
-                        style: TextStyle(
+                        context.tr.staffInfoNote,
+                        style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF92400E),
                           height: 1.5,
@@ -740,7 +741,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                           ),
                         )
                       : Text(
-                          'Add ${_selectedRole[0].toUpperCase()}${_selectedRole.substring(1)}',
+                          _selectedRole == 'driver' ? context.tr.addDriver : context.tr.addConductor,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

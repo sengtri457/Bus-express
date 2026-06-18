@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../l10n/tr_extension.dart';
 import '../../../../shared/widgets/trip_status_badge.dart';
 
 class UpcomingTripCard extends StatelessWidget {
@@ -61,7 +62,10 @@ class UpcomingTripCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${route?['origin'] ?? ''} → ${route?['destination'] ?? ''}',
+                        context.tr.upcomingTripCardRoute(
+                          '${route?['origin'] ?? ''}',
+                          '${route?['destination'] ?? ''}',
+                        ),
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -70,7 +74,10 @@ class UpcomingTripCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${DateHelpers.formatDateShort(trip['trip_date'])} • ${DateHelpers.formatTime(schedule?['departure_time'] ?? '')}',
+                        context.tr.upcomingTripCardDateTime(
+                          DateHelpers.formatDateShort(trip['trip_date']),
+                          DateHelpers.formatTime(schedule?['departure_time'] ?? ''),
+                        ),
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 import '../../widgets/animations.dart';
 
@@ -45,7 +46,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
     Clipboard.setData(ClipboardData(text: code));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Promo code "$code" copied!'),
+        content: Text(context.tr.promotionsCopied(code)),
         backgroundColor: const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -108,9 +109,9 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'All Promotions',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.promotionsTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: _isLoading
@@ -129,18 +130,18 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                         color: const Color(0xFF9CA3AF),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'No promotions available right now',
-                        style: TextStyle(
+                      Text(
+                        context.tr.promotionsNoPromotions,
+                        style: const TextStyle(
                           fontSize: 16,
                           color: Color(0xFF6B7280),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Check back later for exciting offers!',
-                        style: TextStyle(
+                      Text(
+                        context.tr.promotionsNoPromotionsSub,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF9CA3AF),
                         ),
@@ -267,7 +268,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                                           if (minPurchase != null) ...[
                                             const SizedBox(height: 8),
                                             Text(
-                                              'Min. purchase: \$${minPurchase.toStringAsFixed(2)}',
+                                              context.tr.promotionsMinPurchase('\$${minPurchase.toStringAsFixed(2)}'),
                                               style: const TextStyle(
                                                 fontSize: 11,
                                                 color: Color(0xFF64748B),

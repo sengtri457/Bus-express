@@ -5,6 +5,7 @@ import '../../supabase_config.dart';
 import '../widgets/animations.dart';
 import 'widgets/auth_text_field.dart';
 import 'login_screen.dart';
+import '../../l10n/tr_extension.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -38,7 +39,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_agreedToTerms) {
-      _showError('Please agree to the Terms & Conditions');
+      _showError(context.tr.agreeTermsError);
       return;
     }
 
@@ -58,7 +59,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
 
       if (response.user == null) {
-        _showError('Registration failed. Please try again.');
+        _showError(context.tr.registrationFailed);
         return;
       }
 
@@ -98,9 +99,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Account Created!',
-                style: TextStyle(
+              Text(
+                context.tr.accountCreatedTitle,
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF2563EB),
@@ -108,7 +109,7 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'We sent a verification link to\n${_emailController.text.trim()}\n\nPlease verify your email before signing in.',
+                context.tr.verificationSent(_emailController.text.trim()),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
@@ -135,9 +136,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Go to Login',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  child: Text(
+                    context.tr.goToLogin,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                 ),
               ),
@@ -169,11 +170,11 @@ class _SignupScreenState extends State<SignupScreen> {
     if (_currentStep == 0) {
       // Validate step 1 fields
       if (_nameController.text.trim().isEmpty) {
-        _showError('Full name is required');
+        _showError(context.tr.fullNameRequired);
         return;
       }
       if (_phoneController.text.trim().isEmpty) {
-        _showError('Phone number is required');
+        _showError(context.tr.phoneRequired);
         return;
       }
       setState(() => _currentStep = 1);
@@ -257,10 +258,10 @@ class _SignupScreenState extends State<SignupScreen> {
                       offset: 20,
                       child: Column(
                         children: [
-                          const Text(
-                            'Create account',
+                          Text(
+                            context.tr.createAccountTitle,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF0F172A),
@@ -268,10 +269,10 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Join us and book your rides easily',
+                          Text(
+                            context.tr.signupSubtitle,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15,
                               color: Color(0xFF64748B),
                               fontWeight: FontWeight.w400,
@@ -310,30 +311,30 @@ class _SignupScreenState extends State<SignupScreen> {
                             // Step 1: Personal Info
                             if (_currentStep == 0) ...[
                               AuthTextField(
-                                label: 'Full Name',
-                                hint: 'John Doe',
+                                label: context.tr.fullNameLabel,
+                                hint: context.tr.fullNameHint,
                                 icon: Icons.person_outline_rounded,
                                 controller: _nameController,
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
-                                    return 'Full name is required';
+                                    return context.tr.fullNameRequired;
                                   }
-                                  if (v.length < 2) return 'Name too short';
+                                  if (v.length < 2) return context.tr.nameTooShort;
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 20),
                               AuthTextField(
-                                label: 'Phone Number',
-                                hint: '+855 12 345 678',
+                                label: context.tr.phoneNumberLabel,
+                                hint: context.tr.phoneNumberHint,
                                 icon: Icons.phone_outlined,
                                 controller: _phoneController,
                                 keyboardType: TextInputType.phone,
                                 validator: (v) {
                                   if (v == null || v.isEmpty)
-                                    return 'Phone is required';
+                                    return context.tr.phoneRequired;
                                   if (v.length < 8)
-                                    return 'Enter a valid phone number';
+                                    return context.tr.enterValidPhone;
                                   return null;
                                 },
                               ),
@@ -351,18 +352,18 @@ class _SignupScreenState extends State<SignupScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        'Continue',
-                                        style: TextStyle(
+                                        context.tr.continueButton,
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      SizedBox(width: 8),
-                                      Icon(
+                                      const SizedBox(width: 8),
+                                      const Icon(
                                         Icons.arrow_forward_rounded,
                                         size: 18,
                                       ),
@@ -375,56 +376,56 @@ class _SignupScreenState extends State<SignupScreen> {
                             // Step 2: Credentials
                             if (_currentStep == 1) ...[
                               AuthTextField(
-                                label: 'Email Address',
-                                hint: 'you@example.com',
+                                label: context.tr.emailAddressLabel,
+                                hint: context.tr.emailAddressHint,
                                 icon: Icons.email_outlined,
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (v) {
                                   if (v == null || v.isEmpty)
-                                    return 'Email is required';
+                                    return context.tr.emailRequired;
                                   if (!RegExp(
                                     r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                                   ).hasMatch(v)) {
-                                    return 'Enter a valid email';
+                                    return context.tr.enterValidEmail;
                                   }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 20),
                               AuthTextField(
-                                label: 'Password',
-                                hint: '••••••••',
+                                label: context.tr.passwordLabel,
+                                hint: context.tr.passwordHint,
                                 icon: Icons.lock_outline_rounded,
                                 controller: _passwordController,
                                 isPassword: true,
                                 validator: (v) {
                                   if (v == null || v.isEmpty)
-                                    return 'Password is required';
+                                    return context.tr.passwordRequired;
                                   if (v.length < 8)
-                                    return 'At least 8 characters';
+                                    return context.tr.passwordMinLength8;
                                   if (!v.contains(RegExp(r'[A-Z]'))) {
-                                    return 'Include at least one uppercase letter';
+                                    return context.tr.includeUppercase;
                                   }
                                   if (!v.contains(RegExp(r'[0-9]'))) {
-                                    return 'Include at least one number';
+                                    return context.tr.includeNumber;
                                   }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 20),
                               AuthTextField(
-                                label: 'Confirm Password',
-                                hint: '••••••••',
+                                label: context.tr.confirmPasswordLabel,
+                                hint: context.tr.confirmPasswordHint,
                                 icon: Icons.lock_outline_rounded,
                                 controller: _confirmPasswordController,
                                 isPassword: true,
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
-                                    return 'Please confirm your password';
+                                    return context.tr.pleaseConfirmPassword;
                                   }
                                   if (v != _passwordController.text) {
-                                    return 'Passwords do not match';
+                                    return context.tr.passwordsDoNotMatch;
                                   }
                                   return null;
                                 },
@@ -458,26 +459,26 @@ class _SignupScreenState extends State<SignupScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: RichText(
-                                      text: const TextSpan(
-                                        style: TextStyle(
+                                      text: TextSpan(
+                                        style: const TextStyle(
                                           fontSize: 13,
                                           color: Color(0xFF64748B),
                                           height: 1.4,
                                           fontFamily: 'Inter',
                                         ),
                                         children: [
-                                          TextSpan(text: 'I agree to the '),
+                                          TextSpan(text: context.tr.iAgreeTo),
                                           TextSpan(
-                                            text: 'Terms & Conditions',
-                                            style: TextStyle(
+                                            text: context.tr.termsAndConditions,
+                                            style: const TextStyle(
                                               color: Color(0xFF2563EB),
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                          TextSpan(text: ' and '),
+                                          TextSpan(text: context.tr.andConjunction),
                                           TextSpan(
-                                            text: 'Privacy Policy',
-                                            style: TextStyle(
+                                            text: context.tr.privacyPolicy,
+                                            style: const TextStyle(
                                               color: Color(0xFF2563EB),
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -516,9 +517,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                             color: Colors.white,
                                           ),
                                         )
-                                      : const Text(
-                                          'Create Account',
-                                          style: TextStyle(
+                                      : Text(
+                                          context.tr.createAccountButton,
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -537,9 +538,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'Already have an account? ',
-                            style: TextStyle(
+                          Text(
+                            context.tr.alreadyHaveAccount,
+                            style: const TextStyle(
                               color: Color(0xFF64748B),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
@@ -552,9 +553,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                 builder: (_) => const LoginScreen(),
                               ),
                             ),
-                            child: const Text(
-                              'Sign In',
-                              style: TextStyle(
+                            child: Text(
+                              context.tr.signInLink,
+                              style: const TextStyle(
                                 color: Color(0xFF2563EB),
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
@@ -586,7 +587,7 @@ class _StepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StepDot(step: 0, currentStep: currentStep, label: 'Personal'),
+        _StepDot(step: 0, currentStep: currentStep, label: context.tr.stepPersonal),
         Expanded(
           child: Container(
             height: 2,
@@ -595,7 +596,7 @@ class _StepIndicator extends StatelessWidget {
                 : const Color(0xFFE2E8F0),
           ),
         ),
-        _StepDot(step: 1, currentStep: currentStep, label: 'Account'),
+        _StepDot(step: 1, currentStep: currentStep, label: context.tr.stepAccount),
       ],
     );
   }
@@ -665,17 +666,17 @@ class _PasswordStrengthIndicator extends StatelessWidget {
     return score;
   }
 
-  String get _label {
+  String _labelText(BuildContext context) {
     switch (_strength) {
       case 0:
       case 1:
-        return 'Weak';
+        return context.tr.passwordWeak;
       case 2:
-        return 'Fair';
+        return context.tr.passwordFair;
       case 3:
-        return 'Good';
+        return context.tr.passwordGood;
       case 4:
-        return 'Strong';
+        return context.tr.passwordStrong;
       default:
         return '';
     }
@@ -706,12 +707,12 @@ class _PasswordStrengthIndicator extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Password strength',
-              style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+            Text(
+              context.tr.passwordStrengthLabel,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
             ),
             Text(
-              _label,
+              _labelText(context),
               style: TextStyle(
                 fontSize: 12,
                 color: _color,
@@ -737,9 +738,9 @@ class _PasswordStrengthIndicator extends StatelessWidget {
           }),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Use 8+ characters, uppercase, numbers & symbols for strong password',
-          style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+        Text(
+          context.tr.passwordStrengthHint,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
         ),
       ],
     );

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../providers/locale_provider.dart';
 import '../../../supabase_config.dart';
 import '../../widgets/animations.dart';
 import '../../auth/login_screen.dart';
@@ -81,7 +84,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error loading profile: ${e.toString()}', isError: true);
+        _showSnackBar(context.tr.profileErrorLoading(e.toString()), isError: true);
         setState(() => _isLoading = false);
       }
     }
@@ -121,12 +124,12 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           .trim();
 
       if (mounted) {
-        _showSnackBar('Profile updated successfully!', isError: false);
+        _showSnackBar(context.tr.profileUpdatedSuccess, isError: false);
       }
     } catch (e) {
       if (mounted) {
         _showSnackBar(
-          'Failed to update profile: ${e.toString()}',
+          context.tr.profileFailedUpdate(e.toString()),
           isError: true,
         );
       }
@@ -148,12 +151,12 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
       if (mounted) {
         _passwordController.clear();
         _confirmPasswordController.clear();
-        _showSnackBar('Password updated successfully!', isError: false);
+        _showSnackBar(context.tr.profilePasswordUpdated, isError: false);
       }
     } catch (e) {
       if (mounted) {
         _showSnackBar(
-          'Failed to update password: ${e.toString()}',
+          context.tr.profileFailedPassword(e.toString()),
           isError: true,
         );
       }
@@ -173,7 +176,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error signing out: ${e.toString()}', isError: true);
+        _showSnackBar(context.tr.profileErrorSignOut(e.toString()), isError: true);
       }
     }
   }
@@ -231,9 +234,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
-          'My Profile',
-          style: TextStyle(
+        title: Text(
+          context.tr.profileMyProfile,
+          style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,
             color: Colors.white,
@@ -327,9 +330,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Card 1: Personal Info
-                        const Text(
-                          'Personal Details',
-                          style: TextStyle(
+                        Text(
+                          context.tr.profilePersonalDetails,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF1E293B),
@@ -355,15 +358,15 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                               children: [
                                 _buildTextField(
                                   controller: _nameController,
-                                  label: 'Full Name',
-                                  hint: 'Enter your name',
+                                  label: context.tr.profileFullNameLabel,
+                                  hint: context.tr.profileFullNameHint,
                                   icon: Icons.person_outline_rounded,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter your name';
+                                      return context.tr.fullNameRequired;
                                     }
                                     if (value.trim().length < 2) {
-                                      return 'Name is too short';
+                                      return context.tr.nameTooShort;
                                     }
                                     return null;
                                   },
@@ -371,16 +374,16 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                 const SizedBox(height: 18),
                                 _buildTextField(
                                   controller: _phoneController,
-                                  label: 'Phone Number',
-                                  hint: 'Enter phone number',
+                                  label: context.tr.phoneNumberLabel,
+                                  hint: context.tr.phoneNumberHint,
                                   icon: Icons.phone_outlined,
                                   keyboardType: TextInputType.phone,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter your phone number';
+                                      return context.tr.phoneRequired;
                                     }
                                     if (value.trim().length < 8) {
-                                      return 'Enter a valid phone number';
+                                      return context.tr.enterValidPhone;
                                     }
                                     return null;
                                   },
@@ -388,8 +391,8 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                 const SizedBox(height: 18),
                                 _buildTextField(
                                   controller: _emailController,
-                                  label: 'Email Address',
-                                  hint: 'Email',
+                                  label: context.tr.emailAddressLabel,
+                                  hint: context.tr.emailAddressHint,
                                   icon: Icons.email_outlined,
                                   enabled: false,
                                 ),
@@ -421,9 +424,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                                   ),
                                             ),
                                           )
-                                        : const Text(
-                                            'Save Details',
-                                            style: TextStyle(
+                                        : Text(
+                                            context.tr.profileSaveDetails,
+                                            style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -438,9 +441,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                         const SizedBox(height: 28),
 
                         // Card 2: Change Password
-                        const Text(
-                          'Security & Password',
-                          style: TextStyle(
+                        Text(
+                          context.tr.profileSecurityPassword,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF1E293B),
@@ -466,8 +469,8 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                               children: [
                                 _buildTextField(
                                   controller: _passwordController,
-                                  label: 'New Password',
-                                  hint: 'At least 8 characters',
+                                  label: context.tr.newPasswordLabel,
+                                  hint: context.tr.passwordMinLength8,
                                   icon: Icons.lock_outline_rounded,
                                   obscureText: _obscurePassword,
                                   suffixIcon: IconButton(
@@ -486,10 +489,10 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter new password';
+                                      return context.tr.passwordRequired;
                                     }
                                     if (value.length < 8) {
-                                      return 'Password must be at least 8 characters';
+                                      return context.tr.passwordMinLength8;
                                     }
                                     return null;
                                   },
@@ -497,8 +500,8 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                 const SizedBox(height: 18),
                                 _buildTextField(
                                   controller: _confirmPasswordController,
-                                  label: 'Confirm New Password',
-                                  hint: 'Re-enter password',
+                                  label: context.tr.confirmNewPasswordLabel,
+                                  hint: context.tr.confirmNewPasswordHint,
                                   icon: Icons.lock_outline_rounded,
                                   obscureText: _obscureConfirmPassword,
                                   suffixIcon: IconButton(
@@ -517,10 +520,10 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please confirm your new password';
+                                      return context.tr.pleaseConfirmPassword;
                                     }
                                     if (value != _passwordController.text) {
-                                      return 'Passwords do not match';
+                                      return context.tr.passwordsDoNotMatch;
                                     }
                                     return null;
                                   },
@@ -553,9 +556,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                                   ),
                                             ),
                                           )
-                                        : const Text(
-                                            'Update Password',
-                                            style: TextStyle(
+                                        : Text(
+                                            context.tr.profileUpdatePassword,
+                                            style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -564,6 +567,60 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                 ),
                               ],
                             ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        // Language Selector
+                        Text(
+                          context.tr.language,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Consumer(
+                            builder: (context, ref, _) {
+                              final currentLocale = ref.watch(localeProvider);
+                              return Column(
+                                children: [
+                                  _LanguageTile(
+                                    code: 'en',
+                                    label: context.tr.english,
+                                    isSelected: currentLocale.languageCode == 'en',
+                                    onTap: () => ref
+                                        .read(localeProvider.notifier)
+                                        .setLocale('en'),
+                                  ),
+                                  const Divider(height: 1, indent: 40),
+                                  _LanguageTile(
+                                    code: 'km',
+                                    label: context.tr.khmer,
+                                    isSelected:
+                                        currentLocale.languageCode == 'km',
+                                    onTap: () => ref
+                                        .read(localeProvider.notifier)
+                                        .setLocale('km'),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
 
@@ -579,9 +636,9 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                               Icons.logout_rounded,
                               color: Color(0xFFEF4444),
                             ),
-                            label: const Text(
-                              'Sign Out',
-                              style: TextStyle(
+                            label: Text(
+                              context.tr.profileSignOut,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFFEF4444),
@@ -685,6 +742,65 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _LanguageTile extends StatelessWidget {
+  final String code;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _LanguageTile({
+    required this.code,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
+              size: 22,
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected
+                    ? const Color(0xFF1E293B)
+                    : const Color(0xFF64748B),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              code.toUpperCase(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isSelected
+                    ? const Color(0xFF2563EB)
+                    : const Color(0xFFCBD5E1),
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/tr_extension.dart';
 import '../see_all_promotions_screen.dart';
 
 class OffersSection extends StatefulWidget {
@@ -92,9 +93,9 @@ class _OffersSectionState extends State<OffersSection> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Offers for you',
-              style: TextStyle(
+            Text(
+              context.tr.offersSectionTitle,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF0F172A),
@@ -110,8 +111,8 @@ class _OffersSectionState extends State<OffersSection> {
                   ),
                 );
               },
-              child: const Text(
-                'View more',
+              child: Text(
+                context.tr.offersViewMore,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -125,6 +126,11 @@ class _OffersSectionState extends State<OffersSection> {
         Row(
           children: ['All', 'Bus', 'Train'].map((category) {
             final isSelected = _selectedCategory == category;
+            final label = category == 'All'
+                ? context.tr.offersCategoryAll
+                : category == 'Bus'
+                    ? context.tr.offersCategoryBus
+                    : context.tr.offersCategoryTrain;
             return GestureDetector(
               onTap: () => _onCategorySelected(category),
               child: Container(
@@ -139,7 +145,7 @@ class _OffersSectionState extends State<OffersSection> {
                   border: Border.all(color: AppColors.primary, width: 1),
                 ),
                 child: Text(
-                  category,
+                  label,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -170,10 +176,10 @@ class _OffersSectionState extends State<OffersSection> {
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'No offers available for this category',
-                    style: TextStyle(color: AppColors.textHint),
+                    context.tr.offersNoOffers,
+                    style: const TextStyle(color: AppColors.textHint),
                   ),
                 ),
               )

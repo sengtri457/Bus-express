@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 import 'conductor_scanner_screen.dart';
 
@@ -152,12 +153,12 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Passenger List',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            Text(
+              context.tr.conductorPassAppBarTitle,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             Text(
-              '${route?['origin'] ?? ''} → ${route?['destination'] ?? ''}',
+              context.tr.conductorPassRoute(route?['origin'] ?? '', route?['destination'] ?? ''),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withOpacity(0.85),

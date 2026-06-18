@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../services/download_helper.dart';
 import '../../../services/receipt_service.dart';
 
@@ -67,9 +68,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Receipt',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.receiptTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: ListView(
@@ -91,9 +92,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'BUS EXPRESS',
-                  style: TextStyle(
+                Text(
+                  context.tr.receiptBusExpress,
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                     color: AppColors.primary,
@@ -101,9 +102,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'OFFICIAL RECEIPT',
-                  style: TextStyle(
+                Text(
+                  context.tr.receiptOfficial,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.primary,
                     letterSpacing: 3,
@@ -111,27 +112,27 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                _ReceiptLine(label: 'Receipt #', value: bookingRef),
+                _ReceiptLine(label: context.tr.receiptReceiptNo, value: bookingRef),
                 _ReceiptLine(
-                  label: 'Issued',
+                  label: context.tr.receiptIssued,
                   value: DateHelpers.formatFullDate(
                     (first['booked_at'] as String?) ?? DateTime.now().toIso8601String(),
                   ),
                 ),
                 const Divider(height: 24, color: AppColors.border),
                 _ReceiptLine(
-                  label: 'Route',
+                  label: context.tr.receiptRoute,
                   value:
                       '${route?['origin'] ?? '?'} \u2192 ${route?['destination'] ?? '?'}',
                 ),
                 _ReceiptLine(
-                  label: 'Date',
+                  label: context.tr.bookingDate,
                   value: DateHelpers.formatFullDate(
                     (trip?['trip_date'] as String?) ?? '',
                   ),
                 ),
                 _ReceiptLine(
-                  label: 'Departure',
+                  label: context.tr.receiptDeparture,
                   value: schedule != null
                       ? DateHelpers.formatTime(
                           schedule['departure_time'] as String,
@@ -140,13 +141,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 ),
                 if (bus != null)
                   _ReceiptLine(
-                    label: 'Bus',
+                    label: context.tr.bookingBus,
                     value: '${bus['model'] ?? '?'} (${bus['plate_number'] ?? '?'})',
                   ),
                 const Divider(height: 24, color: AppColors.border),
-                const Text(
-                  'Booking Details',
-                  style: TextStyle(
+                Text(
+                  context.tr.receiptBookingDetails,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -174,8 +175,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const Text(
-                      'Total: ',
+                    Text(
+                      context.tr.receiptTotal,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -202,13 +203,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Thank you for traveling with Bus Express!',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                Text(
+                  context.tr.receiptThankYou,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
-                const Text(
-                  'This is your official receipt. Please keep it for your records.',
-                  style: TextStyle(fontSize: 11, color: AppColors.textHint),
+                Text(
+                  context.tr.receiptKeepRecord,
+                  style: const TextStyle(fontSize: 11, color: AppColors.textHint),
                 ),
               ],
             ),
@@ -229,7 +230,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     )
                   : const Icon(Icons.share_rounded, size: 18),
               label: Text(
-                _isGenerating ? 'Generating...' : 'Share Receipt (PDF)',
+                _isGenerating ? context.tr.receiptGenerating : context.tr.receiptShare,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -287,11 +288,11 @@ class _TableHeader extends StatelessWidget {
         color: AppColors.divider,
         borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(flex: 3, child: _CellText('Seat')),
-          Expanded(flex: 2, child: _CellText('Status')),
-          Expanded(flex: 2, child: _CellText('Price')),
+          Expanded(flex: 3, child: _CellText(context.tr.receiptTableSeat)),
+          Expanded(flex: 2, child: _CellText(context.tr.receiptTableStatus)),
+          Expanded(flex: 2, child: _CellText(context.tr.receiptTablePrice)),
         ],
       ),
     );

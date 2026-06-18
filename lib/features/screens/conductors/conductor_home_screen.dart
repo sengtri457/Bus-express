@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/tr_extension.dart';
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/auth_helper.dart';
@@ -294,7 +295,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hello, $name 👋',
+                              context.tr.conductorHomeHello(name),
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
@@ -302,7 +303,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                               ),
                             ),
                             Text(
-                              'Conductor Dashboard',
+                              context.tr.conductorHomeDashboard,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.white.withValues(alpha: 0.8),
@@ -339,9 +340,9 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_todayTrip != null) ...[
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
+            Text(
+              context.tr.conductorHomeQuickActions,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -353,7 +354,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                 Expanded(
                   child: ActionCard(
                     icon: Icons.qr_code_scanner_rounded,
-                    label: 'Scan Ticket',
+                    label: context.tr.conductorHomeScanTicket,
                     color: const Color(0xFF2563EB),
                     onTap: () {
                       Navigator.push(
@@ -371,7 +372,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                 Expanded(
                   child: ActionCard(
                     icon: Icons.people_rounded,
-                    label: 'Passenger List',
+                    label: context.tr.conductorHomePassengerList,
                     color: AppColors.primary,
                     onTap: () {
                       Navigator.push(
@@ -393,19 +394,19 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
             StatCardRow(
               cards: [
                 StatCard(
-                  title: 'Total',
+                  title: context.tr.conductorHomeStatTotal,
                   value: '$_totalPassengers',
                   icon: Icons.people_rounded,
                   color: const Color(0xFF2563EB),
                 ),
                 StatCard(
-                  title: 'Boarded',
+                  title: context.tr.conductorHomeStatBoarded,
                   value: '$_boardedCount',
                   icon: Icons.check_circle_rounded,
                   color: AppColors.success,
                 ),
                 StatCard(
-                  title: 'Waiting',
+                  title: context.tr.conductorHomeStatWaiting,
                   value: '$_confirmedCount',
                   icon: Icons.pending_rounded,
                   color: AppColors.warning,
@@ -414,9 +415,9 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
             ),
             const SizedBox(height: 20),
           ],
-          const Text(
-            "Today's Trip",
-            style: TextStyle(
+          Text(
+            context.tr.conductorHomeTodaysTrip,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -447,8 +448,8 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                 )
               : EmptyState(
                   icon: Icons.free_cancellation_rounded,
-                  title: 'No trip today',
-                  subtitle: 'You have no assigned trips for today',
+                  title: context.tr.conductorHomeNoTripToday,
+                  subtitle: context.tr.conductorHomeNoTripSubtitle,
                 ),
         ],
       ),
@@ -469,10 +470,10 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
               color: AppColors.textHint,
             ),
             const SizedBox(height: 16),
-            const Center(
+            Center(
               child: Text(
-                'Failed to load data',
-                style: TextStyle(
+                context.tr.driverHomeFailedLoad,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
@@ -493,7 +494,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
               child: ElevatedButton.icon(
                 onPressed: _loadData,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry'),
+                label: Text(context.tr.driverHomeRetry),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2563EB),
                   foregroundColor: Colors.white,

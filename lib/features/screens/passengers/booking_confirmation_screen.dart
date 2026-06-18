@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/receipt_service.dart';
 import '../../../services/resend_email_service.dart';
@@ -143,7 +144,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   Future<void> _validatePromoCode() async {
     final code = _promoCodeController.text.trim();
     if (code.isEmpty) {
-      setState(() => _promoError = 'Please enter a promo code');
+      setState(() => _promoError = context.tr.bookingPromoCodeRequired);
       return;
     }
 
@@ -162,7 +163,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (promo == null) {
         setState(() {
           _isValidatingPromo = false;
-          _promoError = 'Invalid promo code';
+          _promoError = context.tr.bookingPromoInvalid;
         });
         return;
       }
@@ -171,7 +172,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (!isActive) {
         setState(() {
           _isValidatingPromo = false;
-          _promoError = 'This promo code is no longer active';
+          _promoError = context.tr.bookingPromoInactive;
         });
         return;
       }
@@ -180,7 +181,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (expiresAt != null && DateTime.now().isAfter(DateTime.parse(expiresAt))) {
         setState(() {
           _isValidatingPromo = false;
-          _promoError = 'This promo code has expired';
+          _promoError = context.tr.bookingPromoExpired;
         });
         return;
       }
@@ -189,8 +190,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (minPurchase != null && _totalPrice < minPurchase) {
         setState(() {
           _isValidatingPromo = false;
-          _promoError =
-              'Minimum purchase of \$${minPurchase.toStringAsFixed(2)} required';
+          _promoError = context.tr.bookingMinPurchase('\$${minPurchase.toStringAsFixed(2)}');
         });
         return;
       }
@@ -200,7 +200,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (maxUsage != null && usedCount >= maxUsage) {
         setState(() {
           _isValidatingPromo = false;
-          _promoError = 'This promo code has reached its usage limit';
+          _promoError = context.tr.bookingPromoMaxUsage;
         });
         return;
       }
@@ -220,8 +220,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           if (userCount >= maxPerUser) {
             setState(() {
               _isValidatingPromo = false;
-              _promoError =
-                  'You have used this promo code $userCount out of $maxPerUser times';
+              _promoError = context.tr.bookingPromoPerUser(userCount, maxPerUser);
             });
             return;
           }
@@ -235,10 +234,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
       if (discountType == 'percentage') {
         discountAmount = _totalPrice * (discountValue / 100);
-        discountLabel = '${discountValue.toStringAsFixed(0)}% OFF';
+        discountLabel = context.tr.bookingPromoPercentage(discountValue.toStringAsFixed(0));
       } else {
         discountAmount = discountValue.clamp(0, _totalPrice);
-        discountLabel = '\$${discountValue.toStringAsFixed(2)} OFF';
+        discountLabel = context.tr.bookingPromoFixed(discountValue.toStringAsFixed(2));
       }
 
       setState(() {
@@ -250,7 +249,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         _promoError = null;
       });
     } catch (_) {
-      setState(() => _promoError = 'Failed to validate promo code');
+      setState(() => _promoError = context.tr.bookingPromoFailed);
     } finally {
       if (mounted) setState(() => _isValidatingPromo = false);
     }
@@ -280,10 +279,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       try {
         final phone = PhoneNumber.parse(_phoneController.text.trim());
         if (!phone.isValid()) {
-          throw Exception('Invalid phone number format.');
+          throw Exception(context.tr.bookingInvalidPhoneFormat);
         }
       } catch (_) {
-        throw Exception('Invalid phone number. Enter a real number with correct country code (e.g. +1234567890).');
+        throw Exception(context.tr.bookingInvalidPhoneMessage);
       }
 
       // Validate email
@@ -291,7 +290,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (email.isNotEmpty) {
         final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
         if (!emailRegex.hasMatch(email)) {
-          throw Exception('Enter a valid email address.');
+          throw Exception(context.tr.bookingInvalidEmail);
         }
       }
 
@@ -336,11 +335,11 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         final tripStatus = existingTrip['status'] as String?;
         if (tripStatus == 'in_progress' || tripStatus == 'completed' || tripStatus == 'cancelled') {
           final reason = tripStatus == 'in_progress'
-              ? 'already departed'
+              ? context.tr.bookingTripDeparted
               : tripStatus == 'completed'
-                  ? 'already ended'
-                  : 'been cancelled';
-          throw Exception('This trip has $reason and cannot be booked.');
+                  ? context.tr.bookingTripEnded
+                  : context.tr.bookingTripCancelled;
+          throw Exception(context.tr.bookingTripNotBookable(reason));
         }
       } else {
         // FIX 1: was .single() — crashes if RLS blocks the insert or
@@ -359,9 +358,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
             .maybeSingle();
 
         if (newTrip == null) {
-          throw Exception(
-            'Failed to create trip. Check RLS policies on trips table.',
-          );
+          throw Exception(context.tr.bookingFailedCreateTrip);
         }
         tripId = newTrip['id'] as String;
       }
@@ -393,9 +390,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
             .maybeSingle();
 
         if (booking == null) {
-          throw Exception(
-            'Failed to create booking for seat $seat. Check RLS policies on bookings table.',
-          );
+          throw Exception(context.tr.bookingFailedCreateBooking(seat));
         }
 
         final bookingId = booking['id'] as String;
@@ -457,10 +452,13 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       unawaited(
         NotificationService.instance.insertNotification(
           userId: user.id,
-          title: 'Booking Confirmed',
-          body:
-              '${widget.seatNumbers.length} seat(s) on ${route?['origin'] ?? 'N/A'} → ${route?['destination'] ?? 'N/A'} '
-              '(${_formatTime(widget.schedule['departure_time'] as String)})',
+          title: context.tr.bookingNotificationTitle,
+          body: context.tr.bookingNotificationBody(
+            widget.seatNumbers.length,
+            route?['origin'] ?? 'N/A',
+            route?['destination'] ?? 'N/A',
+            _formatTime(widget.schedule['departure_time'] as String),
+          ),
           type: 'booking',
           referenceType: 'booking',
           referenceId: firstBookingId,
@@ -493,7 +491,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         (route) => route.isFirst,
       );
     } on PostgrestException catch (e) {
-      _showError('Booking failed: ${e.message}');
+      _showError(context.tr.bookingFailedGeneric(e.message));
     } catch (e) {
       _showError(e.toString());
     } finally {
@@ -558,9 +556,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         );
         if (emailResult is Success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Receipt sent to your email'),
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text(context.tr.bookingReceiptSent),
+              duration: const Duration(seconds: 3),
             ),
           );
         } else if (emailResult is Failure) {
@@ -594,9 +592,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Confirm Booking',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.bookingConfirmTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SingleChildScrollView(
@@ -605,7 +603,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           children: [
             // Trip Details
             _SectionCard(
-              title: 'Trip Details',
+              title: context.tr.bookingTripDetails,
               icon: Icons.directions_bus_rounded,
               child: Column(
                 children: [
@@ -684,7 +682,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   const Divider(height: 24, color: Color(0xFFF3F4F6)),
                   _InfoRow(
                     icon: Icons.calendar_today_rounded,
-                    label: 'Date',
+                    label: context.tr.bookingDate,
                     value: _formatDate(widget.date),
                   ),
                   const SizedBox(height: 10),
@@ -697,9 +695,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                         color: Color(0xFF9CA3AF),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
-                        'Seats',
-                        style: TextStyle(
+                      Text(
+                        context.tr.bookingSeats,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF6B7280),
                         ),
@@ -741,7 +739,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     const SizedBox(height: 10),
                     _InfoRow(
                       icon: Icons.directions_bus_outlined,
-                      label: 'Bus',
+                      label: context.tr.bookingBus,
                       value: '${bus['model']} • ${bus['plate_number']}',
                     ),
                   ],
@@ -752,7 +750,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
             // Passenger Info
             _SectionCard(
-              title: 'Passenger',
+              title: context.tr.bookingPassenger,
               icon: Icons.person_outline_rounded,
               child: Form(
                 key: _formKey,
@@ -778,7 +776,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                               onTap: () => _onUseSavedInfoChanged(!_useStoredInfo),
                               child: RichText(
                                 text: TextSpan(
-                                  text: 'Use saved info',
+                                  text: context.tr.bookingUseSavedInfo,
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
@@ -804,25 +802,25 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     TextFormField(
                       controller: _nameController,
                       decoration: _inputDecoration(
-                        label: 'Full Name',
+                        label: context.tr.fullNameLabel,
                         icon: Icons.person_rounded,
                       ),
                       textCapitalization: TextCapitalization.words,
                       validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Enter your full name' : null,
+                          v == null || v.trim().isEmpty ? context.tr.bookingEnterFullName : null,
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _ageController,
                       decoration: _inputDecoration(
-                        label: 'Age',
+                        label: context.tr.bookingAgeLabel,
                         icon: Icons.numbers_rounded,
                       ),
                       keyboardType: TextInputType.number,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Enter your age';
+                        if (v == null || v.trim().isEmpty) return context.tr.bookingEnterAge;
                         final age = int.tryParse(v);
-                        if (age == null || age < 1 || age > 120) return 'Enter a valid age';
+                        if (age == null || age < 1 || age > 120) return context.tr.bookingEnterValidAge;
                         return null;
                       },
                     ),
@@ -830,18 +828,18 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     TextFormField(
                       controller: _phoneController,
                       decoration: _inputDecoration(
-                        label: 'Phone Number',
+                        label: context.tr.bookingPhoneLabel,
                         icon: Icons.phone_outlined,
-                        helperText: 'Include country code (e.g. +1XXXXXXXXX) for OTP',
+                        helperText: context.tr.bookingPhoneHelper,
                       ),
                       keyboardType: TextInputType.phone,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Enter your phone number';
+                        if (v == null || v.trim().isEmpty) return context.tr.bookingEnterPhone;
                         final phone = v.trim();
-                        if (!phone.startsWith('+')) return 'Include country code (e.g. +1XXXXXXXXX)';
+                        if (!phone.startsWith('+')) return context.tr.bookingIncludeCountryCode;
                         final digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
                         if (digitsOnly.length < 8 || digitsOnly.length > 15) {
-                          return 'Enter a valid phone number (8–15 digits)';
+                          return context.tr.bookingEnterValidPhone;
                         }
                         return null;
                       },
@@ -850,20 +848,20 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     TextFormField(
                       controller: _nationalityController,
                       decoration: _inputDecoration(
-                        label: 'Nationality',
+                        label: context.tr.bookingNationalityLabel,
                         icon: Icons.flag_rounded,
                       ),
                       textCapitalization: TextCapitalization.words,
                       validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Enter your nationality' : null,
+                          v == null || v.trim().isEmpty ? context.tr.bookingEnterNationality : null,
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _emailController,
                       decoration: _inputDecoration(
-                        label: 'Email',
+                        label: context.tr.bookingEmailHolder,
                         icon: Icons.email_outlined,
-                        helperText: 'Receipt will be sent here',
+                        helperText: context.tr.bookingEmailHelper,
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
@@ -872,7 +870,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                           r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
                         );
                         if (!emailRegex.hasMatch(v.trim())) {
-                          return 'Enter a valid email address';
+                          return context.tr.bookingEnterValidEmail;
                         }
                         return null;
                       },
@@ -883,9 +881,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                         Icon(Icons.info_outline_rounded,
                             size: 14, color: Color(0xFF9CA3AF)),
                         const SizedBox(width: 6),
-                        const Text(
-                          'Your details are saved for future bookings',
-                          style: TextStyle(
+                        Text(
+                          context.tr.bookingDetailsSaved,
+                          style: const TextStyle(
                               fontSize: 12, color: Color(0xFF9CA3AF)),
                         ),
                       ],
@@ -898,7 +896,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
             // Payment
             _SectionCard(
-              title: 'Payment',
+              title: context.tr.bookingPayment,
               icon: Icons.payment_rounded,
               child: Column(
                 children: [
@@ -909,36 +907,36 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: const Color(0xFFBBF7D0)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.payments_outlined,
                           color: Color(0xFF10B981),
                           size: 22,
                         ),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Cash on Board',
-                              style: TextStyle(
+                              context.tr.bookingCashOnBoard,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF065F46),
                                 fontSize: 14,
                               ),
                             ),
                             Text(
-                              'Pay the conductor when boarding',
-                              style: TextStyle(
+                              context.tr.bookingPayConductor,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF059669),
                               ),
                             ),
                           ],
                         ),
-                        Spacer(),
-                        Icon(
+                        const Spacer(),
+                        const Icon(
                           Icons.check_circle_rounded,
                           color: Color(0xFF10B981),
                           size: 20,
@@ -1011,8 +1009,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                   color: const Color(0xFFD1FAE5),
                                 ),
                               ),
-                              child: const Text(
-                                'Remove',
+                              child: Text(
+                                context.tr.bookingPromoRemove,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -1042,7 +1040,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                     letterSpacing: 1.5,
                                   ),
                                   decoration: InputDecoration(
-                                    hintText: 'Promo code',
+                                    hintText: context.tr.bookingPromoCodeHint,
                                     hintStyle: TextStyle(
                                       color: const Color(0xFF9CA3AF),
                                       fontSize: 14,
@@ -1112,8 +1110,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                             color: Colors.white,
                                           ),
                                         )
-                                      : const Text(
-                                          'Apply',
+                                      : Text(
+                                          context.tr.bookingPromoApply,
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
@@ -1152,20 +1150,20 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
                   _InfoRow(
                     icon: Icons.confirmation_number_outlined,
-                    label: 'Price per seat',
+                    label: context.tr.bookingPricePerSeat,
                     value: '\$${_pricePerSeat.toStringAsFixed(2)}',
                   ),
                   const SizedBox(height: 10),
                   _InfoRow(
                     icon: Icons.event_seat_rounded,
-                    label: 'Number of seats',
+                    label: context.tr.bookingNumberOfSeats,
                     value: '${widget.seatNumbers.length}',
                   ),
                   if (_isPromoApplied) ...[
                     const SizedBox(height: 10),
                     _InfoRow(
                       icon: Icons.discount_rounded,
-                      label: 'Discount',
+                      label: context.tr.bookingDiscount,
                       value: '-\$${_discountAmount.toStringAsFixed(2)}',
                       valueColor: const Color(0xFF10B981),
                     ),
@@ -1177,8 +1175,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Total',
+                      Text(
+                        context.tr.bookingTotal,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -1233,19 +1231,19 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFDE68A)),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.info_outline_rounded,
                     color: Color(0xFFF59E0B),
                     size: 18,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Arrive 15 minutes before departure. Show your QR ticket to the conductor when boarding.',
-                      style: TextStyle(
+                      context.tr.bookingNotice,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF92400E),
                         height: 1.5,
@@ -1295,7 +1293,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     ),
                   )
                 : Text(
-                    'Confirm ${widget.seatNumbers.length > 1 ? '${widget.seatNumbers.length} Seats' : 'Booking'}',
+                    widget.seatNumbers.length > 1
+                        ? context.tr.bookingConfirmCountSeats(widget.seatNumbers.length)
+                        : context.tr.bookingConfirmButton,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

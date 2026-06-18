@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 
 class SuperAdminUsersScreen extends StatefulWidget {
@@ -81,10 +82,10 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
           .eq('id', id);
       _loadUsers();
       _showSnack(
-        newStatus == 'active' ? 'User activated ✅' : 'User suspended ⛔',
+        newStatus == 'active' ? context.tr.userActivated : context.tr.userSuspended,
       );
     } catch (e) {
-      _showSnack('Error: $e', isError: true);
+      _showSnack(context.tr.failedToUpdate(e.toString()), isError: true);
     }
   }
 
@@ -102,9 +103,9 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Change Role',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.changeRole,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         content: StatefulBuilder(
           builder: (context, setDialogState) => Column(
@@ -132,9 +133,9 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF6B7280)),
+            child: Text(
+              context.tr.cancel,
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
           ),
           ElevatedButton(
@@ -147,7 +148,7 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Save'),
+            child: Text(context.tr.save),
           ),
         ],
       ),
@@ -161,9 +162,9 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
           .update({'role': result})
           .eq('id', id);
       _loadUsers();
-      _showSnack('Role updated to $result ✅');
+      _showSnack(context.tr.roleUpdated(result));
     } catch (e) {
-      _showSnack('Error: $e', isError: true);
+      _showSnack(context.tr.failedToUpdate(e.toString()), isError: true);
     }
   }
 
@@ -203,7 +204,7 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
                 TextField(
                   controller: _searchCtrl,
                   decoration: InputDecoration(
-                    hintText: 'Search by name or email...',
+                    hintText: context.tr.searchByNameOrEmail,
                     hintStyle: const TextStyle(
                       color: Color(0xFF9CA3AF),
                       fontSize: 14,
@@ -255,7 +256,7 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
                     children: _roles.map((role) {
                       final isSelected = _selectedRole == role;
                       final label = role == 'all'
-                          ? 'All'
+                          ? context.tr.allRole
                           : role
                                 .replaceAll('_', ' ')
                                 .split(' ')
@@ -308,8 +309,8 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
                     fontSize: 13,
                   ),
                   tabs: [
-                    Tab(text: 'Active (${activeUsers.length})'),
-                    Tab(text: 'Suspended (${suspendedUsers.length})'),
+                    Tab(text: context.tr.activeUsersTab(activeUsers.length)),
+                    Tab(text: context.tr.suspendedUsersTab(suspendedUsers.length)),
                   ],
                 ),
               ],
@@ -357,10 +358,10 @@ class _UserList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (users.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No users found',
-          style: TextStyle(color: Color(0xFF9CA3AF)),
+          context.tr.noUsersFound,
+          style: const TextStyle(color: Color(0xFF9CA3AF)),
         ),
       );
     }
@@ -522,7 +523,7 @@ class _UserCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        isActive ? 'Active' : 'Suspended',
+                        isActive ? context.tr.active : context.tr.inactive,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -547,7 +548,7 @@ class _UserCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          isActive ? 'Suspend' : 'Activate',
+                          isActive ? context.tr.suspend : context.tr.activate,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,

@@ -11,6 +11,7 @@ import '../../core/utils/navigation_helper.dart';
 import '../../models/user_model.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/user_repository.dart';
+import '../../l10n/tr_extension.dart';
 import '../widgets/animations.dart';
 import 'widgets/auth_text_field.dart';
 import 'signup_screen.dart';
@@ -70,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
 
       if (!launched || !mounted) {
-        _showError('Could not launch Google sign-in. Please try again.');
+        _showError(context.tr.googleSignInFailed);
         return;
       }
 
@@ -118,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final status = existing['status'] as String? ?? 'active';
         if (status == 'suspended' || status == 'inactive') {
           await AuthRepository().client.auth.signOut();
-          _showError('Your account has been $status. Please contact support.');
+          _showError(context.tr.accountSuspended(status));
           return;
         }
 
@@ -126,7 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         NavigationHelper.navigateByRole(context, role);
       });
     } catch (e) {
-      _showError('Google sign-in failed. Please try again.');
+      _showError(context.tr.googleSignInError);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -199,10 +200,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         offset: 20,
                         child: Column(
                           children: [
-                            const Text(
-                              'Welcome back',
+                            Text(
+                              context.tr.welcomeBack,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF0F172A),
@@ -210,10 +211,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Sign in to your account to continue booking',
+                            Text(
+                              context.tr.signInSubtitle,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 15,
                                 color: Color(0xFF64748B),
                                 fontWeight: FontWeight.w400,
@@ -244,34 +245,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               AuthTextField(
-                                label: 'Email',
-                                hint: 'you@example.com',
+                                label: context.tr.emailLabel,
+                                hint: context.tr.emailHint,
                                 icon: Icons.email_outlined,
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
-                                    return 'Email is required';
+                                    return context.tr.emailRequired;
                                   }
                                   if (!v.contains('@')) {
-                                    return 'Enter a valid email';
+                                    return context.tr.enterValidEmail;
                                   }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 20),
                               AuthTextField(
-                                label: 'Password',
-                                hint: '••••••••',
+                                label: context.tr.passwordLabel,
+                                hint: context.tr.passwordHint,
                                 icon: Icons.lock_outline,
                                 controller: _passwordController,
                                 isPassword: true,
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
-                                    return 'Password is required';
+                                    return context.tr.passwordRequired;
                                   }
                                   if (v.length < 6) {
-                                    return 'Password must be at least 6 characters';
+                                    return context.tr.passwordMinLength;
                                   }
                                   return null;
                                 },
@@ -293,9 +294,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     tapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  child: const Text(
-                                    'Forgot password?',
-                                    style: TextStyle(
+                                  child: Text(
+                                    context.tr.forgotPasswordLink,
+                                    style: const TextStyle(
                                       color: Color(0xFF2563EB),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
@@ -318,9 +319,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             color: Colors.white,
                                           ),
                                         )
-                                      : const Text(
-                                          'Sign In',
-                                          style: TextStyle(
+                                      : Text(
+                                          context.tr.signInButton,
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -344,7 +345,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 horizontal: 16,
                               ),
                               child: Text(
-                                'or',
+                                context.tr.orDivider,
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: const Color(
@@ -394,9 +395,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       color: Color(0xFF4285F4),
                                     ),
                                   ),
-                            label: const Text(
-                              'Continue with Google',
-                              style: TextStyle(
+                            label: Text(
+                              context.tr.continueWithGoogle,
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -409,9 +410,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              "Don't have an account? ",
-                              style: TextStyle(
+                            Text(
+                              context.tr.dontHaveAccount,
+                              style: const TextStyle(
                                 color: Color(0xFF64748B),
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
@@ -424,9 +425,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   builder: (_) => const SignupScreen(),
                                 ),
                               ),
-                              child: const Text(
-                                'Sign Up',
-                                style: TextStyle(
+                              child: Text(
+                                context.tr.signUpLink,
+                                style: const TextStyle(
                                   color: Color(0xFF2563EB),
                                   fontWeight: FontWeight.w700,
                                   fontSize: 15,

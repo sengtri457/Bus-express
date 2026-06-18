@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/tr_extension.dart';
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/auth_helper.dart';
@@ -234,7 +235,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hello, $name 👋',
+                            context.tr.driverHomeHello(name),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -242,7 +243,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                             ),
                           ),
                           Text(
-                            'Driver Dashboard',
+                            context.tr.driverHomeDashboard,
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.white.withValues(alpha: 0.8),
@@ -275,8 +276,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Today's Trip",
+          Text(
+            context.tr.driverHomeTodaysTrip,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -305,13 +306,13 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           else
             EmptyState(
               icon: Icons.free_cancellation_rounded,
-              title: 'No trip today',
-              subtitle: 'You have no scheduled trips for today',
+              title: context.tr.driverHomeNoTripToday,
+              subtitle: context.tr.driverHomeNoTripSubtitle,
             ),
           const SizedBox(height: 28),
           if (_upcomingTrips.isNotEmpty) ...[
-            const Text(
-              'Upcoming Trips',
+            Text(
+              context.tr.driverHomeUpcomingTrips,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -324,8 +325,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             ),
           ],
           const SizedBox(height: 28),
-          const Text(
-            'Quick Stats',
+          Text(
+            context.tr.driverHomeQuickStats,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -349,9 +350,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             const SizedBox(height: 120),
             const Icon(Icons.cloud_off_rounded, size: 64, color: AppColors.textHint),
             const SizedBox(height: 16),
-            const Center(
+            Center(
               child: Text(
-                'Failed to load data',
+                context.tr.driverHomeFailedLoad,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -373,7 +374,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
               child: ElevatedButton.icon(
                 onPressed: _loadData,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry'),
+                label: Text(context.tr.driverHomeRetry),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -440,19 +441,19 @@ class _StatsRowState extends State<_StatsRow> {
     return StatCardRow(
       cards: [
         StatCard(
-          title: 'Total Trips',
+          title: context.tr.driverHomeStatTotalTrips,
           value: '$_totalTrips',
           icon: Icons.route_rounded,
           color: AppColors.primary,
         ),
         StatCard(
-          title: 'Completed',
+          title: context.tr.driverHomeStatCompleted,
           value: '$_completedTrips',
           icon: Icons.check_circle_rounded,
           color: AppColors.success,
         ),
         StatCard(
-          title: 'Passengers',
+          title: context.tr.driverHomeStatPassengers,
           value: '$_totalPassengers',
           icon: Icons.people_rounded,
           color: AppColors.warning,

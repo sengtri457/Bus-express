@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../services/notification_service.dart';
 import '../../../supabase_config.dart';
 import 'driver_incident_screen.dart';
@@ -215,9 +216,9 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
 
   Future<void> _startTrip() async {
     final confirm = await _showConfirmDialog(
-      title: 'Start Trip',
-      message: 'Are you ready to depart? This will notify all passengers.',
-      confirmLabel: 'Start Now',
+      title: context.tr.driverTripStartDialogTitle,
+      message: context.tr.driverTripStartDialogMessage,
+      confirmLabel: context.tr.driverTripStartNowLabel,
       confirmColor: const Color(0xFF10B981),
     );
     if (!confirm) return;
@@ -244,7 +245,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
       final isFull = capacity > 0 && _boardedCount >= capacity;
 
       if (!isFull && !allowedByConductor) {
-        _showSnackBar('Bus is not full ($_boardedCount/$capacity). Waiting for Conductor permission.', Colors.red);
+        _showSnackBar(context.tr.driverTripBusNotFull(_boardedCount, capacity), Colors.red);
         return;
       }
 
@@ -284,11 +285,11 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
       });
 
       _startGPSTracking();
-      _showSnackBar('Trip started! GPS tracking active.', Colors.green);
+      _showSnackBar(context.tr.driverTripStartedSnack, Colors.green);
 
       unawaited(_notifyPassengersTripStarted());
     } catch (e) {
-      _showSnackBar('Failed to start trip: $e', Colors.red);
+      _showSnackBar(context.tr.driverTripFailedStart(e.toString()), Colors.red);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -297,21 +298,23 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
   Future<void> _endTrip() async {
     if (!_canEndTrip && _adjustedArrival != null) {
       _showSnackBar(
-        'Arrival at ${formatIsoTimestamp(_adjustedArrival!.toIso8601String())}. '
-        'Please wait $_endTripCountdown to end the trip.',
+        context.tr.driverTripWaitCountdown(
+          formatIsoTimestamp(_adjustedArrival!.toIso8601String()),
+          _endTripCountdown,
+        ),
         Colors.orange,
       );
       return;
     }
 
     final message = _totalDelay > 0
-        ? 'Trip was delayed by $_totalDelay min due to incidents. Confirm arrival?'
-        : 'Confirm you have arrived at the destination?';
+        ? context.tr.driverTripEndDialogMessageDelay(_totalDelay)
+        : context.tr.driverTripEndDialogMessageNormal;
 
     final confirm = await _showConfirmDialog(
-      title: 'End Trip',
+      title: context.tr.driverTripEndDialogTitle,
       message: message,
-      confirmLabel: 'End Trip',
+      confirmLabel: context.tr.driverTripEndTripLabel,
       confirmColor: const Color(0xFF1A73E8),
     );
     if (!confirm) return;
@@ -333,9 +336,9 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
         _trip['arrived_at'] = DateTime.now().toIso8601String();
       });
 
-      _showSnackBar('Trip completed successfully!', Colors.green);
+      _showSnackBar(context.tr.driverTripCompletedSnack, Colors.green);
     } catch (e) {
-      _showSnackBar('Failed to end trip: $e', Colors.red);
+      _showSnackBar(context.tr.driverTripFailedEnd(e.toString()), Colors.red);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -384,8 +387,8 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
 
       final schedule = _trip['schedules'] as Map<String, dynamic>?;
       final route = schedule?['routes'] as Map<String, dynamic>?;
-      final origin = route?['origin'] as String? ?? 'N/A';
-      final destination = route?['destination'] as String? ?? 'N/A';
+      final origin = route?['origin'] as String? ?? context.tr.driverTripNA;
+      final destination = route?['destination'] as String? ?? context.tr.driverTripNA;
 
       final passengerIds = <String>{};
       for (final b in bookings) {
@@ -396,8 +399,8 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
       for (final uid in passengerIds) {
         await NotificationService.instance.insertNotification(
           userId: uid,
-          title: 'Trip Started',
-          body: 'Your bus from $origin → $destination has departed! Track it live.',
+          title: context.tr.driverTripNotificationTitle,
+          body: context.tr.driverTripNotificationBody(origin, destination),
           type: 'trip_started',
           referenceType: 'trip',
           referenceId: _trip['id'] as String?,
@@ -440,7 +443,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
+            child: Text(context.tr.driverTripCancel, style: const TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -472,11 +475,11 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Trip Management', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(context.tr.driverTripAppBarTitle, style: TextStyle(fontWeight: FontWeight.w700)),
         actions: [
           IconButton(
             icon: const Icon(Icons.warning_amber_rounded),
-            tooltip: 'Report Incident',
+            tooltip: context.tr.driverTripReportIncident,
             onPressed: () async {
               await Navigator.push(
                 context,
@@ -510,25 +513,25 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                   children: [
                     _InfoRow(
                       icon: Icons.route_rounded,
-                      label: 'Route',
+                      label: context.tr.driverTripRouteLabel,
                       value: '${route?['origin']} → ${route?['destination']}',
                     ),
                     const Divider(height: 20, color: Color(0xFFF3F4F6)),
                     _InfoRow(
                       icon: Icons.access_time_rounded,
-                      label: 'Departure',
+                      label: context.tr.departureLabel,
                       value: formatTime(schedule?['departure_time'] ?? ''),
                     ),
                     const Divider(height: 20, color: Color(0xFFF3F4F6)),
                     _InfoRow(
                       icon: Icons.directions_bus_outlined,
-                      label: 'Bus',
+                      label: context.tr.driverTripBusLabel,
                       value: '${bus?['model']} • ${bus?['plate_number']}',
                     ),
                     const Divider(height: 20, color: Color(0xFFF3F4F6)),
                     _InfoRow(
                       icon: Icons.calendar_today_rounded,
-                      label: 'Date',
+                      label: context.tr.driverTripDateLabel,
                       value: formatDate(_trip['trip_date'] as String),
                     ),
                   ],
@@ -562,7 +565,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                         decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 10),
-                      const Text('GPS Tracking Active', style: TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(context.tr.driverTripGpsActive, style: const TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.w600, fontSize: 13)),
                       const Spacer(),
                       if (_currentPosition != null)
                         Text(
@@ -577,11 +580,11 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Passengers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                  Text(context.tr.driverTripPassengersTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(20)),
-                    child: Text('$_boardedCount/${_passengers.length} boarded',
+                    child: Text(context.tr.driverTripPassengerCount(_boardedCount, _passengers.length),
                       style: const TextStyle(fontSize: 13, color: Color(0xFF1A73E8), fontWeight: FontWeight.w600)),
                   ),
                 ],
@@ -591,7 +594,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                   ? Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                      child: const Center(child: Text('No passengers booked yet', style: TextStyle(color: Color(0xFF9CA3AF)))),
+                      child: Center(child: Text(context.tr.driverTripNoPassengers, style: const TextStyle(color: Color(0xFF9CA3AF)))),
                     )
                   : Column(children: _passengers.map((p) => _PassengerTile(passenger: p)).toList()),
               const SizedBox(height: 100),
@@ -610,7 +613,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
               ),
               child: _isScheduled
                   ? _ActionButton(
-                      label: 'Start Trip',
+                      label: context.tr.driverTripStartTripBtn,
                       icon: Icons.play_arrow_rounded,
                       color: const Color(0xFF10B981),
                       isLoading: _isLoading,
@@ -624,7 +627,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
   Widget _buildEndTripButton() {
     if (_adjustedArrival == null) {
       return _ActionButton(
-        label: 'End Trip (Arrived)',
+        label: context.tr.driverTripEndTripArrivedBtn,
         icon: Icons.flag_rounded,
         color: const Color(0xFF1A73E8),
         isLoading: _isLoading,
@@ -633,8 +636,8 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
     }
 
     final label = _canEndTrip
-        ? 'End Trip (Arrived)'
-        : 'End Trip (ready in $_endTripCountdown)';
+        ? context.tr.driverTripEndTripArrivedBtn
+        : context.tr.driverTripEndTripCountdown(_endTripCountdown);
 
     return _ActionButton(
       label: label,
@@ -659,12 +662,12 @@ class _TripStatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = trip['status'] as String;
     final configs = {
-      'scheduled': [const Color(0xFF1A73E8), Icons.schedule_rounded, 'Ready to Depart'],
-      'in_progress': [const Color(0xFF10B981), Icons.play_circle_rounded, 'Trip In Progress'],
-      'completed': [const Color(0xFF6B7280), Icons.check_circle_rounded, 'Trip Completed'],
-      'cancelled': [const Color(0xFFEF4444), Icons.cancel_rounded, 'Trip Cancelled'],
+      'scheduled': [const Color(0xFF1A73E8), Icons.schedule_rounded, context.tr.driverTripStatusReady],
+      'in_progress': [const Color(0xFF10B981), Icons.play_circle_rounded, context.tr.driverTripStatusInProgress],
+      'completed': [const Color(0xFF6B7280), Icons.check_circle_rounded, context.tr.driverTripStatusCompleted],
+      'cancelled': [const Color(0xFFEF4444), Icons.cancel_rounded, context.tr.driverTripStatusCancelled],
     };
-    final cfg = configs[status] ?? [const Color(0xFFF59E0B), Icons.pending_rounded, 'Unknown'];
+    final cfg = configs[status] ?? [const Color(0xFFF59E0B), Icons.pending_rounded, context.tr.driverTripStatusUnknown];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -689,10 +692,10 @@ class _TripStatusCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   status == 'in_progress' && trip['departed_at'] != null
-                      ? 'Departed at ${formatTimestamp(trip['departed_at'])}'
+                      ? context.tr.driverTripDepartedAt(formatTimestamp(trip['departed_at']))
                       : status == 'completed' && trip['arrived_at'] != null
-                      ? 'Arrived at ${formatTimestamp(trip['arrived_at'])}'
-                      : 'Tap "Start Trip" when ready',
+                      ? context.tr.driverTripArrivedAt(formatTimestamp(trip['arrived_at']))
+                      : context.tr.driverTripTapStart,
                   style: TextStyle(fontSize: 12, color: (cfg[0] as Color).withOpacity(0.8)),
                 ),
               ],
@@ -745,9 +748,9 @@ class _DelayInfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$totalDelay min delay ($incidentCount incident${incidentCount > 1 ? 's' : ''})',
+                Text(context.tr.driverTripDelayInfo(totalDelay, incidentCount),
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
-                Text('Adjusted ETA: $arrivalStr',
+                Text(context.tr.driverTripAdjustedEta(arrivalStr),
                   style: const TextStyle(fontSize: 12, color: Color(0xFFA16207))),
               ],
             ),
@@ -808,9 +811,9 @@ class _PassengerTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user?['name'] ?? 'Unknown Passenger',
+                Text(user?['name'] ?? context.tr.driverTripUnknownPassenger,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
-                Text('Seat ${passenger['seat_number']} • ${user?['phone'] ?? ''}',
+                Text(context.tr.driverTripSeatInfo('${passenger['seat_number']}', user?['phone'] ?? ''),
                   style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ],
             ),
@@ -916,7 +919,7 @@ class _ScheduleAdherenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final punctuality = TripPunctuality.calculate(trip);
+    final punctuality = TripPunctuality.calculate(trip, context);
     final schedule = trip['schedules'] as Map<String, dynamic>?;
     final departureTimeStr = schedule?['departure_time'] as String? ?? '--:--';
     final arrivalTimeStr = schedule?['arrival_time'] as String? ?? '--:--';
@@ -959,14 +962,14 @@ class _ScheduleAdherenceCard extends StatelessWidget {
           Row(
             children: [
               Expanded(child: _TimelineCompare(
-                label: 'Departure',
+                label: context.tr.departureLabel,
                 scheduled: _fmtScheduleTime(departureTimeStr),
                 actual: departedAt != null ? _fmtIso(departedAt) : null,
                 isMissed: status == 'scheduled' && _isOverdue(trip['trip_date'] as String? ?? '', departureTimeStr),
               )),
               Container(width: 1, height: 50, color: const Color(0xFFE5E7EB), margin: const EdgeInsets.symmetric(horizontal: 14)),
               Expanded(child: _TimelineCompare(
-                label: 'Arrival',
+                label: context.tr.arrivalLabel,
                 scheduled: _fmtScheduleTime(arrivalTimeStr),
                 actual: arrivedAt != null ? _fmtIso(arrivedAt) : null,
                 isMissed: status == 'in_progress' &&
@@ -1037,11 +1040,11 @@ class _TimelineCompare extends StatelessWidget {
           ),
         ] else if (isMissed) ...[
           const SizedBox(height: 3),
-          const Row(
+          Row(
             children: [
-              Icon(Icons.error_outline_rounded, size: 12, color: Color(0xFFEF4444)),
-              SizedBox(width: 4),
-              Text('Overdue', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFEF4444))),
+              const Icon(Icons.error_outline_rounded, size: 12, color: Color(0xFFEF4444)),
+              const SizedBox(width: 4),
+              Text(context.tr.driverTripOverdue, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFEF4444))),
             ],
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/tr_extension.dart';
 import '../../../../models/route_model.dart';
 import '../../../widgets/animations.dart';
 
@@ -33,10 +34,10 @@ class _PopularRoutesState extends State<PopularRoutes> {
           color: AppColors.surface,
           borderRadius: AppRadius.lgR,
         ),
-        child: const Center(
+        child: Center(
           child: Text(
-            'No routes available yet',
-            style: TextStyle(color: AppColors.textHint),
+            context.tr.popularRoutesNoRoutes,
+            style: const TextStyle(color: AppColors.textHint),
           ),
         ),
       );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 import 'operator_routes_screen.dart';
 
@@ -62,7 +63,7 @@ class _OperatorBusesScreenState extends State<OperatorBusesScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(context.tr.failedToUpdate('$e')),
           backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
@@ -81,8 +82,8 @@ class _OperatorBusesScreenState extends State<OperatorBusesScreen> {
               child: _buses.isEmpty
                   ? _EmptyState(
                       icon: Icons.directions_bus_rounded,
-                      message: 'No buses yet',
-                      subtitle: 'Add your first bus to get started',
+                      message: context.tr.noBusesYet,
+                      subtitle: context.tr.addYourFirstBus,
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -104,9 +105,9 @@ class _OperatorBusesScreenState extends State<OperatorBusesScreen> {
         backgroundColor: const Color(0xFF54282E),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Add Bus',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        label: Text(
+          context.tr.addBus,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -145,6 +146,18 @@ class _BusCard extends StatelessWidget {
         return Icons.build_rounded;
       default:
         return Icons.cancel_rounded;
+    }
+  }
+
+  String _statusText(BuildContext context, String s) {
+    final t = context.tr;
+    switch (s) {
+      case 'active':
+        return t.active;
+      case 'maintenance':
+        return t.underMaintenance;
+      default:
+        return t.inactive;
     }
   }
 
@@ -215,7 +228,7 @@ class _BusCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${bus['capacity']} seats',
+                            context.tr.busCapacity(bus['capacity'] as int),
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6B7280),
@@ -245,7 +258,7 @@ class _BusCard extends StatelessWidget {
                           Icon(_statusIcon(status), size: 12, color: color),
                           const SizedBox(width: 4),
                           Text(
-                            status[0].toUpperCase() + status.substring(1),
+                            _statusText(context, status),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -268,7 +281,7 @@ class _BusCard extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text('Edit'),
+                  label: Text(context.tr.edit),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF1A73E8),
                   ),
@@ -277,45 +290,45 @@ class _BusCard extends StatelessWidget {
                 PopupMenuButton<String>(
                   onSelected: onStatusChange,
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'active',
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.check_circle_rounded,
                             color: Color(0xFF059669),
                             size: 18,
                           ),
-                          SizedBox(width: 8),
-                          Text('Set Active'),
+                          const SizedBox(width: 8),
+                          Text(context.tr.setActive),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'maintenance',
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.build_rounded,
                             color: Color(0xFFF59E0B),
                             size: 18,
                           ),
-                          SizedBox(width: 8),
-                          Text('Under Maintenance'),
+                          const SizedBox(width: 8),
+                          Text(context.tr.underMaintenance),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'retired',
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.cancel_rounded,
                             color: Color(0xFF9CA3AF),
                             size: 18,
                           ),
-                          SizedBox(width: 8),
-                          Text('Retire Bus'),
+                          const SizedBox(width: 8),
+                          Text(context.tr.retireBus),
                         ],
                       ),
                     ),
@@ -323,7 +336,7 @@ class _BusCard extends StatelessWidget {
                   child: TextButton.icon(
                     onPressed: null,
                     icon: const Icon(Icons.swap_horiz_rounded, size: 16),
-                    label: const Text('Status'),
+                    label: Text(context.tr.status),
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF6B7280),
                     ),
@@ -407,7 +420,9 @@ class _BusFormSheetState extends State<_BusFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.existing != null ? 'Bus updated ✅' : 'Bus added ✅',
+              widget.existing != null
+                  ? context.tr.busUpdated
+                  : context.tr.busAdded,
             ),
             backgroundColor: const Color(0xFF059669),
             behavior: SnackBarBehavior.floating,
@@ -418,7 +433,7 @@ class _BusFormSheetState extends State<_BusFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(context.tr.failedToUpdate('$e')),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
@@ -457,7 +472,7 @@ class _BusFormSheetState extends State<_BusFormSheet> {
                 ),
               ),
               Text(
-                isEdit ? 'Edit Bus' : 'Add New Bus',
+                isEdit ? context.tr.editBus : context.tr.addBus,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -466,27 +481,27 @@ class _BusFormSheetState extends State<_BusFormSheet> {
               const SizedBox(height: 20),
               _FormField(
                 controller: _plateCtrl,
-                label: 'Plate Number',
-                hint: 'e.g. PP-1234-AA',
+                label: context.tr.plateNumber,
+                hint: context.tr.plateNumberHint,
                 icon: Icons.pin_rounded,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
               _FormField(
                 controller: _modelCtrl,
-                label: 'Bus Model',
-                hint: 'e.g. Hyundai Universe',
+                label: context.tr.busModel,
+                hint: context.tr.busModelHint,
                 icon: Icons.directions_bus_rounded,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
               _FormField(
                 controller: _capacityCtrl,
-                label: 'Seat Capacity',
-                hint: 'e.g. 40',
+                label: context.tr.seatCapacity,
+                hint: context.tr.seatCapacityHint,
                 icon: Icons.event_seat_rounded,
                 keyboardType: TextInputType.number,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -512,7 +527,7 @@ class _BusFormSheetState extends State<_BusFormSheet> {
                           ),
                         )
                       : Text(
-                          isEdit ? 'Save Changes' : 'Add Bus',
+                          isEdit ? context.tr.saveChanges : context.tr.addBus,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

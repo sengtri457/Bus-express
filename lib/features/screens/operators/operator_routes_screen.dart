@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
 
 class OperatorRoutesScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
           .eq('id', id);
       _loadRoutes();
     } catch (e) {
-      _showError('Failed to update: $e');
+      _showError(context.tr.failedToUpdate('$e'));
     }
   }
 
@@ -71,20 +72,20 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Delete Route',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.tr.deleteRoute,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        content: const Text(
-          'Are you sure? This will also remove associated schedules.',
-          style: TextStyle(color: Color(0xFF6B7280)),
+        content: Text(
+          context.tr.deleteRouteConfirm,
+          style: const TextStyle(color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF6B7280)),
+            child: Text(
+              context.tr.cancel,
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
           ),
           ElevatedButton(
@@ -97,7 +98,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Delete'),
+            child: Text(context.tr.delete),
           ),
         ],
       ),
@@ -107,7 +108,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
       await SupabaseConfig.client.from('routes').delete().eq('id', id);
       _loadRoutes();
     } catch (e) {
-      _showError('Failed to delete: $e');
+      _showError(context.tr.failedToUpdate('$e'));
     }
   }
 
@@ -132,8 +133,8 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
               child: _routes.isEmpty
                   ? _EmptyState(
                       icon: Icons.route_rounded,
-                      message: 'No routes yet',
-                      subtitle: 'Add your first route to get started',
+                      message: context.tr.noRoutesYet,
+                      subtitle: context.tr.addYourFirstRoute,
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -155,9 +156,9 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
         backgroundColor: const Color(0xFF54282E),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Add Route',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        label: Text(
+          context.tr.addRoute,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -240,7 +241,7 @@ class _RouteCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${route['distance_km']} km',
+                            context.tr.distanceKmLabel((route['distance_km'] as num).toInt()),
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6B7280),
@@ -254,7 +255,7 @@ class _RouteCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${route['duration_min']} min',
+                            context.tr.durationMinLabel(route['duration_min'] as int),
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6B7280),
@@ -277,8 +278,8 @@ class _RouteCard extends StatelessWidget {
                         : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
-                    isActive ? 'Active' : 'Inactive',
+                    child: Text(
+                      isActive ? context.tr.active : context.tr.inactive,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -299,7 +300,7 @@ class _RouteCard extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text('Edit'),
+                  label: Text(context.tr.edit),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF1A73E8),
                   ),
@@ -312,7 +313,7 @@ class _RouteCard extends StatelessWidget {
                         : Icons.play_circle_outline_rounded,
                     size: 16,
                   ),
-                  label: Text(isActive ? 'Deactivate' : 'Activate'),
+                  label: Text(isActive ? context.tr.deactivate : context.tr.activate),
                   style: TextButton.styleFrom(
                     foregroundColor: isActive
                         ? const Color(0xFFF59E0B)
@@ -411,7 +412,7 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.existing != null ? 'Route updated ✅' : 'Route created ✅',
+              widget.existing != null ? context.tr.routeUpdated : context.tr.routeCreated,
             ),
             backgroundColor: const Color(0xFF059669),
             behavior: SnackBarBehavior.floating,
@@ -422,7 +423,7 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(context.tr.failedToUpdate('$e')),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
@@ -461,7 +462,7 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                 ),
               ),
               Text(
-                isEdit ? 'Edit Route' : 'Add New Route',
+                isEdit ? context.tr.editRoute : context.tr.addRoute,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -470,19 +471,19 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
               const SizedBox(height: 20),
               _FormField(
                 controller: _originCtrl,
-                label: 'Origin City',
-                hint: 'e.g. Phnom Penh',
+                label: context.tr.originCity,
+                hint: context.tr.originCityHint,
                 icon: Icons.radio_button_checked,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
               _FormField(
                 controller: _destinationCtrl,
-                label: 'Destination City',
-                hint: 'e.g. Siem Reap',
+                label: context.tr.destinationCity,
+                hint: context.tr.destinationCityHint,
                 icon: Icons.location_on_rounded,
                 iconColor: const Color(0xFFEF4444),
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
               Row(
@@ -491,10 +492,10 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                     child: _FormField(
                       controller: _distanceCtrl,
                       label: 'Distance (km)',
-                      hint: '314',
+                      hint: context.tr.distanceKmHint,
                       icon: Icons.straighten_rounded,
                       keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
+                      validator: (v) => v!.isEmpty ? context.tr.required : null,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -502,10 +503,10 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                     child: _FormField(
                       controller: _durationCtrl,
                       label: 'Duration (min)',
-                      hint: '360',
+                      hint: context.tr.durationMinHint,
                       icon: Icons.access_time_rounded,
                       keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
+                      validator: (v) => v!.isEmpty ? context.tr.required : null,
                     ),
                   ),
                 ],
@@ -534,7 +535,7 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                           ),
                         )
                       : Text(
-                          isEdit ? 'Save Changes' : 'Create Route',
+                          isEdit ? context.tr.saveChanges : context.tr.createRoute,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
