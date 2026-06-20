@@ -54,6 +54,7 @@ dependencies:
   share_plus: ^10.1.4
   shared_preferences: ^2.5.0
   google_fonts: ^6.2.1
+  khqrcode: ^1.0.0
 
 dev_dependencies:
   flutter_test:

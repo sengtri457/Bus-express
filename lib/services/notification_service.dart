@@ -28,6 +28,11 @@ class NotificationService {
     if (_initialized) return;
     _initialized = true;
 
+    if (kIsWeb) {
+      debugPrint('[NotificationService] Web — skipping native notification init');
+      return;
+    }
+
     _plugin = FlutterLocalNotificationsPlugin();
 
     const androidSettings =

@@ -6,6 +6,16 @@ class SupabaseConfig {
   static String supabaseUrl = dotenv.env['supabaseUrl'] ?? '';
   static String supabaseAnonKey = dotenv.env['supabaseAnonKey'] ?? '';
 
+  // Bakong KHQR
+  static String get bakongAccountId => dotenv.env['BAKONG_ACCOUNT_ID'] ?? '';
+  static String get bakongMerchantName =>
+      dotenv.env['BAKONG_MERCHANT_NAME'] ?? 'Bus Express';
+  static bool get isBakongConfigured => bakongAccountId.isNotEmpty;
+  static String get bakongAccessToken =>
+      dotenv.env['BAKONG_ACCESS_TOKEN'] ?? '';
+  static String get bakongApiUrl =>
+      dotenv.env['BAKONG_API_URL'] ?? 'https://api-bakong.nbc.gov.kh';
+
   static SupabaseClient get client => Supabase.instance.client;
 
   static String get storageUrl => '$supabaseUrl/storage/v1/object/public';

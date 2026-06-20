@@ -605,6 +605,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.1"
+  khqrcode:
+    dependency: "direct main"
+    description:
+      name: khqrcode
+      sha256: a8212c404214cfd4f4379be38ec3f7083bfb6ad9a45125ebd3c465eedb0c2651
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   latlong2:
     dependency: transitive
     description:

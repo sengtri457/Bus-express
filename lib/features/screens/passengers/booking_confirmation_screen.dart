@@ -9,10 +9,12 @@ import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
 import '../../../l10n/tr_extension.dart';
+import '../../../services/bakong_payment_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/receipt_service.dart';
 import '../../../services/resend_email_service.dart';
 import '../../../supabase_config.dart';
+import 'bakong_payment_screen.dart';
 import 'passenger_main_screen.dart';
 
 class BookingConfirmationScreen extends StatefulWidget {
@@ -67,6 +69,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   bool _isPromoApplied = false;
   bool _isValidatingPromo = false;
   String? _promoError;
+
+  // Payment method: 'cash' or 'bakong'
+  String _paymentMethod = 'cash';
 
   double get _pricePerSeat => (widget.schedule['price'] as num).toDouble();
   double get _totalPrice => _pricePerSeat * widget.seatNumbers.length;
@@ -363,133 +368,12 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         tripId = newTrip['id'] as String;
       }
 
-      // Step 2: Create one booking per seat
-      String firstBookingId = '';
-      final List<Map<String, dynamic>> receiptBookings = [];
-      final now = DateTime.now();
-      final nowStr = now.toIso8601String();
-      for (final seat in widget.seatNumbers) {
-        // FIX 2: was .single() — same issue. If the booking insert is
-        // blocked or returns nothing, this would crash.
-        final booking = await SupabaseConfig.client
-            .from('bookings')
-            .insert({
-              'trip_id': tripId,
-              'passenger_id': user.id,
-              'seat_number': seat,
-              'status': 'confirmed',
-              'total_price': _pricePerSeat,
-              'booked_at': nowStr,
-              'booking_channel': 'online',
-              'passenger_name': _nameController.text.trim(),
-              'passenger_age': int.tryParse(_ageController.text.trim()),
-              'passenger_phone': _phoneController.text.trim(),
-              'passenger_nationality': _nationalityController.text.trim(),
-            })
-            .select('id')
-            .maybeSingle();
-
-        if (booking == null) {
-          throw Exception(context.tr.bookingFailedCreateBooking(seat));
-        }
-
-        final bookingId = booking['id'] as String;
-        if (firstBookingId.isEmpty) firstBookingId = bookingId;
-
-        // Step 3: Payment per seat (cash)
-        await SupabaseConfig.client.from('payments').insert({
-          'booking_id': bookingId,
-          'amount': _pricePerSeat - _discountPerSeat,
-          'method': 'cash',
-          'status': 'pending',
-        });
-
-        // Step 4: Ticket with QR per seat
-        final qrCode =
-            'BUS-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
-        await SupabaseConfig.client.from('tickets').insert({
-          'booking_id': bookingId,
-          'qr_code': qrCode,
-          'status': 'valid',
-        });
-
-        receiptBookings.add({
-          'id': bookingId,
-          'seat_number': seat,
-          'status': 'confirmed',
-          'total_price': _pricePerSeat,
-          'booked_at': nowStr,
-          'trips': {
-            'id': tripId,
-            'trip_date': widget.date.toIso8601String().split('T')[0],
-            'status': 'scheduled',
-            'schedules': widget.schedule,
-          },
-        });
+      // Step 2: Branch by payment method
+      if (_paymentMethod == 'cash') {
+        await _completeCashBooking(tripId: tripId, user: user);
+      } else {
+        await _startBakongBooking(tripId: tripId, user: user);
       }
-
-      // Step 5: Track promo usage
-      if (_isPromoApplied && _appliedPromotionId != null) {
-        final promo = await SupabaseConfig.client
-            .from('promotions')
-            .select('used_count')
-            .eq('id', _appliedPromotionId!)
-            .maybeSingle();
-        if (promo != null) {
-          final current = promo['used_count'] as int? ?? 0;
-          await SupabaseConfig.client
-              .from('promotions')
-              .update({'used_count': current + 1})
-              .eq('id', _appliedPromotionId!);
-          await SupabaseConfig.client.from('promotion_usages').insert({
-            'promotion_id': _appliedPromotionId,
-            'user_id': user.id,
-          });
-        }
-      }
-
-      final route = widget.schedule['routes'] as Map<String, dynamic>?;
-      unawaited(
-        NotificationService.instance.insertNotification(
-          userId: user.id,
-          title: context.tr.bookingNotificationTitle,
-          body: context.tr.bookingNotificationBody(
-            widget.seatNumbers.length,
-            route?['origin'] ?? 'N/A',
-            route?['destination'] ?? 'N/A',
-            _formatTime(widget.schedule['departure_time'] as String),
-          ),
-          type: 'booking',
-          referenceType: 'booking',
-          referenceId: firstBookingId,
-        ),
-      );
-
-      final receiptEmail = _emailController.text.trim();
-      if (receiptEmail.isNotEmpty && receiptBookings.isNotEmpty) {
-        await _sendReceiptEmail(
-          to: receiptEmail,
-          bookings: receiptBookings,
-          passengerName: _nameController.text.trim(),
-        ).timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {},
-        );
-      }
-
-      if (!mounted) return;
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PassengerMainScreen(
-            initialIndex: 1,
-            newBookingId: firstBookingId,
-            newSeatCount: widget.seatNumbers.length,
-          ),
-        ),
-        (route) => route.isFirst,
-      );
     } on PostgrestException catch (e) {
       _showError(context.tr.bookingFailedGeneric(e.message));
     } catch (e) {
@@ -497,6 +381,323 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _completeCashBooking({
+    required String tripId,
+    required User user,
+  }) async {
+    String firstBookingId = '';
+    final List<Map<String, dynamic>> receiptBookings = [];
+    final now = DateTime.now();
+    final nowStr = now.toIso8601String();
+
+    for (final seat in widget.seatNumbers) {
+      final booking = await SupabaseConfig.client
+          .from('bookings')
+          .insert({
+            'trip_id': tripId,
+            'passenger_id': user.id,
+            'seat_number': seat,
+            'status': 'confirmed',
+            'total_price': _pricePerSeat,
+            'booked_at': nowStr,
+            'booking_channel': 'online',
+            'passenger_name': _nameController.text.trim(),
+            'passenger_age': int.tryParse(_ageController.text.trim()),
+            'passenger_phone': _phoneController.text.trim(),
+            'passenger_nationality': _nationalityController.text.trim(),
+          })
+          .select('id')
+          .maybeSingle();
+
+      if (booking == null) {
+        throw Exception(context.tr.bookingFailedCreateBooking(seat));
+      }
+
+      final bookingId = booking['id'] as String;
+      if (firstBookingId.isEmpty) firstBookingId = bookingId;
+
+      await SupabaseConfig.client.from('payments').insert({
+        'booking_id': bookingId,
+        'amount': _pricePerSeat - _discountPerSeat,
+        'method': 'cash',
+        'status': 'pending',
+      });
+
+      final qrCode =
+          'BUS-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
+      await SupabaseConfig.client.from('tickets').insert({
+        'booking_id': bookingId,
+        'qr_code': qrCode,
+        'status': 'valid',
+      });
+
+      receiptBookings.add({
+        'id': bookingId,
+        'seat_number': seat,
+        'status': 'confirmed',
+        'total_price': _pricePerSeat,
+        'booked_at': nowStr,
+        'trips': {
+          'id': tripId,
+          'trip_date': widget.date.toIso8601String().split('T')[0],
+          'status': 'scheduled',
+          'schedules': widget.schedule,
+        },
+      });
+    }
+
+    await _trackPromoUsage(user.id);
+    _sendBookingNotification(user.id, firstBookingId);
+    await _sendReceiptIfNeeded(receiptBookings);
+
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PassengerMainScreen(
+          initialIndex: 1,
+          newBookingId: firstBookingId,
+          newSeatCount: widget.seatNumbers.length,
+        ),
+      ),
+      (route) => route.isFirst,
+    );
+  }
+
+  Future<void> _startBakongBooking({
+    required String tripId,
+    required User user,
+  }) async {
+    final nowStr = DateTime.now().toIso8601String();
+    final List<String> bookingIds = [];
+
+    // 1. Create bookings as 'pending' (no payments, no tickets yet)
+    for (final seat in widget.seatNumbers) {
+      final booking = await SupabaseConfig.client
+          .from('bookings')
+          .insert({
+            'trip_id': tripId,
+            'passenger_id': user.id,
+            'seat_number': seat,
+            'status': 'pending',
+            'total_price': _pricePerSeat,
+            'booked_at': nowStr,
+            'booking_channel': 'online',
+            'passenger_name': _nameController.text.trim(),
+            'passenger_age': int.tryParse(_ageController.text.trim()),
+            'passenger_phone': _phoneController.text.trim(),
+            'passenger_nationality': _nationalityController.text.trim(),
+          })
+          .select('id')
+          .maybeSingle();
+
+      if (booking == null) {
+        throw Exception(context.tr.bookingFailedCreateBooking(seat));
+      }
+      bookingIds.add(booking['id'] as String);
+    }
+
+    // 2. Generate KHQR
+    final khqr = BakongPaymentService.generateKhqr(
+      amount: _finalPrice,
+      billNumber: bookingIds.first,
+    );
+
+    if (!khqr.isSuccess) {
+      await _cancelPendingBookings(bookingIds);
+      throw Exception(khqr.error ?? 'Failed to generate payment QR');
+    }
+
+    if (!mounted) {
+      await _cancelPendingBookings(bookingIds);
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    // 3. Navigate to Bakong payment screen
+    final paymentResult = await Navigator.push<BakongPaymentResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BakongPaymentScreen(
+          khqrString: khqr.qr!,
+          md5Hash: khqr.md5Hash!,
+          amount: _finalPrice,
+          expiryTimestamp: khqr.expiryTimestamp!,
+        ),
+      ),
+    );
+
+    if (!mounted) {
+      await _cancelPendingBookings(bookingIds);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    if (paymentResult != null && paymentResult.isSuccess) {
+      // 4a. Payment successful — finalize bookings
+      await _finalizeBakongBookings(
+        bookingIds: bookingIds,
+        tripId: tripId,
+        userId: user.id,
+        transactionId: paymentResult.transactionId,
+      );
+
+      await _trackPromoUsage(user.id);
+      _sendBookingNotification(user.id, bookingIds.first);
+
+      final receiptBookings = await _buildReceiptData(
+        bookingIds: bookingIds,
+        tripId: tripId,
+      );
+      await _sendReceiptIfNeeded(receiptBookings);
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PassengerMainScreen(
+            initialIndex: 1,
+            newBookingId: bookingIds.first,
+            newSeatCount: widget.seatNumbers.length,
+          ),
+        ),
+        (route) => route.isFirst,
+      );
+    } else {
+      // 4b. Payment failed — cancel pending bookings
+      await _cancelPendingBookings(bookingIds);
+      _showError('Payment cancelled or timed out. Please try again.');
+    }
+  }
+
+  Future<void> _cancelPendingBookings(List<String> bookingIds) async {
+    for (final id in bookingIds) {
+      await SupabaseConfig.client
+          .from('bookings')
+          .update({'status': 'cancelled'})
+          .eq('id', id);
+    }
+  }
+
+  Future<void> _finalizeBakongBookings({
+    required List<String> bookingIds,
+    required String tripId,
+    required String userId,
+    String? transactionId,
+  }) async {
+    final nowStr = DateTime.now().toIso8601String();
+
+    for (final bookingId in bookingIds) {
+      // Update booking status to confirmed
+      await SupabaseConfig.client
+          .from('bookings')
+          .update({'status': 'confirmed'})
+          .eq('id', bookingId);
+
+      // Create payment record
+      await SupabaseConfig.client.from('payments').insert({
+        'booking_id': bookingId,
+        'amount': _pricePerSeat - _discountPerSeat,
+        'method': 'bakong',
+        'status': 'paid',
+        'transaction_id': transactionId,
+        'paid_at': nowStr,
+      });
+
+      // Create ticket
+      final qrCode =
+          'BUS-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
+      await SupabaseConfig.client.from('tickets').insert({
+        'booking_id': bookingId,
+        'qr_code': qrCode,
+        'status': 'valid',
+      });
+    }
+  }
+
+  Future<void> _trackPromoUsage(String userId) async {
+    if (!_isPromoApplied || _appliedPromotionId == null) return;
+
+    final promo = await SupabaseConfig.client
+        .from('promotions')
+        .select('used_count')
+        .eq('id', _appliedPromotionId!)
+        .maybeSingle();
+
+    if (promo != null) {
+      final current = promo['used_count'] as int? ?? 0;
+      await SupabaseConfig.client
+          .from('promotions')
+          .update({'used_count': current + 1})
+          .eq('id', _appliedPromotionId!);
+      await SupabaseConfig.client.from('promotion_usages').insert({
+        'promotion_id': _appliedPromotionId,
+        'user_id': userId,
+      });
+    }
+  }
+
+  void _sendBookingNotification(String userId, String bookingId) {
+    final route = widget.schedule['routes'] as Map<String, dynamic>?;
+    unawaited(
+      NotificationService.instance.insertNotification(
+        userId: userId,
+        title: context.tr.bookingNotificationTitle,
+        body: context.tr.bookingNotificationBody(
+          widget.seatNumbers.length,
+          route?['origin'] ?? 'N/A',
+          route?['destination'] ?? 'N/A',
+          _formatTime(widget.schedule['departure_time'] as String),
+        ),
+        type: 'booking',
+        referenceType: 'booking',
+        referenceId: bookingId,
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _buildReceiptData({
+    required List<String> bookingIds,
+    required String tripId,
+  }) async {
+    final List<Map<String, dynamic>> receiptBookings = [];
+    for (int i = 0; i < bookingIds.length; i++) {
+      receiptBookings.add({
+        'id': bookingIds[i],
+        'seat_number': widget.seatNumbers[i],
+        'status': 'confirmed',
+        'total_price': _pricePerSeat,
+        'booked_at': DateTime.now().toIso8601String(),
+        'trips': {
+          'id': tripId,
+          'trip_date': widget.date.toIso8601String().split('T')[0],
+          'status': 'scheduled',
+          'schedules': widget.schedule,
+        },
+      });
+    }
+    return receiptBookings;
+  }
+
+  Future<void> _sendReceiptIfNeeded(
+    List<Map<String, dynamic>> receiptBookings,
+  ) async {
+    if (receiptBookings.isEmpty) return;
+    final receiptEmail = _emailController.text.trim();
+    if (receiptEmail.isEmpty) return;
+
+    await _sendReceiptEmail(
+      to: receiptEmail,
+      bookings: receiptBookings,
+      passengerName: _nameController.text.trim(),
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {},
+    );
   }
 
   void _onUseSavedInfoChanged(bool useSaved) {
@@ -900,49 +1101,25 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               icon: Icons.payment_rounded,
               child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFBBF7D0)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.payments_outlined,
-                          color: Color(0xFF10B981),
-                          size: 22,
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr.bookingCashOnBoard,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF065F46),
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              context.tr.bookingPayConductor,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF059669),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          color: Color(0xFF10B981),
-                          size: 20,
-                        ),
-                      ],
-                    ),
+                  // Payment method selector
+                  Column(
+                    children: [
+                      _PaymentMethodOption(
+                        icon: Icons.payments_outlined,
+                        title: context.tr.bookingCashOnBoard,
+                        subtitle: context.tr.bookingPayConductor,
+                        isSelected: _paymentMethod == 'cash',
+                        onTap: () => setState(() => _paymentMethod = 'cash'),
+                      ),
+                      const SizedBox(height: 10),
+                      _PaymentMethodOption(
+                        icon: Icons.qr_code_rounded,
+                        title: 'Bakong KHQR',
+                        subtitle: 'Pay now via Bakong-enabled banking app',
+                        isSelected: _paymentMethod == 'bakong',
+                        onTap: () => setState(() => _paymentMethod = 'bakong'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
@@ -1430,6 +1607,87 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: 16),
           child,
         ],
+      ),
+    );
+  }
+}
+
+class _PaymentMethodOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _PaymentMethodOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isSelected
+        ? const Color(0xFFF0FDF4)
+        : const Color(0xFFF9FAFB);
+    final borderColor = isSelected
+        ? const Color(0xFFBBF7D0)
+        : const Color(0xFFE5E7EB);
+    final iconColor = isSelected
+        ? const Color(0xFF10B981)
+        : const Color(0xFF9CA3AF);
+    final titleColor = isSelected
+        ? const Color(0xFF065F46)
+        : const Color(0xFF374151);
+    final subtitleColor = isSelected
+        ? const Color(0xFF059669)
+        : const Color(0xFF6B7280);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: titleColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: subtitleColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF10B981),
+                size: 20,
+              ),
+          ],
+        ),
       ),
     );
   }

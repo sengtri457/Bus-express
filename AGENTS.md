@@ -91,6 +91,77 @@ Flutter bus ticketing app with Supabase backend. Features passenger live trackin
 8. Add language switcher UI (profile screen or app drawer)
 9. Run `dart analyze` and fix errors
 
+## Session Summary (Jun 20, 2026) — Bakong KHQR Payment Integration
+
+### What Was Done
+
+#### 1. Bakong Payment Service (`lib/services/bakong_payment_service.dart`)
+
+- Created `generateKhqr()` — generates KHQR using `khqrcode` package `IndividualInfo`
+- Created `checkTransaction()` — calls Supabase Edge Function proxy
+- Created `pollTransaction()` — polls every 5s with configurable timeout
+- Bill number truncated to 25 chars (KHQR spec `InvalidLength` constraint)
+- Reads Bakong config from `SupabaseConfig` (dotenv)
+
+#### 2. Payment Model (`lib/models/payment_model.dart`)
+
+- `PaymentModel` with `fromMap`/`toMap`, `isPaid`, `isBakong` helpers
+
+#### 3. Edge Function (`supabase/functions/check-bakong-transaction/index.ts`)
+
+- Proxies Bakong `/v1/check_transaction_by_md5`
+- Handles multiple response formats (direct, `data` wrapper, array)
+- Supports `BAKONG_PROXY_URL` env var for Cambodian VPS proxy fallback
+- CORS headers, input validation, detailed error logging
+
+#### 4. Bakong Payment Screen (`lib/features/screens/passengers/bakong_payment_screen.dart`)
+
+- Animated QR display (scale + fade)
+- 5-min countdown timer
+- Auto-polling every 5s
+- "I've Paid" manual check button
+- Expired/timeout/success views
+- Returns `BakongPaymentResult` for caller
+
+#### 5. Booking Confirmation Screen (`lib/features/screens/passengers/booking_confirmation_screen.dart`)
+
+- Added `_PaymentMethodOption` widget (Cash / Bakong radio)
+- Refactored `_confirmBooking()` into `_completeCashBooking()` and `_startBakongBooking()`
+- Bakong flow: create `pending` bookings → show QR → poll → confirm or cancel
+- Added helpers: `_cancelPendingBookings()`, `_finalizeBakongBookings()`, `_trackPromoUsage()`, `_sendBookingNotification()`, `_sendReceiptIfNeeded()`
+
+#### 6. Supabase Config (`lib/supabase_config.dart`)
+
+- Added `bakongAccountId`, `bakongMerchantName`, `isBakongConfigured` getters
+
+#### 7. Regional Proxy (`bakong-regional-proxy/server.ts`)
+
+- Standalone Deno server for Cambodian VPS deployment
+- Forwards to Bakong production API (required because production blocks non-Cambodian IPs)
+- Deploy with: `BAKONG_ACCESS_TOKEN=xxx deno run --allow-net --allow-env server.ts`
+
+#### 8. Infrastructure
+
+- `.env`: Added `BAKONG_ACCOUNT_ID`, `BAKONG_MERCHANT_NAME`, `BAKONG_MERCHANT_CITY`
+- `pubspec.yaml`: Added `khqrcode: ^1.0.0`
+- Edge Function deployed to Supabase project
+- `BAKONG_ACCESS_TOKEN` set as Supabase secret
+- `BAKONG_API_BASE_URL` set to SIT sandbox (`https://sit-api-bakong.nbc.org.kh`) for testing
+
+### Key Decisions
+
+- Used `IndividualInfo` (not `MerchantInfo`) — no merchant ID
+- BKHR currency USD (840) — matches app prices
+- `khqrcode` pure Dart package — works across all platforms
+- Bakong token never client-side — only in Edge Function secrets
+- SIT sandbox for testing, proxy in Cambodia for production
+
+### Pending / Next Steps
+
+1. Test Bakong flow end-to-end with SIT sandbox
+2. If SIT works but production doesn't → deploy `bakong-regional-proxy/server.ts` on a Cambodian VPS and set `BAKONG_PROXY_URL` Supabase secret
+3. Remove `BAKONG_ACCESS_TOKEN` from `.env` (server-side secret, not used by Flutter)
+
 ### Running the App
 
 ```Shell
