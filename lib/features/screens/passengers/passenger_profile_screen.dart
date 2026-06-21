@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../models/wallet_model.dart';
 import '../../../providers/locale_provider.dart';
+import '../../../services/wallet_service.dart';
 import '../../../supabase_config.dart';
 import '../../widgets/animations.dart';
 import '../../auth/login_screen.dart';
+import 'wallet_screen.dart';
 
 class PassengerProfileScreen extends StatefulWidget {
   final bool isTab;
@@ -35,6 +38,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
   bool _isChangingPassword = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _userId;
 
   @override
   void initState() {
@@ -59,6 +63,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
         _navigateToLogin();
         return;
       }
+      _userId = user.id;
 
       final data = await SupabaseConfig.client
           .from('users')
@@ -572,6 +577,11 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
 
                         const SizedBox(height: 28),
 
+                        // Wallet Card
+                        _buildWalletCard(),
+
+                        const SizedBox(height: 28),
+
                         // Language Selector
                         Text(
                           context.tr.language,
@@ -742,6 +752,93 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildWalletCard() {
+    return FutureBuilder<WalletModel?>(
+      future: _userId != null ? WalletService.getWallet(_userId!) : null,
+      builder: (context, snapshot) {
+        final balance = snapshot.data?.balance ?? 0;
+        return GestureDetector(
+          onTap: () {
+            if (_userId != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => WalletScreen(userId: _userId!),
+                ),
+              );
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Wallet Balance',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        snapshot.connectionState == ConnectionState.waiting
+                            ? '...'
+                            : '\$${balance.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: 0.6),
+                  size: 28,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

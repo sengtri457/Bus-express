@@ -3,6 +3,7 @@ import '../../../l10n/tr_extension.dart';
 import 'passenger_home_screen.dart';
 import 'mytickets_screen.dart';
 import 'passenger_profile_screen.dart';
+import 'tracking_hub_screen.dart';
 
 class PassengerMainScreen extends StatefulWidget {
   final int initialIndex;
@@ -34,8 +35,9 @@ class _PassengerMainScreenState extends State<PassengerMainScreen> {
     _currentIndex = widget.initialIndex;
     _screens = [
       PassengerHomeScreen(
-        onProfileTap: () => setState(() => _currentIndex = 2),
+        onProfileTap: () => setState(() => _currentIndex = 3),
       ),
+      const TrackingHubScreen(),
       MyTicketsScreen(
         newBookingId: widget.newBookingId,
         newSeatCount: widget.newSeatCount,
@@ -83,6 +85,11 @@ class _BottomNavBar extends StatelessWidget {
       icon: Icons.directions_bus_outlined,
       activeIcon: Icons.directions_bus_rounded,
       label: context.tr.navBookBus,
+    ),
+    _NavItem(
+      icon: Icons.near_me_outlined,
+      activeIcon: Icons.near_me_rounded,
+      label: 'Tracking',
     ),
     _NavItem(
       icon: Icons.confirmation_number_outlined,

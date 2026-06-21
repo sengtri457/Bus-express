@@ -9,3 +9,5 @@ export 'operator_model.dart';
 export 'notification_model.dart';
 export 'incident_model.dart';
 export 'promotion_model.dart';
+export 'wallet_model.dart';
+export 'review_model.dart';

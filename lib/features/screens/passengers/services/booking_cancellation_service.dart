@@ -1,28 +1,33 @@
+import 'package:flutter/foundation.dart';
+
+import '../../../../services/wallet_service.dart';
 import '../../../../supabase_config.dart';
 
 enum CancelResult {
   success,
-  tooLate, // less than 2 hours before departure
-  alreadyBoarded, // passenger already scanned
+  successWithRefund,
+  tooLate,
+  alreadyBoarded,
   alreadyCancelled,
   tripStarted,
   error,
 }
 
 class CancellationService {
-  // ── Cancel a booking ────────────────────────────────────────────────────────
-  static Future<CancelResult> cancelBooking(String bookingId) async {
+  static Future<({CancelResult result, double? refundAmount})> cancelBooking(
+    String bookingId,
+  ) async {
     try {
-      // Step 1: Fetch booking + trip + schedule details
       final booking = await SupabaseConfig.client
           .from('bookings')
           .select('''
-            id, status,
+            id, status, passenger_id, total_price,
             trips (
               id, status, trip_date,
               schedules ( departure_time )
             ),
-            tickets ( id, status )
+            tickets ( id, status ),
+            payments ( id, amount, method, status )
           ''')
           .eq('id', bookingId)
           .single();
@@ -31,17 +36,20 @@ class CancellationService {
       final trip = booking['trips'] as Map<String, dynamic>?;
       final schedule = trip?['schedules'] as Map<String, dynamic>?;
       final tickets = booking['tickets'] as List?;
+      final payments = booking['payments'] as List?;
 
-      // Step 2: Guard checks
-      if (bookingStatus == 'cancelled') return CancelResult.alreadyCancelled;
-      if (bookingStatus == 'boarded') return CancelResult.alreadyBoarded;
+      if (bookingStatus == 'cancelled') {
+        return (result: CancelResult.alreadyCancelled, refundAmount: null);
+      }
+      if (bookingStatus == 'boarded') {
+        return (result: CancelResult.alreadyBoarded, refundAmount: null);
+      }
 
       final tripStatus = trip?['status'] as String? ?? '';
       if (tripStatus == 'in_progress' || tripStatus == 'completed') {
-        return CancelResult.tripStarted;
+        return (result: CancelResult.tripStarted, refundAmount: null);
       }
 
-      // Step 3: Check 2-hour cutoff
       if (trip != null && schedule != null) {
         final tripDate = trip['trip_date'] as String;
         final depTime = schedule['departure_time'] as String;
@@ -56,16 +64,18 @@ class CancellationService {
 
         final now = DateTime.now();
         final diff = departure.difference(now);
-        if (diff.inMinutes < 120) return CancelResult.tooLate;
+        if (diff.inMinutes < 120) {
+          return (result: CancelResult.tooLate, refundAmount: null);
+        }
       }
 
-      // Step 4: Cancel booking
+      final passengerId = booking['passenger_id'] as String?;
+
       await SupabaseConfig.client
           .from('bookings')
           .update({'status': 'cancelled'})
           .eq('id', bookingId);
 
-      // Step 5: Cancel ticket
       if (tickets != null && tickets.isNotEmpty) {
         await SupabaseConfig.client
             .from('tickets')
@@ -73,24 +83,58 @@ class CancellationService {
             .eq('booking_id', bookingId);
       }
 
-      // Step 6: Mark payment as refunded (if paid)
-      await SupabaseConfig.client
-          .from('payments')
-          .update({'status': 'refunded'})
-          .eq('booking_id', bookingId)
-          .eq('status', 'paid');
+      // Refund logic: credit wallet for paid Bakong payments
+      double totalRefund = 0;
+      if (payments != null && payments.isNotEmpty) {
+        for (final payment in payments) {
+          final pStatus = payment['status'] as String? ?? '';
+          final pMethod = payment['method'] as String? ?? '';
 
-      return CancelResult.success;
+          if (pStatus == 'paid') {
+            await SupabaseConfig.client
+                .from('payments')
+                .update({'status': 'refunded'})
+                .eq('id', payment['id'] as String);
+
+            // Only credit wallet for Bakong (cash is on-board, never collected)
+            if (pMethod == 'bakong' && passengerId != null) {
+              final refundAmount = (payment['amount'] as num?)?.toDouble() ?? 0;
+              if (refundAmount > 0) {
+                final ok = await WalletService.credit(
+                  userId: passengerId,
+                  amount: refundAmount,
+                  type: 'refund',
+                  referenceType: 'booking',
+                  referenceId: bookingId,
+                  description: 'Refund for cancelled booking',
+                );
+                if (ok) totalRefund += refundAmount;
+              }
+            }
+          }
+        }
+      }
+
+      if (totalRefund > 0) {
+        debugPrint('[CancellationService] Refunded \$$totalRefund'
+            ' to wallet for booking $bookingId');
+        return (result: CancelResult.successWithRefund, refundAmount: totalRefund);
+      }
+
+      return (result: CancelResult.success, refundAmount: null);
     } catch (e) {
-      return CancelResult.error;
+      debugPrint('[CancellationService] Error: $e');
+      return (result: CancelResult.error, refundAmount: null);
     }
   }
 
-  // ── Human-readable result message ───────────────────────────────────────────
-  static String messageFor(CancelResult result) {
+  static String messageFor(CancelResult result, {double? refundAmount}) {
     switch (result) {
       case CancelResult.success:
         return 'Booking cancelled successfully.';
+      case CancelResult.successWithRefund:
+        final amt = refundAmount?.toStringAsFixed(2) ?? '0.00';
+        return 'Booking cancelled. \$$amt refunded to your wallet.';
       case CancelResult.tooLate:
         return 'Cannot cancel — departure is less than 2 hours away.';
       case CancelResult.alreadyBoarded:

@@ -4,9 +4,11 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../l10n/tr_extension.dart';
+import '../../../../shared/widgets/star_rating.dart';
 import '../../../../shared/widgets/trip_status_badge.dart';
 import '../../../../supabase_config.dart';
 import '../live_tracking_screen.dart';
+import 'review_sheet.dart';
 
 class TicketDetailSheet extends StatefulWidget {
   final List<Map<String, dynamic>> bookings;
@@ -450,15 +452,77 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
   }
 }
 
-class _SingleTicketView extends StatelessWidget {
+class _SingleTicketView extends StatefulWidget {
   final Map<String, dynamic> booking;
   const _SingleTicketView({required this.booking});
 
   @override
-  Widget build(BuildContext context) {
-    final trip = booking['trips'] as Map<String, dynamic>?;
+  State<_SingleTicketView> createState() => _SingleTicketViewState();
+}
+
+class _SingleTicketViewState extends State<_SingleTicketView> {
+  Map<String, dynamic>? _review;
+  bool _loadingReview = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReview();
+  }
+
+  Future<void> _loadReview() async {
+    try {
+      final user = SupabaseConfig.client.auth.currentUser;
+      if (user == null) return;
+      final data = await SupabaseConfig.client
+          .from('reviews')
+          .select('rating, comment, driver_rating, created_at')
+          .eq('booking_id', widget.booking['id'] as String)
+          .maybeSingle();
+      if (mounted) {
+        setState(() {
+          _review = data;
+          _loadingReview = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingReview = false);
+    }
+  }
+
+  bool get _isPastTrip {
+    final ticketsList = widget.booking['tickets'] as List?;
+    if (ticketsList == null || ticketsList.isEmpty) return true;
+    final status = ticketsList.first['status'] as String? ?? '';
+    return status == 'used' || status == 'expired';
+  }
+
+  void _openReviewSheet(BuildContext context) {
+    final trip = widget.booking['trips'] as Map<String, dynamic>?;
     final schedule = trip?['schedules'] as Map<String, dynamic>?;
-    final ticketsList = booking['tickets'] as List?;
+    final route = schedule?['routes'] as Map<String, dynamic>?;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ReviewSheet(
+        bookingId: widget.booking['id'] as String,
+        tripId: trip?['id'] as String? ?? '',
+        driverId: trip?['driver_id'] as String?,
+        driverName: null,
+        origin: route?['origin'] as String? ?? '?',
+        destination: route?['destination'] as String? ?? '?',
+        onSubmitted: _loadReview,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final trip = widget.booking['trips'] as Map<String, dynamic>?;
+    final schedule = trip?['schedules'] as Map<String, dynamic>?;
+    final ticketsList = widget.booking['tickets'] as List?;
     final ticket = ticketsList != null && ticketsList.isNotEmpty
         ? ticketsList.first
         : null;
@@ -470,7 +534,7 @@ class _SingleTicketView extends StatelessWidget {
       child: Column(
         children: [
           if (ticketStatus == 'valid' && qrCode != null)
-            _QrCodeCard(bookingId: booking['id'] as String, qrCode: qrCode)
+            _QrCodeCard(bookingId: widget.booking['id'] as String, qrCode: qrCode)
           else
             _TicketStatusPlaceholder(status: ticketStatus),
           const SizedBox(height: 12),
@@ -505,12 +569,12 @@ class _SingleTicketView extends StatelessWidget {
                 const Divider(height: 16, color: AppColors.border),
                 _DetailRow(
                   label: 'Seat',
-                  value: booking['seat_number'] as String,
+                  value: widget.booking['seat_number'] as String,
                 ),
                 const Divider(height: 16, color: AppColors.border),
                 _DetailRow(
                   label: context.tr.ticketDetailTicketPrice,
-                  value: '\$${(booking['total_price'] as num).toStringAsFixed(2)}',
+                  value: '\$${(widget.booking['total_price'] as num).toStringAsFixed(2)}',
                 ),
                 const Divider(height: 16, color: AppColors.border),
                 _DetailRow(
@@ -522,8 +586,99 @@ class _SingleTicketView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _InfoBanner(status: ticketStatus),
+          if (_isPastTrip) ...[
+            const SizedBox(height: 20),
+            _buildReviewSection(context),
+          ],
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReviewSection(BuildContext context) {
+    if (_loadingReview) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: AppRadius.lgR,
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (_review != null) {
+      final rating = _review!['rating'] as int;
+      final comment = _review!['comment'] as String? ?? '';
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: AppRadius.lgR,
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.star_rounded,
+                    size: 16, color: Color(0xFFF59E0B)),
+                const SizedBox(width: 6),
+                Text(
+                  'Your Review',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            StarRating(rating: rating, size: 18, spacing: 2),
+            if (comment.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                comment,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => _openReviewSheet(context),
+        icon: const Icon(Icons.star_border_rounded, size: 18),
+        label: const Text(
+          'Rate this trip',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF59E0B),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
     );
   }

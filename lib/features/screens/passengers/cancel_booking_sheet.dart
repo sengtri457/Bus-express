@@ -61,21 +61,29 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
   Future<void> _performCancellation() async {
     setState(() => _isLoading = true);
 
-    final result = await CancellationService.cancelBooking(widget.bookingId);
+    final res = await CancellationService.cancelBooking(widget.bookingId);
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result == CancelResult.success) {
-      Navigator.pop(context); // close sheet
-      _showSuccessDialog();
+    Navigator.pop(context);
+
+    if (res.result == CancelResult.success ||
+        res.result == CancelResult.successWithRefund) {
+      _showSuccessDialog(
+        refundAmount: res.refundAmount,
+      );
     } else {
-      Navigator.pop(context); // close sheet
-      _showErrorSnack(CancellationService.messageFor(result), result);
+      _showErrorSnack(
+        CancellationService.messageFor(res.result),
+        res.result,
+      );
     }
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialog({double? refundAmount}) {
+    final hasRefund = refundAmount != null && refundAmount > 0;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -90,18 +98,20 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
+                  color: hasRefund
+                      ? const Color(0xFFF0FDF4)
+                      : const Color(0xFFFEE2E2),
                   borderRadius: BorderRadius.circular(50),
                 ),
-                child: const Icon(
-                  Icons.cancel_rounded,
-                  color: Color(0xFFEF4444),
+                child: Icon(
+                  hasRefund ? Icons.account_balance_wallet_rounded : Icons.cancel_rounded,
+                  color: hasRefund ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                   size: 40,
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                context.tr.cancelSuccessTitle,
+                hasRefund ? 'Refund Processed' : context.tr.cancelSuccessTitle,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -110,7 +120,11 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
               ),
               const SizedBox(height: 12),
               Text(
-                context.tr.cancelSuccessDesc(widget.origin, widget.destination, widget.seatNumber),
+                context.tr.cancelSuccessDesc(
+                  widget.origin,
+                  widget.destination,
+                  widget.seatNumber,
+                ),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
@@ -118,35 +132,84 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      color: Color(0xFF059669),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        context.tr.cancelSuccessNote,
-                        style: const TextStyle(
+              if (hasRefund) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Refunded to Wallet',
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF065F46),
-                          height: 1.5,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6B7280),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '\$${refundAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF065F46),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.account_balance_wallet_rounded,
+                              size: 14, color: Color(0xFF059669)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Use it for your next booking',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF059669),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ] else ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        color: Color(0xFF059669),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          context.tr.cancelSuccessNote,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF065F46),
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
