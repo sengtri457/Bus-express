@@ -103,68 +103,46 @@ serve(async (req: Request) => {
 
     console.log("[Bakong] Response body:", JSON.stringify(bakongBody));
 
-    // Try direct fields first
-    let responseCode = bakongBody?.responseCode;
-    let data = bakongBody?.data;
+    // Bakong check_transaction_by_md5 returns responseCode=0 with populated
+    // data when paid. The data contains hash, fromAccountId, toAccountId, etc.
+    // A non-zero responseCode or null/empty data means not found/unpaid.
+    const responseCode = bakongBody?.responseCode;
+    const data = bakongBody?.data;
 
-    // Some Bakong responses wrap result in a "data" object
-    if (data && typeof data === "object" && !Array.isArray(data)) {
+    // Check if data is a Map with a hash → transaction was paid
+    if (
+      responseCode === 0 &&
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data)
+    ) {
       const dataObj = data as Record<string, unknown>;
-      if (dataObj.responseCode !== undefined) {
-        responseCode = dataObj.responseCode;
-      }
-      if (dataObj.status !== undefined) {
-        const extractedStatus = dataObj.status;
+      const hash = dataObj?.hash as string | undefined;
+      if (hash && hash.length > 0) {
         return jsonResponse({
-          status: extractedStatus === "PAID" ? "PAID" : "NOT_PAID",
-          transaction_id: dataObj.transaction_id ?? null,
+          status: "PAID",
+          transaction_id: hash,
           amount: dataObj.amount ?? null,
           currency: dataObj.currency ?? null,
-          _source: "data_wrapper",
+          _source: "data_with_hash",
         });
       }
     }
 
-    // Also check if data is an array with one element
+    // Data as array — check first element for hash
     if (Array.isArray(data) && data.length > 0) {
       const firstItem = data[0] as Record<string, unknown>;
-      if (firstItem.status === "PAID") {
+      const hash = firstItem?.hash as string | undefined;
+      if (hash && hash.length > 0) {
         return jsonResponse({
           status: "PAID",
-          transaction_id: firstItem.transaction_id ?? null,
+          transaction_id: hash,
           amount: firstItem.amount ?? null,
           currency: firstItem.currency ?? null,
-          _source: "data_array",
+          _source: "data_array_hash",
         });
       }
-      if (responseCode === 0) {
-        return jsonResponse({ status: "NOT_PAID", _source: "data_array" });
-      }
-    }
-
-    // Direct field parsing
-    if (responseCode === 0) {
-      const bakongStatus = (bakongBody?.status as string)?.toUpperCase() ?? "";
-
-      if (bakongStatus === "PAID") {
-        return jsonResponse({
-          status: "PAID",
-          transaction_id: bakongBody?.transaction_id ?? null,
-          amount: bakongBody?.amount ?? null,
-          currency: bakongBody?.currency ?? null,
-          _source: "direct",
-        });
-      }
-
-      if (bakongStatus === "FAILED" || bakongStatus === "FAIL") {
-        return jsonResponse({
-          status: "FAILED",
-          reason: (bakongBody?.reason as string) ?? "Transaction failed",
-          _source: "direct",
-        });
-      }
-
-      return jsonResponse({ status: "NOT_PAID", _source: "direct" });
+      return jsonResponse({ status: "NOT_PAID", _source: "data_array" });
     }
 
     return jsonResponse({ status: "NOT_PAID", _source: "fallback" });

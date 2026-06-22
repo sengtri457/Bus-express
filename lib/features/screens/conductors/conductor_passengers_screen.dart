@@ -59,7 +59,7 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
   int get _confirmedCount =>
       _passengers.where((p) => p['status'] == 'confirmed').length;
 
-  // Manually mark as boarded (for cash walk-in or conductor override)
+  // Manually mark as boarded
   Future<void> _markBoarded(String bookingId, String ticketId) async {
     try {
       await SupabaseConfig.client

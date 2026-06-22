@@ -211,52 +211,24 @@ class BakongPaymentService {
       final bakongJson = jsonDecode(response.body) as Map<String, dynamic>;
       debugPrint('[Bakong]   Direct JSON: $bakongJson');
 
-      // Parse Bakong API response (supports multiple formats)
       final responseCode = bakongJson['responseCode'];
       final data = bakongJson['data'];
-      var bakongStatus = '';
 
-      // Check nested data wrapper
-      if (data is Map<String, dynamic>) {
-        bakongStatus = (data['status'] as String?) ?? '';
-        debugPrint('[Bakong]   data is Map, status="$bakongStatus"');
-        if (bakongStatus == 'PAID') {
-          debugPrint('[Bakong]   ✓ PAID from data wrapper');
+      // Bakong check_transaction_by_md5 returns responseCode=0 with populated
+      // data when the transaction was paid (hash, fromAccountId, toAccountId,
+      // amount, acknowledgedDateMs all present). A null/empty data or non-zero
+      // responseCode means not found / unpaid.
+      if (responseCode == 0 && data is Map<String, dynamic>) {
+        final hash = data['hash'] as String?;
+        if (hash != null && hash.isNotEmpty) {
+          debugPrint('[Bakong]   ✓ PAID (responseCode=0, data.hash present)');
           return Success(BakongTransactionStatus.paid(
-            transactionId: data['transaction_id'] as String?,
+            transactionId: data['hash'] as String?,
           ));
         }
       }
 
-      // Check data as array
-      if (data is List && data.isNotEmpty) {
-        final first = data[0] as Map<String, dynamic>;
-        bakongStatus = (first['status'] as String?) ?? '';
-        debugPrint('[Bakong]   data is List, first status="$bakongStatus"');
-        if (bakongStatus == 'PAID') {
-          debugPrint('[Bakong]   ✓ PAID from data array');
-          return Success(BakongTransactionStatus.paid(
-            transactionId: first['transaction_id'] as String?,
-          ));
-        }
-      }
-
-      // Check top-level fields
-      bakongStatus = (bakongJson['status'] as String?) ?? '';
-      debugPrint('[Bakong]   top-level status="$bakongStatus", responseCode=$responseCode');
-      if (bakongStatus == 'PAID') {
-        debugPrint('[Bakong]   ✓ PAID from top-level');
-        return Success(BakongTransactionStatus.paid(
-          transactionId: bakongJson['transaction_id'] as String?,
-        ));
-      }
-
-      if (responseCode == 0) {
-        debugPrint('[Bakong]   - Found but NOT_PAID (responseCode=0)');
-        return Success(BakongTransactionStatus.notPaid());
-      }
-
-      debugPrint('[Bakong]   - NOT_PAID (responseCode=$responseCode, status="$bakongStatus")');
+      debugPrint('[Bakong]   - NOT_PAID (responseCode=$responseCode)');
       return Success(BakongTransactionStatus.notPaid());
     } catch (e) {
       debugPrint('[Bakong]   ✗ Direct check threw: $e');

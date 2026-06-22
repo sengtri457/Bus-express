@@ -7,6 +7,7 @@ import '../../../../l10n/tr_extension.dart';
 import '../../../../shared/widgets/star_rating.dart';
 import '../../../../shared/widgets/trip_status_badge.dart';
 import '../../../../supabase_config.dart';
+import '../cancel_booking_sheet.dart';
 import '../live_tracking_screen.dart';
 import 'review_sheet.dart';
 
@@ -27,7 +28,6 @@ class TicketDetailSheet extends StatefulWidget {
 class _TicketDetailSheetState extends State<TicketDetailSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isCancelling = false;
 
   @override
   void initState() {
@@ -81,191 +81,19 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
     );
   }
 
-  Future<void> _cancelBookings() async {
-    final trip = widget.bookings.first['trips'] as Map<String, dynamic>?;
-    final schedule = trip?['schedules'] as Map<String, dynamic>?;
-
-    if (trip != null && schedule != null) {
-      final tripDate = trip['trip_date'] as String;
-      final depTime = schedule['departure_time'] as String;
-      final depParts = depTime.split(':');
-      final departure = DateTime(
-        int.parse(tripDate.split('-')[0]),
-        int.parse(tripDate.split('-')[1]),
-        int.parse(tripDate.split('-')[2]),
-        int.parse(depParts[0]),
-        int.parse(depParts[1]),
-      );
-      if (departure.difference(DateTime.now()).inMinutes < 120) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.tr.ticketDetailCancelTooLate,
-            ),
-            backgroundColor: AppColors.warning,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-    }
-
-    setState(() => _isCancelling = true);
-
-    try {
-      for (final booking in widget.bookings) {
-        final bookingId = booking['id'] as String;
-        await SupabaseConfig.client
-            .from('bookings')
-            .update({'status': 'cancelled'})
-            .eq('id', bookingId);
-        await SupabaseConfig.client
-            .from('tickets')
-            .update({'status': 'cancelled'})
-            .eq('booking_id', bookingId);
-      }
-
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onRefresh();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.bookings.length > 1
-                  ? context.tr.ticketDetailCancelledPlural(widget.bookings.length)
-                  : context.tr.ticketDetailCancelledSingular,
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isCancelling = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr.ticketDetailErrorPrefix('$e')),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _confirmAndCancel() async {
+  void _showCancelSheet() {
     final trip = widget.bookings.first['trips'] as Map<String, dynamic>?;
     final schedule = trip?['schedules'] as Map<String, dynamic>?;
     final route = schedule?['routes'] as Map<String, dynamic>?;
-    final isMulti = widget.bookings.length > 1;
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.lgR),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: const Icon(
-                  Icons.warning_amber_rounded,
-                  color: AppColors.warning,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                isMulti
-                    ? context.tr.ticketDetailConfirmCancelTitlePlural(widget.bookings.length)
-                    : context.tr.ticketDetailConfirmCancelTitleSingular,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${route?['origin'] ?? '?'} → ${route?['destination'] ?? '?'}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              if (isMulti) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Seats: ${widget.bookings.map((b) => b['seat_number']).join(', ')}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED),
-                  borderRadius: AppRadius.smR,
-                  border: Border.all(color: const Color(0xFFFED7AA)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.access_time_rounded, color: Color(0xFFF97316), size: 14),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        context.tr.ticketDetailConfirmPolicy,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF9A3412),
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(context.tr.ticketDetailKeepIt),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.error,
-                      ),
-                      child: Text(context.tr.ticketDetailYesCancel),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    CancelBookingSheet.show(
+      context,
+      bookings: widget.bookings,
+      origin: route?['origin'] as String? ?? '?',
+      destination: route?['destination'] as String? ?? '?',
+      tripDate: trip?['trip_date'] as String? ?? '',
+      onCancelled: widget.onRefresh,
     );
-
-    if (confirm == true) _cancelBookings();
   }
 
   @override
@@ -382,17 +210,8 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
                       width: double.infinity,
                       height: 44,
                       child: OutlinedButton.icon(
-                        onPressed: _isCancelling ? null : _confirmAndCancel,
-                        icon: _isCancelling
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.error,
-                                ),
-                              )
-                            : const Icon(Icons.cancel_outlined, size: 18),
+                        onPressed: _showCancelSheet,
+                        icon: const Icon(Icons.cancel_outlined, size: 18),
                         label: Text(
                           isMulti
                               ? context.tr.ticketDetailCancelAll(widget.bookings.length)
@@ -579,7 +398,7 @@ class _SingleTicketViewState extends State<_SingleTicketView> {
                 const Divider(height: 16, color: AppColors.border),
                 _DetailRow(
                   label: context.tr.ticketDetailPayment,
-                  value: context.tr.bookingCashOnBoard,
+                  value: 'Bakong KHQR',
                 ),
               ],
             ),

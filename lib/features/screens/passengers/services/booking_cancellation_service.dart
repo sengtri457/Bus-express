@@ -83,33 +83,27 @@ class CancellationService {
             .eq('booking_id', bookingId);
       }
 
-      // Refund logic: credit wallet for paid Bakong payments
+      // Refund: credit wallet for all paid payments (Bakong only, cash removed)
       double totalRefund = 0;
       if (payments != null && payments.isNotEmpty) {
         for (final payment in payments) {
-          final pStatus = payment['status'] as String? ?? '';
-          final pMethod = payment['method'] as String? ?? '';
-
-          if (pStatus == 'paid') {
+          if (payment['status'] == 'paid' && passengerId != null) {
             await SupabaseConfig.client
                 .from('payments')
                 .update({'status': 'refunded'})
                 .eq('id', payment['id'] as String);
 
-            // Only credit wallet for Bakong (cash is on-board, never collected)
-            if (pMethod == 'bakong' && passengerId != null) {
-              final refundAmount = (payment['amount'] as num?)?.toDouble() ?? 0;
-              if (refundAmount > 0) {
-                final ok = await WalletService.credit(
-                  userId: passengerId,
-                  amount: refundAmount,
-                  type: 'refund',
-                  referenceType: 'booking',
-                  referenceId: bookingId,
-                  description: 'Refund for cancelled booking',
-                );
-                if (ok) totalRefund += refundAmount;
-              }
+            final refundAmount = (payment['amount'] as num?)?.toDouble() ?? 0;
+            if (refundAmount > 0) {
+              final ok = await WalletService.credit(
+                userId: passengerId,
+                amount: refundAmount,
+                type: 'refund',
+                referenceType: 'booking',
+                referenceId: bookingId,
+                description: 'Refund for cancelled booking',
+              );
+              if (ok) totalRefund += refundAmount;
             }
           }
         }

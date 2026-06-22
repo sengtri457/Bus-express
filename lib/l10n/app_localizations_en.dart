@@ -525,12 +525,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookingPayment => 'Payment';
 
   @override
-  String get bookingCashOnBoard => 'Cash on Board';
-
-  @override
-  String get bookingPayConductor => 'Pay the conductor when boarding';
-
-  @override
   String get bookingPromoCodeHint => 'Promo code';
 
   @override
@@ -885,7 +879,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancelSuccessNote =>
-      'Cash bookings are cancelled instantly. No refund is required since payment was on board.';
+      'Your booking has been cancelled. If payment was made, the refund will be credited to your wallet.';
 
   @override
   String get cancelSheetDone => 'Done';
@@ -1043,7 +1037,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ticketDetailInfoValid =>
-      'Show this QR code to the conductor. Pay cash when boarding.';
+      'Show this QR code to the conductor when boarding.';
 
   @override
   String get ticketDetailInfoUsed =>

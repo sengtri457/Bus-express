@@ -525,12 +525,6 @@ class AppLocalizationsKm extends AppLocalizations {
   String get bookingPayment => 'ការទូទាត់';
 
   @override
-  String get bookingCashOnBoard => 'ទូទាត់លើឡាន';
-
-  @override
-  String get bookingPayConductor => 'ទូទាត់ទៅអ្នកដឹកអ្នកដំណើរពេលឡើងឡាន';
-
-  @override
   String get bookingPromoCodeHint => 'លេខកូដផ្សព្វផ្សាយ';
 
   @override
@@ -887,7 +881,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get cancelSuccessNote =>
-      'ការកក់ជាសាច់ប្រាក់ត្រូវបានលុបចោលភ្លាមៗ។ មិនតម្រូវឱ្យមានការសងប្រាក់វិញទេព្រោះការទូទាត់គឺនៅលើឡាន។';
+      'ការកក់របស់អ្នកត្រូវបានលុបចោល។ ប្រសិនបើមានការទូទាត់រួចហើយ ប្រាក់នឹងត្រូវបានបង្វិលសងទៅកាន់កាបូបរបស់អ្នក។';
 
   @override
   String get cancelSheetDone => 'រួចរាល់';
@@ -1045,7 +1039,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get ticketDetailInfoValid =>
-      'បង្ហាញ QR កូដនេះទៅអ្នកដឹកអ្នកដំណើរ។ ទូទាត់សាច់ប្រាក់ពេលឡើងឡាន។';
+      'បង្ហាញ QR កូដនេះទៅអ្នកដឹកអ្នកដំណើរពេលឡើងឡាន។';
 
   @override
   String get ticketDetailInfoUsed =>

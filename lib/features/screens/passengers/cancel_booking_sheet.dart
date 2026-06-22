@@ -3,36 +3,28 @@ import '../../../core/utils/date_helpers.dart';
 import '../../../l10n/tr_extension.dart';
 import 'services/booking_cancellation_service.dart';
 
-/// Call this from any screen:
-/// CancelBookingSheet.show(context, bookingId: '...', onCancelled: () { ... });
 class CancelBookingSheet extends StatefulWidget {
-  final String bookingId;
+  final List<Map<String, dynamic>> bookings;
   final String origin;
   final String destination;
   final String tripDate;
-  final String seatNumber;
-  final double totalPrice;
   final VoidCallback onCancelled;
 
   const CancelBookingSheet({
     super.key,
-    required this.bookingId,
+    required this.bookings,
     required this.origin,
     required this.destination,
     required this.tripDate,
-    required this.seatNumber,
-    required this.totalPrice,
     required this.onCancelled,
   });
 
   static Future<void> show(
     BuildContext context, {
-    required String bookingId,
+    required List<Map<String, dynamic>> bookings,
     required String origin,
     required String destination,
     required String tripDate,
-    required String seatNumber,
-    required double totalPrice,
     required VoidCallback onCancelled,
   }) {
     return showModalBottomSheet(
@@ -40,12 +32,10 @@ class CancelBookingSheet extends StatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => CancelBookingSheet(
-        bookingId: bookingId,
+        bookings: bookings,
         origin: origin,
         destination: destination,
         tripDate: tripDate,
-        seatNumber: seatNumber,
-        totalPrice: totalPrice,
         onCancelled: onCancelled,
       ),
     );
@@ -58,31 +48,53 @@ class CancelBookingSheet extends StatefulWidget {
 class _CancelBookingSheetState extends State<CancelBookingSheet> {
   bool _isLoading = false;
 
+  List<String> get _bookingIds =>
+      widget.bookings.map((b) => b['id'] as String).toList();
+
+  List<String> get _seatNumbers =>
+      widget.bookings.map((b) => b['seat_number'] as String).toList();
+
+  double get _totalPrice =>
+      widget.bookings.fold(0.0, (s, b) => s + (b['total_price'] as num).toDouble());
+
+  bool get _isMulti => widget.bookings.length > 1;
+
   Future<void> _performCancellation() async {
     setState(() => _isLoading = true);
 
-    final res = await CancellationService.cancelBooking(widget.bookingId);
+    double totalRefund = 0;
+    bool anySuccess = false;
+    String? firstError;
+
+    for (final id in _bookingIds) {
+      final res = await CancellationService.cancelBooking(id);
+      if (res.result == CancelResult.successWithRefund) {
+        totalRefund += res.refundAmount ?? 0;
+        anySuccess = true;
+      } else if (res.result == CancelResult.success) {
+        anySuccess = true;
+      } else {
+        firstError ??= CancellationService.messageFor(res.result);
+      }
+    }
 
     if (!mounted) return;
     setState(() => _isLoading = false);
-
     Navigator.pop(context);
 
-    if (res.result == CancelResult.success ||
-        res.result == CancelResult.successWithRefund) {
-      _showSuccessDialog(
-        refundAmount: res.refundAmount,
-      );
+    if (anySuccess) {
+      _showSuccessDialog(refundAmount: totalRefund > 0 ? totalRefund : null);
     } else {
       _showErrorSnack(
-        CancellationService.messageFor(res.result),
-        res.result,
+        firstError ?? context.tr.cancelServiceError,
+        CancelResult.error,
       );
     }
   }
 
   void _showSuccessDialog({double? refundAmount}) {
     final hasRefund = refundAmount != null && refundAmount > 0;
+    final seatsText = _isMulti ? _seatNumbers.join(', ') : _seatNumbers.first;
 
     showDialog(
       context: context,
@@ -120,11 +132,11 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
               ),
               const SizedBox(height: 12),
               Text(
-                context.tr.cancelSuccessDesc(
-                  widget.origin,
-                  widget.destination,
-                  widget.seatNumber,
-                ),
+                _isMulti
+                    ? context.tr.cancelSuccessDesc(
+                        widget.origin, widget.destination, seatsText)
+                    : context.tr.cancelSuccessDesc(
+                        widget.origin, widget.destination, seatsText),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
@@ -349,13 +361,13 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 _SummaryRow(
                   icon: Icons.event_seat_rounded,
                   label: context.tr.cancelSheetSeat,
-                  value: widget.seatNumber,
+                  value: _seatNumbers.join(', '),
                 ),
                 const Divider(height: 16, color: Color(0xFFE5E7EB)),
                 _SummaryRow(
                   icon: Icons.attach_money_rounded,
                   label: context.tr.cancelSheetAmount,
-                  value: '\$${widget.totalPrice.toStringAsFixed(2)}',
+                  value: '\$${_totalPrice.toStringAsFixed(2)}',
                 ),
               ],
             ),

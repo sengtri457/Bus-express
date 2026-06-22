@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -12,18 +14,40 @@ class TrackingHubScreen extends StatefulWidget {
   State<TrackingHubScreen> createState() => _TrackingHubScreenState();
 }
 
-class _TrackingHubScreenState extends State<TrackingHubScreen> {
+class _TrackingHubScreenState extends State<TrackingHubScreen>
+    with WidgetsBindingObserver {
   List<BookingModel> _activeBookings = [];
   bool _loading = true;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _load();
+      _refreshTimer ??=
+          Timer.periodic(const Duration(seconds: 15), (_) => _load());
+    } else if (state == AppLifecycleState.paused) {
+      _refreshTimer?.cancel();
+      _refreshTimer = null;
+    }
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     try {
       final user = SupabaseConfig.client.auth.currentUser;
       if (user == null) return;
@@ -47,11 +71,13 @@ class _TrackingHubScreenState extends State<TrackingHubScreen> {
           .inFilter('status', ['confirmed', 'boarded'])
           .order('booked_at', ascending: false);
 
-      _activeBookings = (data as List)
+      final bookings = (data as List)
           .map((e) => BookingModel.fromMap(e as Map<String, dynamic>))
           .where((b) =>
               b.trip?.status == 'in_progress' || b.trip?.status == 'scheduled')
           .toList();
+
+      if (mounted) setState(() => _activeBookings = bookings);
     } catch (_) {}
 
     if (mounted) setState(() => _loading = false);

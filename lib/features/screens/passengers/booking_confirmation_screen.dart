@@ -70,8 +70,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   bool _isValidatingPromo = false;
   String? _promoError;
 
-  // Payment method: 'cash' or 'bakong'
-  String _paymentMethod = 'cash';
+  // Always Bakong QR (cash on board removed)
 
   double get _pricePerSeat => (widget.schedule['price'] as num).toDouble();
   double get _totalPrice => _pricePerSeat * widget.seatNumbers.length;
@@ -368,12 +367,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         tripId = newTrip['id'] as String;
       }
 
-      // Step 2: Branch by payment method
-      if (_paymentMethod == 'cash') {
-        await _completeCashBooking(tripId: tripId, user: user);
-      } else {
-        await _startBakongBooking(tripId: tripId, user: user);
-      }
+      // Step 2: Bakong QR payment (cash on board removed)
+      await _startBakongBooking(tripId: tripId, user: user);
     } on PostgrestException catch (e) {
       _showError(context.tr.bookingFailedGeneric(e.message));
     } catch (e) {
@@ -381,89 +376,6 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _completeCashBooking({
-    required String tripId,
-    required User user,
-  }) async {
-    String firstBookingId = '';
-    final List<Map<String, dynamic>> receiptBookings = [];
-    final now = DateTime.now();
-    final nowStr = now.toIso8601String();
-
-    for (final seat in widget.seatNumbers) {
-      final booking = await SupabaseConfig.client
-          .from('bookings')
-          .insert({
-            'trip_id': tripId,
-            'passenger_id': user.id,
-            'seat_number': seat,
-            'status': 'confirmed',
-            'total_price': _pricePerSeat,
-            'booked_at': nowStr,
-            'booking_channel': 'online',
-            'passenger_name': _nameController.text.trim(),
-            'passenger_age': int.tryParse(_ageController.text.trim()),
-            'passenger_phone': _phoneController.text.trim(),
-            'passenger_nationality': _nationalityController.text.trim(),
-          })
-          .select('id')
-          .maybeSingle();
-
-      if (booking == null) {
-        throw Exception(context.tr.bookingFailedCreateBooking(seat));
-      }
-
-      final bookingId = booking['id'] as String;
-      if (firstBookingId.isEmpty) firstBookingId = bookingId;
-
-      await SupabaseConfig.client.from('payments').insert({
-        'booking_id': bookingId,
-        'amount': _pricePerSeat - _discountPerSeat,
-        'method': 'cash',
-        'status': 'pending',
-      });
-
-      final qrCode =
-          'BUS-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
-      await SupabaseConfig.client.from('tickets').insert({
-        'booking_id': bookingId,
-        'qr_code': qrCode,
-        'status': 'valid',
-      });
-
-      receiptBookings.add({
-        'id': bookingId,
-        'seat_number': seat,
-        'status': 'confirmed',
-        'total_price': _pricePerSeat,
-        'booked_at': nowStr,
-        'trips': {
-          'id': tripId,
-          'trip_date': widget.date.toIso8601String().split('T')[0],
-          'status': 'scheduled',
-          'schedules': widget.schedule,
-        },
-      });
-    }
-
-    await _trackPromoUsage(user.id);
-    _sendBookingNotification(user.id, firstBookingId);
-    await _sendReceiptIfNeeded(receiptBookings);
-
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PassengerMainScreen(
-          initialIndex: 1,
-          newBookingId: firstBookingId,
-          newSeatCount: widget.seatNumbers.length,
-        ),
-      ),
-      (route) => route.isFirst,
-    );
   }
 
   Future<void> _startBakongBooking({
@@ -1098,28 +1010,45 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
             // Payment
             _SectionCard(
               title: context.tr.bookingPayment,
-              icon: Icons.payment_rounded,
+              icon: Icons.qr_code_rounded,
               child: Column(
                 children: [
-                  // Payment method selector
-                  Column(
-                    children: [
-                      _PaymentMethodOption(
-                        icon: Icons.payments_outlined,
-                        title: context.tr.bookingCashOnBoard,
-                        subtitle: context.tr.bookingPayConductor,
-                        isSelected: _paymentMethod == 'cash',
-                        onTap: () => setState(() => _paymentMethod = 'cash'),
-                      ),
-                      const SizedBox(height: 10),
-                      _PaymentMethodOption(
-                        icon: Icons.qr_code_rounded,
-                        title: 'Bakong KHQR',
-                        subtitle: 'Pay now via Bakong-enabled banking app',
-                        isSelected: _paymentMethod == 'bakong',
-                        onTap: () => setState(() => _paymentMethod = 'bakong'),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.qr_code_rounded, color: const Color(0xFF10B981), size: 22),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Bakong KHQR',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF065F46),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                'Pay now via Bakong-enabled banking app',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF059669),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -1607,87 +1536,6 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: 16),
           child,
         ],
-      ),
-    );
-  }
-}
-
-class _PaymentMethodOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _PaymentMethodOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = isSelected
-        ? const Color(0xFFF0FDF4)
-        : const Color(0xFFF9FAFB);
-    final borderColor = isSelected
-        ? const Color(0xFFBBF7D0)
-        : const Color(0xFFE5E7EB);
-    final iconColor = isSelected
-        ? const Color(0xFF10B981)
-        : const Color(0xFF9CA3AF);
-    final titleColor = isSelected
-        ? const Color(0xFF065F46)
-        : const Color(0xFF374151);
-    final subtitleColor = isSelected
-        ? const Color(0xFF059669)
-        : const Color(0xFF6B7280);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: titleColor,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: subtitleColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Color(0xFF10B981),
-                size: 20,
-              ),
-          ],
-        ),
       ),
     );
   }

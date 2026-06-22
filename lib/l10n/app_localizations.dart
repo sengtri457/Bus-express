@@ -1064,18 +1064,6 @@ abstract class AppLocalizations {
   /// **'Payment'**
   String get bookingPayment;
 
-  /// No description provided for @bookingCashOnBoard.
-  ///
-  /// In en, this message translates to:
-  /// **'Cash on Board'**
-  String get bookingCashOnBoard;
-
-  /// No description provided for @bookingPayConductor.
-  ///
-  /// In en, this message translates to:
-  /// **'Pay the conductor when boarding'**
-  String get bookingPayConductor;
-
   /// No description provided for @bookingPromoCodeHint.
   ///
   /// In en, this message translates to:
@@ -1684,7 +1672,7 @@ abstract class AppLocalizations {
   /// No description provided for @cancelSuccessNote.
   ///
   /// In en, this message translates to:
-  /// **'Cash bookings are cancelled instantly. No refund is required since payment was on board.'**
+  /// **'Your booking has been cancelled. If payment was made, the refund will be credited to your wallet.'**
   String get cancelSuccessNote;
 
   /// No description provided for @cancelSheetDone.
@@ -1954,7 +1942,7 @@ abstract class AppLocalizations {
   /// No description provided for @ticketDetailInfoValid.
   ///
   /// In en, this message translates to:
-  /// **'Show this QR code to the conductor. Pay cash when boarding.'**
+  /// **'Show this QR code to the conductor when boarding.'**
   String get ticketDetailInfoValid;
 
   /// No description provided for @ticketDetailInfoUsed.

@@ -88,8 +88,8 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     super.initState();
     _capacity = widget.schedule['buses']?['capacity'] ?? 30;
     _loadBookedSeats();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() {});
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _loadBookedSeats();
     });
   }
 

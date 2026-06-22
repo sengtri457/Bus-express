@@ -53,7 +53,7 @@ class BookingRepository extends BaseRepository {
           .from('bookings')
           .select('seat_number')
           .eq('trip_id', tripId)
-          .inFilter('status', ['confirmed', 'boarded']);
+          .inFilter('status', ['confirmed', 'boarded', 'pending']);
       final seats = data.map((e) => e['seat_number'] as String).toList();
       return Success(seats);
     } catch (e) {
