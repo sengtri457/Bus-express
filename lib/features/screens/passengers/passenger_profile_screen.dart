@@ -410,7 +410,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                         ? null
                                         : _updateProfile,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF2563EB),
+                                      backgroundColor: AppColors.primaryBlue,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
@@ -483,7 +483,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                       _obscurePassword
                                           ? Icons.visibility_off_outlined
                                           : Icons.visibility_outlined,
-                                      color: const Color(0xFF94A3B8),
+                                      color: AppColors.textMuted,
                                     ),
                                     onPressed: () {
                                       setState(
@@ -514,7 +514,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
                                       _obscureConfirmPassword
                                           ? Icons.visibility_off_outlined
                                           : Icons.visibility_outlined,
-                                      color: const Color(0xFF94A3B8),
+                                      color: AppColors.textMuted,
                                     ),
                                     onPressed: () {
                                       setState(
@@ -695,7 +695,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF64748B),
+            color: AppColors.textSoft,
           ),
         ),
         const SizedBox(height: 6),
@@ -708,12 +708,12 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: enabled ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+            color: enabled ? const Color(0xFF1E293B) : AppColors.textMuted,
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
-            prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
+            hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
+            prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
             fillColor: enabled
@@ -734,7 +734,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: Color(0xFF2563EB),
+                color: AppColors.primaryBlue,
                 width: 1.5,
               ),
             ),
@@ -775,14 +775,14 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+                colors: [Color(0xFF1E3A5F), AppColors.primaryBlue],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                  color: AppColors.primaryBlue.withValues(alpha: 0.25),
                   blurRadius: 14,
                   offset: const Offset(0, 6),
                 ),
@@ -869,7 +869,7 @@ class _LanguageTile extends StatelessWidget {
               isSelected
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
-              color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
+              color: isSelected ? AppColors.primaryBlue : AppColors.textMuted,
               size: 22,
             ),
             const SizedBox(width: 14),
@@ -880,7 +880,7 @@ class _LanguageTile extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: isSelected
                     ? const Color(0xFF1E293B)
-                    : const Color(0xFF64748B),
+                    : AppColors.textSoft,
               ),
             ),
             const Spacer(),
@@ -890,7 +890,7 @@ class _LanguageTile extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: isSelected
-                    ? const Color(0xFF2563EB)
+                    ? AppColors.primaryBlue
                     : const Color(0xFFCBD5E1),
                 letterSpacing: 1.2,
               ),

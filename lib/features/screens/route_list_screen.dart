@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_helpers.dart';
@@ -257,19 +258,28 @@ class _RouteListScreenState extends State<RouteListScreen> {
                 _SortChip(
                   label: 'Departure',
                   isSelected: _sortBy == 'departure',
-                  onTap: () => setState(() => _sortBy = 'departure'),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _sortBy = 'departure');
+                  },
                 ),
                 const SizedBox(width: 8),
                 _SortChip(
                   label: 'Price',
                   isSelected: _sortBy == 'price',
-                  onTap: () => setState(() => _sortBy = 'price'),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _sortBy = 'price');
+                  },
                 ),
                 const SizedBox(width: 8),
                 _SortChip(
                   label: 'Duration',
                   isSelected: _sortBy == 'duration',
-                  onTap: () => setState(() => _sortBy = 'duration'),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _sortBy = 'duration');
+                  },
                 ),
               ],
             ),
@@ -332,8 +342,8 @@ class _SortChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF2563EB)
-              : const Color(0xFFF1F5F9),
+              ? AppColors.primaryBlue
+              : AppColors.surfaceGrey,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -341,7 +351,7 @@ class _SortChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
+            color: isSelected ? Colors.white : AppColors.textSoft,
           ),
         ),
       ),
@@ -438,7 +448,7 @@ class _ScheduleCard extends StatelessWidget {
                                               : 'O',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
-                                            color: Color(0xFF2563EB),
+                                            color: AppColors.primaryBlue,
                                             fontSize: 16,
                                           ),
                                         ),
@@ -461,7 +471,7 @@ class _ScheduleCard extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF2563EB),
+                                  color: AppColors.primaryBlue,
                                 ),
                               ),
                             ),
@@ -480,7 +490,7 @@ class _ScheduleCard extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
+                                    color: AppColors.darkSlate,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -488,7 +498,7 @@ class _ScheduleCard extends StatelessWidget {
                                   route['origin'],
                                   style: const TextStyle(
                                     fontSize: 11,
-                                    color: Color(0xFF64748B),
+                                    color: AppColors.textSoft,
                                   ),
                                 ),
                               ],
@@ -507,7 +517,7 @@ class _ScheduleCard extends StatelessWidget {
                                       style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF94A3B8),
+                                        color: AppColors.textMuted,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -519,10 +529,10 @@ class _ScheduleCard extends StatelessWidget {
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: [
-                                                const Color(0xFF2563EB)
+                                                AppColors.primaryBlue
                                                     .withValues(alpha: 0.3),
-                                                const Color(0xFF2563EB),
-                                                const Color(0xFF2563EB)
+                                                AppColors.primaryBlue,
+                                                AppColors.primaryBlue
                                                     .withValues(alpha: 0.3),
                                               ],
                                             ),
@@ -542,7 +552,7 @@ class _ScheduleCard extends StatelessWidget {
                                           child: const Icon(
                                             Icons.directions_bus_rounded,
                                             size: 14,
-                                            color: Color(0xFF2563EB),
+                                            color: AppColors.primaryBlue,
                                           ),
                                         ),
                                       ],
@@ -561,7 +571,7 @@ class _ScheduleCard extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
+                                    color: AppColors.darkSlate,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -569,7 +579,7 @@ class _ScheduleCard extends StatelessWidget {
                                   route['destination'],
                                   style: const TextStyle(
                                     fontSize: 11,
-                                    color: Color(0xFF64748B),
+                                    color: AppColors.textSoft,
                                   ),
                                 ),
                               ],
@@ -587,7 +597,7 @@ class _ScheduleCard extends StatelessWidget {
                                   const Icon(
                                     Icons.business_rounded,
                                     size: 13,
-                                    color: Color(0xFF94A3B8),
+                                    color: AppColors.textMuted,
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
@@ -598,7 +608,7 @@ class _ScheduleCard extends StatelessWidget {
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: Color(0xFF64748B),
+                                        color: AppColors.textSoft,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -616,7 +626,7 @@ class _ScheduleCard extends StatelessWidget {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF2563EB),
+                                    color: AppColors.primaryBlue,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text(
@@ -669,7 +679,7 @@ class _EmptyView extends StatelessWidget {
               child: const Icon(
                 Icons.search_off_rounded,
                 size: 44,
-                color: Color(0xFF2563EB),
+                color: AppColors.primaryBlue,
               ),
             ),
             const SizedBox(height: 20),
@@ -695,8 +705,8 @@ class _EmptyView extends StatelessWidget {
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF2563EB),
-                side: const BorderSide(color: Color(0xFF2563EB)),
+                foregroundColor: AppColors.primaryBlue,
+                side: const BorderSide(color: AppColors.primaryBlue),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -731,7 +741,7 @@ class _ErrorView extends StatelessWidget {
             const Icon(
               Icons.error_outline_rounded,
               size: 48,
-              color: Color(0xFFEF4444),
+              color: AppColors.error,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -755,7 +765,7 @@ class _ErrorView extends StatelessWidget {
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: AppColors.primaryBlue,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(

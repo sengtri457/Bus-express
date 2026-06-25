@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
 import '../../../l10n/tr_extension.dart';
 import 'services/booking_cancellation_service.dart';
@@ -117,7 +118,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 ),
                 child: Icon(
                   hasRefund ? Icons.account_balance_wallet_rounded : Icons.cancel_rounded,
-                  color: hasRefund ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  color: hasRefund ? const Color(0xFF10B981) : AppColors.error,
                   size: 40,
                 ),
               ),
@@ -127,7 +128,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
+                  color: AppColors.textDark,
                 ),
               ),
               const SizedBox(height: 12),
@@ -140,7 +141,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF6B7280),
+                  color: AppColors.textSecondary,
                   height: 1.6,
                 ),
               ),
@@ -160,7 +161,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -232,7 +233,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                     widget.onCancelled();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: AppColors.primaryBlue,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -258,7 +259,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
             result == CancelResult.alreadyBoarded ||
             result == CancelResult.tripStarted
         ? const Color(0xFFF59E0B)
-        : const Color(0xFFEF4444);
+        : AppColors.error;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -297,7 +298,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB),
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -324,14 +325,14 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
+              color: AppColors.textDark,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             context.tr.cancelSheetConfirm,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
 
@@ -340,9 +341,9 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.background,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               children: [
@@ -351,19 +352,19 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                   label: context.tr.cancelSheetRoute,
                   value: '${widget.origin} → ${widget.destination}',
                 ),
-                const Divider(height: 16, color: Color(0xFFE5E7EB)),
+                const Divider(height: 16, color: AppColors.border),
                  _SummaryRow(
                   icon: Icons.calendar_today_rounded,
                   label: context.tr.bookingDate,
                   value: DateHelpers.formatDate(widget.tripDate),
                 ),
-                const Divider(height: 16, color: Color(0xFFE5E7EB)),
+                const Divider(height: 16, color: AppColors.border),
                 _SummaryRow(
                   icon: Icons.event_seat_rounded,
                   label: context.tr.cancelSheetSeat,
                   value: _seatNumbers.join(', '),
                 ),
-                const Divider(height: 16, color: Color(0xFFE5E7EB)),
+                const Divider(height: 16, color: AppColors.border),
                 _SummaryRow(
                   icon: Icons.attach_money_rounded,
                   label: context.tr.cancelSheetAmount,
@@ -413,8 +414,8 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 child: OutlinedButton(
                   onPressed: _isLoading ? null : () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF6B7280),
-                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    foregroundColor: AppColors.textSecondary,
+                    side: const BorderSide(color: AppColors.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -431,7 +432,7 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _performCancellation,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
+                    backgroundColor: AppColors.error,
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: const Color(0xFFFCA5A5),
                     elevation: 0,
@@ -480,11 +481,11 @@ class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 15, color: const Color(0xFF9CA3AF)),
+        Icon(icon, size: 15, color: AppColors.textHint),
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         const Spacer(),
         Text(
@@ -492,7 +493,7 @@ class _SummaryRow extends StatelessWidget {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
+            color: AppColors.textDark,
           ),
         ),
       ],

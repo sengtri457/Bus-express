@@ -89,12 +89,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD1FAE5),
+                  color: AppColors.successGreenLight,
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: const Icon(
                   Icons.check_circle_rounded,
-                  color: Color(0xFF10B981),
+                  color: AppColors.successGreen,
                   size: 40,
                 ),
               ),
@@ -104,7 +104,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2563EB),
+                  color: AppColors.primaryBlue,
                 ),
               ),
               const SizedBox(height: 12),
@@ -113,7 +113,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF6B7280),
+                  color: AppColors.textSecondary,
                   height: 1.6,
                 ),
               ),
@@ -129,7 +129,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: AppColors.primaryBlue,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -138,7 +138,10 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   child: Text(
                     context.tr.goToLogin,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -159,7 +162,7 @@ class _SignupScreenState extends State<SignupScreen> {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -192,7 +195,7 @@ class _SignupScreenState extends State<SignupScreen> {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_rounded,
-            color: Color(0xFF2563EB),
+            color: AppColors.primaryBlue,
             size: 20,
           ),
           onPressed: () {
@@ -229,23 +232,26 @@ class _SignupScreenState extends State<SignupScreen> {
                       offset: 20,
                       child: Center(
                         child: Container(
-                          width: 76,
-                          height: 76,
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.all(12),
+                          width: 88,
+                          height: 88,
                           decoration: BoxDecoration(
-                            gradient: AppGradients.primaryBlue,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(22),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF2563EB).withOpacity(0.2),
+                                color: Colors.black.withValues(alpha: 0.12),
                                 blurRadius: 15,
                                 offset: const Offset(0, 6),
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.directions_bus_rounded,
-                            size: 42,
-                            color: Colors.white,
+                          child: Image.asset(
+                            'assets/images/Logobus.png',
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
@@ -264,7 +270,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
+                              color: AppColors.darkSlate,
                               letterSpacing: -0.8,
                             ),
                           ),
@@ -274,7 +280,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 15,
-                              color: Color(0xFF64748B),
+                              color: AppColors.textSoft,
                               fontWeight: FontWeight.w400,
                             ),
                           ),
@@ -295,7 +301,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: AppColors.warmGrey),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.03),
@@ -319,7 +325,8 @@ class _SignupScreenState extends State<SignupScreen> {
                                   if (v == null || v.isEmpty) {
                                     return context.tr.fullNameRequired;
                                   }
-                                  if (v.length < 2) return context.tr.nameTooShort;
+                                  if (v.length < 2)
+                                    return context.tr.nameTooShort;
                                   return null;
                                 },
                               ),
@@ -345,7 +352,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 child: ElevatedButton(
                                   onPressed: _nextStep,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2563EB),
+                                    backgroundColor: AppColors.primaryBlue,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
@@ -450,7 +457,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                       onChanged: (v) => setState(
                                         () => _agreedToTerms = v ?? false,
                                       ),
-                                      activeColor: const Color(0xFF2563EB),
+                                      activeColor: AppColors.primaryBlue,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(4),
                                       ),
@@ -462,7 +469,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                       text: TextSpan(
                                         style: const TextStyle(
                                           fontSize: 13,
-                                          color: Color(0xFF64748B),
+                                          color: AppColors.textSoft,
                                           height: 1.4,
                                           fontFamily: 'Inter',
                                         ),
@@ -471,15 +478,17 @@ class _SignupScreenState extends State<SignupScreen> {
                                           TextSpan(
                                             text: context.tr.termsAndConditions,
                                             style: const TextStyle(
-                                              color: Color(0xFF2563EB),
+                                              color: AppColors.primaryBlue,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                          TextSpan(text: context.tr.andConjunction),
+                                          TextSpan(
+                                            text: context.tr.andConjunction,
+                                          ),
                                           TextSpan(
                                             text: context.tr.privacyPolicy,
                                             style: const TextStyle(
-                                              color: Color(0xFF2563EB),
+                                              color: AppColors.primaryBlue,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -498,7 +507,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 child: ElevatedButton(
                                   onPressed: _isLoading ? null : _signup,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2563EB),
+                                    backgroundColor: AppColors.primaryBlue,
                                     foregroundColor: Colors.white,
                                     disabledBackgroundColor: const Color(
                                       0xFF93C5FD,
@@ -541,7 +550,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           Text(
                             context.tr.alreadyHaveAccount,
                             style: const TextStyle(
-                              color: Color(0xFF64748B),
+                              color: AppColors.textSoft,
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
@@ -556,7 +565,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             child: Text(
                               context.tr.signInLink,
                               style: const TextStyle(
-                                color: Color(0xFF2563EB),
+                                color: AppColors.primaryBlue,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
                               ),
@@ -587,16 +596,24 @@ class _StepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StepDot(step: 0, currentStep: currentStep, label: context.tr.stepPersonal),
+        _StepDot(
+          step: 0,
+          currentStep: currentStep,
+          label: context.tr.stepPersonal,
+        ),
         Expanded(
           child: Container(
             height: 2,
             color: currentStep >= 1
-                ? const Color(0xFF2563EB)
-                : const Color(0xFFE2E8F0),
+                ? AppColors.primaryBlue
+                : AppColors.warmGrey,
           ),
         ),
-        _StepDot(step: 1, currentStep: currentStep, label: context.tr.stepAccount),
+        _StepDot(
+          step: 1,
+          currentStep: currentStep,
+          label: context.tr.stepAccount,
+        ),
       ],
     );
   }
@@ -621,7 +638,7 @@ class _StepDot extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+            color: isActive ? AppColors.primaryBlue : AppColors.warmGrey,
             borderRadius: BorderRadius.circular(50),
           ),
           child: Center(
@@ -642,7 +659,7 @@ class _StepDot extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 11,
-            color: isActive ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
+            color: isActive ? AppColors.primaryBlue : const Color(0xFF94A3B8),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -686,13 +703,13 @@ class _PasswordStrengthIndicator extends StatelessWidget {
     switch (_strength) {
       case 0:
       case 1:
-        return const Color(0xFFEF4444);
+        return AppColors.error;
       case 2:
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case 3:
-        return const Color(0xFF3B82F6);
+        return AppColors.info;
       case 4:
-        return const Color(0xFF10B981);
+        return AppColors.successGreen;
       default:
         return const Color(0xFFE5E7EB);
     }
@@ -709,7 +726,7 @@ class _PasswordStrengthIndicator extends StatelessWidget {
           children: [
             Text(
               context.tr.passwordStrengthLabel,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             Text(
               _labelText(context),

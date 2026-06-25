@@ -70,14 +70,11 @@ class AuthRepository extends BaseRepository {
 
   Future<Result<UserModel>> signInWithGoogle() async {
     try {
-      if (kIsWeb) {
-        await client.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: Uri.base.toString(),
-        );
-      } else {
-        await client.auth.signInWithOAuth(OAuthProvider.google);
-      }
+      await client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo:
+            kIsWeb ? Uri.base.toString() : 'io.supabase.busbooking://login-callback/',
+      );
 
       final user = client.auth.currentUser;
       if (user == null) return const Failure('Google sign in failed');

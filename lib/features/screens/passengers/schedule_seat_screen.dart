@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
@@ -139,6 +140,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
   }
 
   void _toggleSeat(String seat) {
+    HapticFeedback.lightImpact();
     setState(() {
       if (_selectedSeats.contains(seat)) {
         _selectedSeats.remove(seat);
@@ -149,11 +151,12 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
   }
 
   void _proceedToBooking() {
+    HapticFeedback.mediumImpact();
     if (_selectedSeats.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.tr.schedulePleaseSelectSeat),
-          backgroundColor: const Color(0xFFEF4444),
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -293,20 +296,20 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _LegendItem(
-                              color: const Color(0xFFE5E7EB),
+                              color: AppColors.border,
                               label: context.tr.scheduleAvailable,
                             ),
                             const SizedBox(width: 20),
                             _LegendItem(
-                              color: const Color(0xFF2563EB),
+                              color: AppColors.primaryBlue,
                               label: context.tr.scheduleSelected,
                             ),
                             const SizedBox(width: 20),
                             _LegendItem(
                               color:
-                                  const Color(0xFFEF4444).withValues(alpha: 0.15),
+                                  AppColors.error.withValues(alpha: 0.15),
                               label: context.tr.scheduleBooked,
-                              textColor: const Color(0xFFEF4444),
+                              textColor: AppColors.error,
                             ),
                           ],
                         ),
@@ -367,7 +370,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                                 availableCount: _capacity - _bookedSeats.length,
                               ),
                               const SizedBox(height: 16),
-                              const Divider(color: Color(0xFFF3F4F6)),
+                              const Divider(color: AppColors.divider),
                               const SizedBox(height: 16),
                               const _ColumnHeaders(),
                               const SizedBox(height: 8),
@@ -430,7 +433,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF2563EB),
+                        color: AppColors.primaryBlue,
                       ),
                     ),
                     if (_selectedSeats.length > 1) ...[
@@ -454,9 +457,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                 child: ElevatedButton(
                   onPressed: _isExpired ? null : _proceedToBooking,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: AppColors.primaryBlue,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFFE5E7EB),
+                    disabledBackgroundColor: AppColors.border,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -500,16 +503,16 @@ class _SeatWidget extends StatelessWidget {
 
     switch (status) {
       case SeatStatus.available:
-        bgColor = const Color(0xFFF9FAFB);
+        bgColor = AppColors.background;
         textColor = const Color(0xFF374151);
-        borderColor = const Color(0xFFE5E7EB);
+        borderColor = AppColors.border;
       case SeatStatus.selected:
-        bgColor = const Color(0xFF2563EB);
+        bgColor = AppColors.primaryBlue;
         textColor = Colors.white;
-        borderColor = const Color(0xFF2563EB);
+        borderColor = AppColors.primaryBlue;
       case SeatStatus.booked:
         bgColor = const Color(0xFFFEF2F2);
-        textColor = const Color(0xFFEF4444);
+        textColor = AppColors.error;
         borderColor = const Color(0xFFFECACA);
     }
 
@@ -528,10 +531,10 @@ class _SeatWidget extends StatelessWidget {
               Icons.event_seat_rounded,
               size: 18,
               color: status == SeatStatus.booked
-                  ? const Color(0xFFEF4444).withValues(alpha: 0.5)
+                  ? AppColors.error.withValues(alpha: 0.5)
                   : status == SeatStatus.selected
                       ? Colors.white
-                      : const Color(0xFF9CA3AF),
+                      : AppColors.textHint,
             ),
             const SizedBox(height: 2),
             Text(
@@ -614,36 +617,36 @@ class _FrontIndicator extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F7FF),
+            color: AppColors.surfaceSoft,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Color(0xFFBFDBFE)),
+            border: Border.all(color: AppColors.primaryBlueBorder),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.directions_bus_rounded,
-                  size: 16, color: Color(0xFF2563EB)),
+                  size: 16, color: AppColors.primaryBlue),
               const SizedBox(width: 6),
               Text(context.tr.scheduleFrontLabel,
                   style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF2563EB))),
+                      color: AppColors.primaryBlue)),
               const SizedBox(width: 4),
               Container(
                 width: 1,
                 height: 12,
-                color: const Color(0xFFBFDBFE),
+                color: AppColors.primaryBlueBorder,
               ),
               const SizedBox(width: 4),
               const Icon(Icons.meeting_room_rounded,
-                  size: 14, color: Color(0xFF2563EB)),
+                  size: 14, color: AppColors.primaryBlue),
               const SizedBox(width: 4),
               Text(context.tr.scheduleDoorLabel,
                   style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2563EB))),
+                      color: AppColors.primaryBlue)),
             ],
           ),
         ),
@@ -651,14 +654,14 @@ class _FrontIndicator extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F7FF),
+            color: AppColors.surfaceSoft,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             context.tr.scheduleSeatsLeft(availableCount),
             style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF2563EB),
+                color: AppColors.primaryBlue,
                 fontWeight: FontWeight.w600),
           ),
         ),
@@ -689,7 +692,7 @@ class _ColumnHeaders extends StatelessWidget {
           style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF9CA3AF))),
+              color: AppColors.textHint)),
     );
   }
 
@@ -701,7 +704,7 @@ class _ColumnHeaders extends StatelessWidget {
           width: 2,
           height: 24,
           decoration: BoxDecoration(
-            color: const Color(0xFFE5E7EB),
+            color: AppColors.border,
             borderRadius: BorderRadius.circular(1),
           ),
         ),
@@ -778,15 +781,15 @@ class _SeatGrid extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: const Color(0xFFF3F4F6)),
+          border: Border.all(color: AppColors.divider),
         ),
         child: Center(
           child: Container(
             width: 2,
             decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB).withValues(alpha: 0.6),
+              color: AppColors.border.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(1),
             ),
           ),
@@ -805,21 +808,21 @@ class _BackIndicator extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.directions_bus_rounded,
-                size: 14, color: const Color(0xFF9CA3AF)),
+                size: 14, color: AppColors.textHint),
             const SizedBox(width: 6),
             Text(context.tr.scheduleBackLabel,
                 style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF9CA3AF))),
+                    color: AppColors.textHint)),
           ],
         ),
       ),

@@ -270,7 +270,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
           ),
           child: const Icon(
             Icons.account_balance_rounded,
-            color: Color(0xFF2563EB),
+            color: AppColors.primaryBlue,
             size: 28,
           ),
         ),
@@ -280,7 +280,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
+            color: AppColors.textDark,
           ),
         ),
       ],
@@ -302,7 +302,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF6B7280),
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -347,7 +347,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(color: AppColors.border),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.06),
@@ -367,11 +367,11 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
                     backgroundColor: Colors.white,
                     eyeStyle: const QrEyeStyle(
                       eyeShape: QrEyeShape.square,
-                      color: Color(0xFF111827),
+                      color: AppColors.textDark,
                     ),
                     dataModuleStyle: const QrDataModuleStyle(
                       dataModuleShape: QrDataModuleShape.square,
-                      color: Color(0xFF111827),
+                      color: AppColors.textDark,
                     ),
                   ),
                 ),
@@ -382,7 +382,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
+                    color: AppColors.divider,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Row(
@@ -391,14 +391,14 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
                       Icon(
                         Icons.security_rounded,
                         size: 14,
-                        color: Color(0xFF6B7280),
+                        color: AppColors.textSecondary,
                       ),
                       SizedBox(width: 6),
                       Text(
                         'Scan with any Bakong-enabled app',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -452,7 +452,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
         color: isLow ? const Color(0xFFFEF2F2) : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isLow ? const Color(0xFFFECACA) : const Color(0xFFE5E7EB),
+          color: isLow ? const Color(0xFFFECACA) : AppColors.border,
         ),
       ),
       child: Row(
@@ -460,7 +460,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
           Icon(
             isLow ? Icons.timer_off_rounded : Icons.timer_rounded,
             size: 18,
-            color: isLow ? const Color(0xFFEF4444) : const Color(0xFF6B7280),
+            color: isLow ? AppColors.error : AppColors.textSecondary,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -479,7 +479,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
               fontSize: 16,
               fontWeight: FontWeight.w700,
               fontFamily: 'monospace',
-              color: isLow ? const Color(0xFFDC2626) : const Color(0xFF111827),
+              color: isLow ? const Color(0xFFDC2626) : AppColors.textDark,
             ),
           ),
         ],
@@ -495,23 +495,23 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
 
     if (_isSuccess) {
       bgColor = const Color(0xFFF0FDF4);
-      iconColor = const Color(0xFF10B981);
+      iconColor = AppColors.successGreen;
       icon = Icons.check_circle_rounded;
       text = 'Payment confirmed! Redirecting...';
     } else if (_isPolling) {
       bgColor = const Color(0xFFEFF6FF);
-      iconColor = const Color(0xFF2563EB);
+      iconColor = AppColors.primaryBlue;
       icon = Icons.hourglass_top_rounded;
       text = 'Checking payment...';
     } else if (_statusMessage.contains('failed') ||
         _statusMessage.contains('Failed')) {
       bgColor = const Color(0xFFFEF2F2);
-      iconColor = const Color(0xFFEF4444);
+      iconColor = AppColors.error;
       icon = Icons.error_outline_rounded;
       text = _statusMessage;
     } else {
       bgColor = const Color(0xFFF9FAFB);
-      iconColor = const Color(0xFF9CA3AF);
+      iconColor = AppColors.textHint;
       icon = Icons.qr_code_scanner_rounded;
       text = 'Waiting for you to scan & pay';
     }
@@ -557,7 +557,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
             const Icon(
               Icons.timer_off_rounded,
               size: 72,
-              color: Color(0xFFEF4444),
+              color: AppColors.error,
             ),
             const SizedBox(height: 20),
             const Text(
@@ -565,7 +565,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+                color: AppColors.textDark,
               ),
             ),
             const SizedBox(height: 10),
@@ -574,7 +574,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF6B7280),
+                color: AppColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -586,7 +586,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
               icon: const Icon(Icons.arrow_back_rounded),
               label: const Text('Go Back'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: AppColors.primaryBlue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 28,
@@ -629,7 +629,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('I\'ve Paid — Check Now'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: AppColors.primaryBlue,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: const Color(0xFF93C5FD),
                 elevation: 0,
@@ -649,7 +649,7 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
             child: const Text(
               'Cancel Payment',
               style: TextStyle(
-                color: Color(0xFFEF4444),
+                color: AppColors.error,
                 fontWeight: FontWeight.w500,
               ),
             ),

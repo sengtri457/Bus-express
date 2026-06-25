@@ -279,6 +279,56 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
           .update(updatePayload)
           .eq('id', _trip['id']);
 
+      if (initialLat != null && initialLng != null) {
+        final driverId = SupabaseConfig.client.auth.currentUser?.id;
+        if (driverId != null) {
+          await SupabaseConfig.client.from('driver_locations').upsert({
+            'driver_id': driverId,
+            'latitude': initialLat,
+            'longitude': initialLng,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+            'trip_id': _trip['id'],
+            'heading': _currentPosition?.heading ?? 0.0,
+            'speed': _currentPosition?.speed ?? 0.0,
+          });
+
+          try {
+            final profile = await SupabaseConfig.client
+                .from('users')
+                .select('operator_id, name')
+                .eq('id', driverId)
+                .single();
+            final operatorId = profile['operator_id'];
+            final driverName = profile['name'] ?? 'Driver';
+
+            if (operatorId != null) {
+              final admins = await SupabaseConfig.client
+                  .from('users')
+                  .select('id')
+                  .eq('operator_id', operatorId)
+                  .eq('role', 'operator_admin');
+
+              for (final admin in admins) {
+                final adminId = admin['id'] as String?;
+                if (adminId != null) {
+                  await SupabaseConfig.client.from('notifications').insert({
+                    'user_id': adminId,
+                    'title': 'Trip Started',
+                    'body': '$driverName has started their scheduled trip.',
+                    'type': 'trip_started',
+                    'reference_type': 'trip',
+                    'reference_id': _trip['id'],
+                    'created_at': DateTime.now().toIso8601String(),
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('Failed to insert operator notification: $e');
+          }
+        }
+      }
+
       setState(() {
         _trip['status'] = 'in_progress';
         _trip['departed_at'] = DateTime.now().toIso8601String();
@@ -329,6 +379,44 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
           })
           .eq('id', _trip['id']);
 
+      final driverId = SupabaseConfig.client.auth.currentUser?.id;
+      if (driverId != null) {
+        try {
+          final profile = await SupabaseConfig.client
+              .from('users')
+              .select('operator_id, name')
+              .eq('id', driverId)
+              .single();
+          final operatorId = profile['operator_id'];
+          final driverName = profile['name'] ?? 'Driver';
+
+          if (operatorId != null) {
+            final admins = await SupabaseConfig.client
+                .from('users')
+                .select('id')
+                .eq('operator_id', operatorId)
+                .eq('role', 'operator_admin');
+
+            for (final admin in admins) {
+              final adminId = admin['id'] as String?;
+              if (adminId != null) {
+                await SupabaseConfig.client.from('notifications').insert({
+                  'user_id': adminId,
+                  'title': 'Trip Completed',
+                  'body': '$driverName has successfully completed their trip.',
+                  'type': 'trip_completed',
+                  'reference_type': 'trip',
+                  'reference_id': _trip['id'],
+                  'created_at': DateTime.now().toIso8601String(),
+                });
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Failed to insert operator notification: $e');
+        }
+      }
+
       _stopGPSTracking();
 
       setState(() {
@@ -364,6 +452,19 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
               'longitude': position.longitude,
             })
             .eq('id', _trip['id']);
+
+        final driverId = SupabaseConfig.client.auth.currentUser?.id;
+        if (driverId != null) {
+          await SupabaseConfig.client.from('driver_locations').upsert({
+            'driver_id': driverId,
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+            'trip_id': _trip['id'],
+            'heading': position.heading,
+            'speed': position.speed,
+          });
+        }
 
         if (mounted) setState(() => _currentPosition = position);
       } catch (e) {

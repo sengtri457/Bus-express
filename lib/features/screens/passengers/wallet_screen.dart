@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/wallet_model.dart';
 import '../../../services/wallet_service.dart';
+import '../../widgets/animations.dart';
 
 class WalletScreen extends StatefulWidget {
   final String userId;
@@ -42,7 +43,7 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
@@ -54,7 +55,16 @@ class _WalletScreenState extends State<WalletScreen> {
             style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SingleChildScrollView(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  ShimmerBox(height: 180, borderRadius: 20),
+                  SizedBox(height: 24),
+                  SkeletonBlock(rows: 3),
+                ],
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _load,
               child: CustomScrollView(
@@ -87,14 +97,14 @@ class _WalletScreenState extends State<WalletScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+          colors: [Color(0xFF1E3A5F), AppColors.primaryBlue],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+            color: AppColors.primaryBlue.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -153,14 +163,14 @@ class _WalletScreenState extends State<WalletScreen> {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Row(
         children: [
-          const Icon(Icons.history_rounded, size: 18, color: Color(0xFF6B7280)),
+          const Icon(Icons.history_rounded, size: 18, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           const Text(
             'Transaction History',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
+              color: AppColors.textDark,
             ),
           ),
           const Spacer(),
@@ -169,7 +179,7 @@ class _WalletScreenState extends State<WalletScreen> {
               '${_transactions.length} entries',
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF9CA3AF),
+                color: AppColors.textHint,
               ),
             ),
         ],
@@ -191,7 +201,7 @@ class _WalletScreenState extends State<WalletScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF6B7280),
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 6),
@@ -219,23 +229,23 @@ class _WalletScreenState extends State<WalletScreen> {
     switch (txn.type) {
       case 'refund':
         icon = Icons.replay_rounded;
-        iconColor = const Color(0xFF059669);
+        iconColor = AppColors.successGreen;
         break;
       case 'payment':
         icon = Icons.arrow_upward_rounded;
-        iconColor = const Color(0xFFDC2626);
+        iconColor = AppColors.error;
         break;
       case 'top_up':
         icon = Icons.add_circle_rounded;
-        iconColor = const Color(0xFF059669);
+        iconColor = AppColors.successGreen;
         break;
       case 'withdrawal':
         icon = Icons.logout_rounded;
-        iconColor = const Color(0xFFDC2626);
+        iconColor = AppColors.error;
         break;
       default:
         icon = Icons.swap_horiz_rounded;
-        iconColor = const Color(0xFF6B7280);
+        iconColor = AppColors.textSecondary;
     }
 
     return Container(
@@ -266,7 +276,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
+                    color: AppColors.textDark,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -274,7 +284,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   dateStr,
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.textHint,
                   ),
                 ),
               ],
@@ -285,7 +295,7 @@ class _WalletScreenState extends State<WalletScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: isCredit ? const Color(0xFF059669) : const Color(0xFFDC2626),
+              color: isCredit ? AppColors.successGreen : AppColors.error,
             ),
           ),
         ],

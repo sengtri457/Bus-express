@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -39,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
 
     setState(() => _isLoading = true);
 
@@ -64,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final redirectUrl = kIsWeb ? Uri.base.toString() : null;
+      final redirectUrl = kIsWeb ? Uri.base.toString() : 'io.supabase.busbooking://login-callback/';
       final launched = await AuthRepository().client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirectUrl,
@@ -142,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.surfaceLight,
       body: Stack(
         children: [
           Positioned.fill(
@@ -170,28 +172,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         duration: const Duration(milliseconds: 500),
                         offset: 20,
                         child: Center(
-                          child: Container(
-                            width: 76,
-                            height: 76,
-                            decoration: BoxDecoration(
-                              gradient: AppGradients.primaryBlue,
-                              borderRadius: BorderRadius.circular(22),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF2563EB,
-                                  ).withValues(alpha: 0.2),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.all(12),
+                              width: 88,
+                              height: 88,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(22),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.12),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Image.asset(
+                                'assets/images/Logobus.png',
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.contain,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.directions_bus_rounded,
-                              size: 42,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -206,7 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
+                                color: AppColors.darkSlate,
                                 letterSpacing: -0.8,
                               ),
                             ),
@@ -216,7 +219,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 15,
-                                color: Color(0xFF64748B),
+                                color: AppColors.textSoft,
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
@@ -231,7 +234,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: AppColors.warmGrey),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.03),
@@ -271,8 +274,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   if (v == null || v.isEmpty) {
                                     return context.tr.passwordRequired;
                                   }
-                                  if (v.length < 6) {
-                                    return context.tr.passwordMinLength;
+                                  if (v.length < 8) {
+                                    return context.tr.passwordMinLength8;
+                                  }
+                                  if (!v.contains(RegExp(r'[A-Z]'))) {
+                                    return context.tr.includeUppercase;
+                                  }
+                                  if (!v.contains(RegExp(r'[0-9]'))) {
+                                    return context.tr.includeNumber;
                                   }
                                   return null;
                                 },
@@ -297,7 +306,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   child: Text(
                                     context.tr.forgotPasswordLink,
                                     style: const TextStyle(
-                                      color: Color(0xFF2563EB),
+                                      color: AppColors.primaryBlue,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
                                     ),
@@ -338,7 +347,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Row(
                           children: [
                             const Expanded(
-                              child: Divider(color: Color(0xFFE2E8F0)),
+                              child: Divider(color: AppColors.warmGrey),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
@@ -348,15 +357,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 context.tr.orDivider,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: const Color(
-                                    0xFF94A3B8,
-                                  ).withValues(alpha: 0.8),
+                                  color: AppColors.textMuted.withValues(alpha: 0.8),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
                             const Expanded(
-                              child: Divider(color: Color(0xFFE2E8F0)),
+                              child: Divider(color: AppColors.warmGrey),
                             ),
                           ],
                         ),
@@ -371,7 +378,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: OutlinedButton.icon(
                             onPressed: _isLoading ? null : _signInWithGoogle,
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF1F2937),
+                              foregroundColor: AppColors.textPrimary,
                               side: const BorderSide(color: Color(0xFFD1D5DB)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -413,7 +420,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Text(
                               context.tr.dontHaveAccount,
                               style: const TextStyle(
-                                color: Color(0xFF64748B),
+                                color: AppColors.textSoft,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -428,7 +435,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: Text(
                                 context.tr.signUpLink,
                                 style: const TextStyle(
-                                  color: Color(0xFF2563EB),
+                                  color: AppColors.primaryBlue,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 15,
                                 ),

@@ -58,27 +58,36 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
             id, trip_id, passenger_id, seat_number, status, total_price,
             booked_at, booking_channel,
             passenger_name, passenger_age, passenger_phone, passenger_nationality,
-            trips (
+            trips!inner (
               id, trip_date, status,
               schedules (
                 id, departure_time, arrival_time,
-                routes ( origin, destination )
+                routes ( id, name, origin, destination )
               ),
               buses ( plate_number )
             )
           ''')
           .eq('passenger_id', user.id)
           .inFilter('status', ['confirmed', 'boarded'])
+          .inFilter('trips.status', ['in_progress', 'scheduled'])
           .order('booked_at', ascending: false);
 
       final bookings = (data as List)
-          .map((e) => BookingModel.fromMap(e as Map<String, dynamic>))
-          .where((b) =>
-              b.trip?.status == 'in_progress' || b.trip?.status == 'scheduled')
+          .map((e) {
+            try {
+              return BookingModel.fromMap(e as Map<String, dynamic>);
+            } catch (e2, st) {
+              debugPrint('[TrackingHub] skip bad booking: $e2\n$st');
+              return null;
+            }
+          })
+          .whereType<BookingModel>()
           .toList();
 
       if (mounted) setState(() => _activeBookings = bookings);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[TrackingHub] _load error: $e');
+    }
 
     if (mounted) setState(() => _loading = false);
   }

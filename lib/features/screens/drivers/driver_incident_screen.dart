@@ -200,6 +200,41 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
         'created_at': DateTime.now().toIso8601String(),
       });
 
+      try {
+        final profile = await SupabaseConfig.client
+            .from('users')
+            .select('operator_id, name')
+            .eq('id', user.id)
+            .single();
+        final operatorId = profile['operator_id'];
+        final driverName = profile['name'] ?? 'Driver';
+
+        if (operatorId != null) {
+          final admins = await SupabaseConfig.client
+              .from('users')
+              .select('id')
+              .eq('operator_id', operatorId)
+              .eq('role', 'operator_admin');
+
+          for (final admin in admins) {
+            final adminId = admin['id'] as String?;
+            if (adminId != null) {
+              await SupabaseConfig.client.from('notifications').insert({
+                'user_id': adminId,
+                'title': 'Incident Reported',
+                'body': '$driverName reported: $_selectedType. $finalDesc',
+                'type': 'incident',
+                'reference_type': 'trip',
+                'reference_id': widget.tripId,
+                'created_at': DateTime.now().toIso8601String(),
+              });
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to insert operator notification: $e');
+      }
+
       unawaited(_notifyPassengersOfIncident());
 
       if (!mounted) return;

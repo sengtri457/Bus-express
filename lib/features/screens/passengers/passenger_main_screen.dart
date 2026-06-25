@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../l10n/tr_extension.dart';
+import '../../../core/theme/app_theme.dart';
 import 'passenger_home_screen.dart';
 import 'mytickets_screen.dart';
 import 'passenger_profile_screen.dart';
@@ -25,9 +27,9 @@ class _PassengerMainScreenState extends State<PassengerMainScreen> {
   int _currentIndex = 0;
   late List<Widget> _screens;
 
-  static const _primaryColor = Color(0xFF2563EB);
+  static const _primaryColor = AppColors.primaryBlue;
   static const _inactiveColor = Color(0xFFCBD5E1);
-  static const _navBgColor = Colors.white;
+  static const _navBgColor = AppColors.surface;
 
   @override
   void initState() {
@@ -52,7 +54,10 @@ class _PassengerMainScreenState extends State<PassengerMainScreen> {
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: _BottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          HapticFeedback.lightImpact();
+          setState(() => _currentIndex = index);
+        },
         primaryColor: _primaryColor,
         inactiveColor: _inactiveColor,
         backgroundColor: _navBgColor,

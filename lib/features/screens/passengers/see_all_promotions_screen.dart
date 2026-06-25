@@ -88,8 +88,8 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
     const colors = [
       Color(0xFF5B5251),
       Color(0xFF5B5251),
-      Color(0xFF1E293B),
-      Color(0xFF1E293B),
+      AppColors.textDark,
+      AppColors.textDark,
       Color(0xFF065F46),
       Color(0xFF991B1B),
     ];
@@ -99,7 +99,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.surfaceLight,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -127,14 +127,14 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                       Icon(
                         Icons.discount_outlined,
                         size: 64,
-                        color: const Color(0xFF9CA3AF),
+                        color: AppColors.textHint,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         context.tr.promotionsNoPromotions,
                         style: const TextStyle(
                           fontSize: 16,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -143,7 +143,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                         context.tr.promotionsNoPromotionsSub,
                         style: const TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF9CA3AF),
+                          color: AppColors.textHint,
                         ),
                       ),
                     ],
@@ -151,7 +151,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                 )
               : RefreshIndicator(
                   onRefresh: _loadPromotions,
-                  color: const Color(0xFF2563EB),
+                  color: AppColors.primaryBlue,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(20),
                     itemCount: _promotions.length,
@@ -243,7 +243,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                                                   const Icon(
                                                     Icons.local_offer_outlined,
                                                     size: 13,
-                                                    color: Color(0xFF1E293B),
+                                                    color: AppColors.textDark,
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Text(
@@ -251,7 +251,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                                                     style: const TextStyle(
                                                       fontSize: 14,
                                                       fontWeight: FontWeight.w800,
-                                                      color: Color(0xFF1E293B),
+                                                      color: AppColors.textDark,
                                                       letterSpacing: 1,
                                                     ),
                                                   ),
@@ -259,7 +259,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                                                   const Icon(
                                                     Icons.copy_rounded,
                                                     size: 14,
-                                                    color: Color(0xFF6B7280),
+                                                    color: AppColors.textSecondary,
                                                   ),
                                                 ],
                                               ),
@@ -271,7 +271,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                                               context.tr.promotionsMinPurchase('\$${minPurchase.toStringAsFixed(2)}'),
                                               style: const TextStyle(
                                                 fontSize: 11,
-                                                color: Color(0xFF64748B),
+                                                color: AppColors.textSoft,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
@@ -301,7 +301,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                                               style: TextStyle(
                                                 fontSize: discount.contains('%') ? 14 : 16,
                                                 fontWeight: FontWeight.w800,
-                                                color: const Color(0xFFDC2626).withOpacity(0.85),
+                                                color: AppColors.error.withOpacity(0.85),
                                               ),
                                             ),
                                           ),
@@ -312,7 +312,7 @@ class _SeeAllPromotionsScreenState extends State<SeeAllPromotionsScreen> {
                                             expiry,
                                             style: const TextStyle(
                                               fontSize: 10,
-                                              color: Color(0xFF64748B),
+                                              color: AppColors.textSoft,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),

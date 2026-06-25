@@ -24,6 +24,39 @@ class AppColors {
   static const divider = Color(0xFFF3F4F6);
 
   static const shadow = Color(0x0D000000);
+
+  // Commonly used blues across screens
+  static const primaryBlue = Color(0xFF2563EB);
+  static const primaryBlueLight = Color(0xFFEFF6FF);
+  static const primaryBlueBorder = Color(0xFFBFDBFE);
+
+  // Success greens used across booking/payment flows
+  static const successGreen = Color(0xFF10B981);
+  static const successGreenLight = Color(0xFFD1FAE5);
+  static const successGreenBorder = Color(0xFFBBF7D0);
+
+  // Error light variants
+  static const errorLight = Color(0xFFFEF2F2);
+  static const errorBorder = Color(0xFFFECACA);
+
+  // Warning light variants
+  static const warningLight = Color(0xFFFFFBEB);
+  static const warningBorder = Color(0xFFFDE68A);
+  static const warningText = Color(0xFF92400E);
+
+  // Text variant used across screens
+  static const textDark = Color(0xFF111827);
+  static const textSoft = Color(0xFF64748B);
+  static const textMuted = Color(0xFF94A3B8);
+
+  // Surface variants
+  static const surfaceLight = Color(0xFFF8FAFC);
+  static const surfaceSoft = Color(0xFFF0F7FF);
+  static const surfaceGrey = Color(0xFFF1F5F9);
+
+  // Misc
+  static const darkSlate = Color(0xFF0F172A);
+  static const warmGrey = Color(0xFFE2E8F0);
 }
 
 class AppTheme {
