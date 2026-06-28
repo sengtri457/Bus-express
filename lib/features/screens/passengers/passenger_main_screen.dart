@@ -6,6 +6,7 @@ import 'passenger_home_screen.dart';
 import 'mytickets_screen.dart';
 import 'passenger_profile_screen.dart';
 import 'tracking_hub_screen.dart';
+import 'llm_chat_screen.dart';
 
 class PassengerMainScreen extends StatefulWidget {
   final int initialIndex;
@@ -52,6 +53,36 @@ class _PassengerMainScreenState extends State<PassengerMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
+      floatingActionButton: _currentIndex == 0
+          ? FloatingActionButton.extended(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LlmChatScreen()),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: AppColors.border),
+              ),
+              icon: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.primaryBlue,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.assistant_rounded, color: Colors.white, size: 20),
+              ),
+              label: const Text(
+                'Ask AI',
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            )
+          : null,
       bottomNavigationBar: _BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {
