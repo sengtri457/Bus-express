@@ -54,14 +54,16 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
   void _onUserNameChanged() {
     if (mounted) {
-      setState(
-        () => _userName = PassengerProfileScreen.userNameNotifier.value,
-      );
+      setState(() => _userName = PassengerProfileScreen.userNameNotifier.value);
     }
   }
 
   Future<void> _loadData() async {
-    await Future.wait([_loadUserName(), _loadOperators(), _loadPopularRoutes()]);
+    await Future.wait([
+      _loadUserName(),
+      _loadOperators(),
+      _loadPopularRoutes(),
+    ]);
   }
 
   Future<void> _loadUserName() async {
@@ -75,10 +77,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
   Future<void> _loadOperators() async {
     try {
-      final data = await UserRepository()
-          .client
+      final data = await UserRepository().client
           .from('operators')
-          .select('id, name')
+          .select('id, name, logo_url')
           .eq('status', 'active');
       if (mounted) {
         setState(() {
@@ -95,8 +96,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
   Future<void> _loadPopularRoutes() async {
     try {
-      final data = await UserRepository()
-          .client
+      final data = await UserRepository().client
           .from('routes')
           .select('id, name, origin, destination, distance_km, duration_min')
           .eq('status', 'active')
@@ -181,7 +181,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset('assets/images/blueKhmer.jpg', fit: BoxFit.cover),
+            child: Image.asset(
+              'assets/images/blueKhmer.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
           Positioned.fill(
             child: Container(color: Colors.white.withValues(alpha: 0.85)),
@@ -226,7 +229,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              context.tr.homeHelloName(_userName.split(' ').first),
+                              context.tr.homeHelloName(
+                                _userName.split(' ').first,
+                              ),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -361,11 +366,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             Row(
               children: [
                 const SizedBox(width: 20),
-                Container(
-                  width: 1,
-                  height: 20,
-                  color: AppColors.border,
-                ),
+                Container(width: 1, height: 20, color: AppColors.border),
                 const Spacer(),
                 GestureDetector(
                   onTap: _swapLocations,
@@ -462,6 +463,27 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
     );
   }
 
+  Widget _defaultOperatorAvatar(OperatorModel op) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        gradient: AppGradients.primaryBlue,
+        borderRadius: AppRadius.mdR,
+      ),
+      child: Center(
+        child: Text(
+          op.initials,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOperatorsList() {
     if (_isLoadingOperators) {
       return SizedBox(
@@ -529,23 +551,18 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.primaryBlue,
-                      borderRadius: AppRadius.mdR,
-                    ),
-                    child: Center(
-                      child: Text(
-                        op.initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
+                  ClipRRect(
+                    borderRadius: AppRadius.mdR,
+                    child: op.logoUrl != null
+                        ? Image.network(
+                            op.logoUrl!,
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _defaultOperatorAvatar(op),
+                          )
+                        : _defaultOperatorAvatar(op),
                   ),
                   const SizedBox(height: 10),
                   Text(

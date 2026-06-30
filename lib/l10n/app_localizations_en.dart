@@ -314,7 +314,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String homeHelloName(String name) {
-    return 'Hello, $name 👋';
+    return 'Hello, $name';
   }
 
   @override

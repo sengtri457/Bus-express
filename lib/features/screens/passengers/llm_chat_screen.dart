@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../models/chat_message.dart';
 import '../../../models/booking_intent.dart';
+import '../../../models/chat_message.dart';
 import '../../../providers/llm_provider.dart';
 import '../../../services/llm_api_service.dart';
 import '../route_list_screen.dart';
@@ -21,8 +21,8 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
   final _focusNode = FocusNode();
 
   static const _suggestions = [
-    'Book me Phnom Penh to Siem Reap for 2',
     'What routes are available?',
+    'How do I book a ticket?',
     'What is the cancel policy?',
     'Any promotions right now?',
   ];
@@ -77,7 +77,7 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
           controller: urlController,
           decoration: const InputDecoration(
             labelText: 'API URL',
-            hintText: 'http://your-server:8000/api/chat',
+            hintText: 'https://cadmic-beverlee-merocrine.ngrok-free.dev/api/chat',
             border: OutlineInputBorder(),
           ),
           keyboardType: TextInputType.url,
@@ -127,15 +127,20 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
                 color: AppColors.primaryLight,
                 borderRadius: AppRadius.smR,
               ),
-              child: const Icon(Icons.assistant_rounded, color: AppColors.primary, size: 22),
+              child: ClipRRect(
+                borderRadius: AppRadius.smR,
+                child: Image.asset('assets/images/aiLogo.png', width: 22, height: 22, fit: BoxFit.cover),
+              ),
             ),
             const SizedBox(width: 12),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('BusExpress Assistant', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                Text('Online', style: TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w500)),
-              ],
+            const Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('BusExpress Assistant', overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                  Text('Online', style: TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w500)),
+                ],
+              ),
             ),
           ],
         ),
@@ -286,7 +291,7 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
                 ),
                 const Spacer(),
                 GestureDetector(
-                  onTap: () => ref.read(llmProvider.notifier).dismissBookingIntent(),
+                  onTap: () => ref.read(llmProvider.notifier).clearBookingIntent(),
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -353,7 +358,7 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
   }
 
   void _navigateToBooking(BookingIntent intent, DateTime? date) {
-    ref.read(llmProvider.notifier).dismissBookingIntent();
+    ref.read(llmProvider.notifier).clearBookingIntent();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -554,11 +559,11 @@ class _MessageBubble extends StatelessWidget {
         shape: BoxShape.circle,
         border: isUser ? null : Border.all(color: AppColors.border),
       ),
-      child: Icon(
-        isUser ? Icons.person_rounded : Icons.assistant_rounded,
-        size: 18,
-        color: isUser ? Colors.white : AppColors.textSecondary,
-      ),
+      child: isUser
+          ? const Icon(Icons.person_rounded, size: 18, color: Colors.white)
+          : ClipOval(
+              child: Image.asset('assets/images/aiLogo.png', width: 34, height: 34, fit: BoxFit.cover),
+            ),
     );
   }
 
@@ -610,7 +615,9 @@ class _TypingIndicatorState extends State<_TypingIndicator>
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
-            child: const Icon(Icons.assistant_rounded, size: 18, color: AppColors.textSecondary),
+            child: ClipOval(
+              child: Image.asset('assets/images/aiLogo.png', width: 34, height: 34, fit: BoxFit.cover),
+            ),
           ),
           const SizedBox(width: 10),
           Container(

@@ -315,7 +315,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String homeHelloName(String name) {
-    return 'សួស្តី $name 👋';
+    return 'សួស្តី $name';
   }
 
   @override

@@ -683,7 +683,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeHelloName.
   ///
   /// In en, this message translates to:
-  /// **'Hello, {name} 👋'**
+  /// **'Hello, {name}'**
   String homeHelloName(String name);
 
   /// No description provided for @homeWhereGoing.

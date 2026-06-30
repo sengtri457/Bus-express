@@ -96,11 +96,12 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
   void _showSuccessDialog({double? refundAmount}) {
     final hasRefund = refundAmount != null && refundAmount > 0;
     final seatsText = _isMulti ? _seatNumbers.join(', ') : _seatNumbers.first;
+    final onDone = widget.onCancelled;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(28),
@@ -229,8 +230,8 @@ class _CancelBookingSheetState extends State<CancelBookingSheet> {
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
-                    widget.onCancelled();
+                    Navigator.pop(dialogContext);
+                    onDone();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,

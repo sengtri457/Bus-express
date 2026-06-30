@@ -66,7 +66,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final redirectUrl = kIsWeb ? Uri.base.toString() : 'io.supabase.busbooking://login-callback/';
+      final redirectUrl = kIsWeb
+          ? Uri.base.toString()
+          : 'io.supabase.busbooking://login-callback/';
       final launched = await AuthRepository().client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirectUrl,
@@ -172,29 +174,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         duration: const Duration(milliseconds: 500),
                         offset: 20,
                         child: Center(
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 12),
-                              padding: const EdgeInsets.all(12),
-                              width: 88,
-                              height: 88,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(22),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.12),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: Image.asset(
-                                'assets/images/Logobus.png',
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.contain,
-                              ),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.all(8),
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 244, 244, 244),
+                              borderRadius: BorderRadius.circular(28),
+                              // boxShadow: [
+                              //   BoxShadow(
+                              //     color: Colors.black.withValues(alpha: 0.12),
+                              //     blurRadius: 15,
+                              //     offset: const Offset(0, 6),
+                              //   ),
+                              // ],
                             ),
+                            child: Image.asset(
+                              'assets/images/Logo.png',
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -357,7 +359,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 context.tr.orDivider,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: AppColors.textMuted.withValues(alpha: 0.8),
+                                  color: AppColors.textMuted.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),

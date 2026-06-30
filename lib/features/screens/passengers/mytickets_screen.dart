@@ -336,13 +336,13 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
           if (_showSearch) _buildSearchBar(),
           if (_showFilters) _buildFilterBar(),
           if (_hasActiveFilters) _buildActiveFiltersChip(),
-          Expanded(
-            child: _isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: SkeletonList(count: 4),
-                  )
-                : TabBarView(
+            Expanded(
+                child: _isLoading
+                    ? const SingleChildScrollView(
+                        padding: EdgeInsets.all(20),
+                        child: SkeletonList(count: 4),
+                      )
+                    : TabBarView(
                     controller: _tabController,
                     children: [
                       _TicketList(

@@ -49,10 +49,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     final authRepo = AuthRepository();
-    final supabaseUser = AuthRepository()
-        .client
-        .auth
-        .currentUser;
+    final supabaseUser = AuthRepository().client.auth.currentUser;
 
     if (supabaseUser == null) {
       _navigateTo(const LoginScreen());
@@ -82,9 +79,9 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateTo(Widget screen) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => screen));
   }
 
   @override
@@ -97,9 +94,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppGradients.darkBlue,
-        ),
+        decoration: const BoxDecoration(gradient: AppGradients.darkBlue),
         child: Center(
           child: FadeTransition(
             opacity: _fadeAnim,
@@ -109,38 +104,38 @@ class _SplashScreenState extends State<SplashScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    padding: const EdgeInsets.all(16),
-                    width: 110,
-                    height: 110,
+                    // margin: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.all(8),
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
+                      color: const Color.fromARGB(255, 244, 244, 244),
+                      borderRadius: BorderRadius.circular(28),
+                      // boxShadow: [
+                      //   BoxShadow(
+                      //     color: Colors.black.withValues(alpha: 0.15),
+                      //     blurRadius: 20,
+                      //     offset: const Offset(0, 8),
+                      //   ),
+                      // ],
                     ),
                     child: Image.asset(
-                      'assets/images/Logobus.png',
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.contain,
+                      'assets/images/Logo.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(height: 28),
-                    Text(
-                      context.tr.appTitle,
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.8,
-                      ),
+                  Text(
+                    context.tr.appTitle,
+                    style: const TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.8,
                     ),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Premium Travel Made Simple',

@@ -71,7 +71,10 @@ class _PassengerMainScreenState extends State<PassengerMainScreen> {
                   gradient: AppGradients.primaryBlue,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.assistant_rounded, color: Colors.white, size: 20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset('assets/images/aiLogo.png', width: 20, height: 20, fit: BoxFit.cover),
+                ),
               ),
               label: const Text(
                 'Ask AI',

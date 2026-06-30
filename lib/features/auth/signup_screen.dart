@@ -233,30 +233,30 @@ class _SignupScreenState extends State<SignupScreen> {
                       child: Center(
                         child: Container(
                           margin: const EdgeInsets.symmetric(vertical: 12),
-                          padding: const EdgeInsets.all(12),
-                          width: 88,
-                          height: 88,
+                          padding: const EdgeInsets.all(8),
+                          width: 100,
+                          height: 100,
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(22),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.12),
-                                blurRadius: 15,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
+                            color: const Color.fromARGB(255, 244, 244, 244),
+                            borderRadius: BorderRadius.circular(28),
+                            // boxShadow: [
+                            //   BoxShadow(
+                            //     color: Colors.black.withValues(alpha: 0.12),
+                            //     blurRadius: 15,
+                            //     offset: const Offset(0, 6),
+                            //   ),
+                            // ],
                           ),
                           child: Image.asset(
-                            'assets/images/Logobus.png',
-                            width: 44,
-                            height: 44,
-                            fit: BoxFit.contain,
+                            'assets/images/Logo.png',
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
 
                     // Title
                     SlideFadeIn(
@@ -287,11 +287,11 @@ class _SignupScreenState extends State<SignupScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 50),
 
                     // Step indicator
                     _StepIndicator(currentStep: _currentStep),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
 
                     // Elegant Form Card
                     SlideFadeIn(
@@ -540,7 +540,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
 
                     // Login link
                     Center(
@@ -726,7 +726,10 @@ class _PasswordStrengthIndicator extends StatelessWidget {
           children: [
             Text(
               context.tr.passwordStrengthLabel,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
             Text(
               _labelText(context),

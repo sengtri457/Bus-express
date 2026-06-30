@@ -111,7 +111,7 @@
   "navOperators": "Operators",
   "navUsers": "Users",
 
-  "homeHelloName": "Hello, {name} 👋",
+  "homeHelloName": "Hello, {name}",
   "@homeHelloName": {"placeholders": {"name": {"type": "String"}}},
   "homeWhereGoing": "Where are you going today?",
   "homeOurPartners": "Our Partners",
