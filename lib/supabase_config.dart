@@ -16,7 +16,20 @@ class SupabaseConfig {
   static String get bakongApiUrl =>
       dotenv.env['BAKONG_API_URL'] ?? 'https://api-bakong.nbc.gov.kh';
 
-  static SupabaseClient get client => Supabase.instance.client;
+  static SupabaseClient? _testClient;
+
+  /// Override client for testing. Never use in production.
+  @visibleForTesting
+  static void setTestClient(SupabaseClient client) {
+    _testClient = client;
+  }
+
+  @visibleForTesting
+  static void clearTestClient() {
+    _testClient = null;
+  }
+
+  static SupabaseClient get client => _testClient ?? Supabase.instance.client;
 
   static String get storageUrl => '$supabaseUrl/storage/v1/object/public';
 

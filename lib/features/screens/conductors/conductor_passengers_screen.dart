@@ -108,6 +108,7 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
           .eq('id', widget.trip['id'])
           .select();
 
+      // ignore: unnecessary_null_comparison
       if (response == null || response.isEmpty) {
         throw Exception(
           'Update blocked by Supabase RLS policy. Conductor role cannot update trips.',
@@ -158,7 +159,10 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             Text(
-              context.tr.conductorPassRoute(route?['origin'] ?? '', route?['destination'] ?? ''),
+              context.tr.conductorPassRoute(
+                route?['origin'] ?? '',
+                route?['destination'] ?? '',
+              ),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withOpacity(0.85),
