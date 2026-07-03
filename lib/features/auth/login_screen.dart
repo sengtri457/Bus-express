@@ -180,18 +180,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 100,
                             height: 100,
                             decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 244, 244, 244),
+                              color: const Color.fromARGB(255, 255, 255, 255),
                               borderRadius: BorderRadius.circular(28),
-                              // boxShadow: [
-                              //   BoxShadow(
-                              //     color: Colors.black.withValues(alpha: 0.12),
-                              //     blurRadius: 15,
-                              //     offset: const Offset(0, 6),
-                              //   ),
-                              // ],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
                             ),
                             child: Image.asset(
-                              'assets/images/Logo.png',
+                              'assets/images/bus.png',
                               width: 100,
                               height: 100,
                               fit: BoxFit.cover,

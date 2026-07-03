@@ -237,7 +237,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           width: 100,
                           height: 100,
                           decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 244, 244, 244),
+                            color: const Color.fromARGB(255, 255, 255, 255),
                             borderRadius: BorderRadius.circular(28),
                             // boxShadow: [
                             //   BoxShadow(
@@ -248,7 +248,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             // ],
                           ),
                           child: Image.asset(
-                            'assets/images/Logo.png',
+                            'assets/images/bus.png',
                             width: 100,
                             height: 100,
                             fit: BoxFit.cover,
