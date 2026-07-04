@@ -239,13 +239,13 @@ class _SignupScreenState extends State<SignupScreen> {
                           decoration: BoxDecoration(
                             color: const Color.fromARGB(255, 255, 255, 255),
                             borderRadius: BorderRadius.circular(28),
-                            // boxShadow: [
-                            //   BoxShadow(
-                            //     color: Colors.black.withValues(alpha: 0.12),
-                            //     blurRadius: 15,
-                            //     offset: const Offset(0, 6),
-                            //   ),
-                            // ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
                           child: Image.asset(
                             'assets/images/bus.png',
