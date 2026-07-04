@@ -206,8 +206,77 @@ class AppTextStyles {
       BoxShadow(
         color: AppColors.shadow,
         blurRadius: 10,
-        offset: const Offset(0, 2),
+        offset: Offset(0, 2),
       ),
     ],
   );
 }
+
+// ─── Motion design tokens ─────────────────────────────────────
+
+class AppAnimations {
+  AppAnimations._();
+
+  // Durations
+  static const Duration instant = Duration(milliseconds: 100);
+  static const Duration fast = Duration(milliseconds: 200);
+  static const Duration medium = Duration(milliseconds: 350);
+  static const Duration slow = Duration(milliseconds: 500);
+  static const Duration xslow = Duration(milliseconds: 700);
+
+  // Curves
+  static const Curve standard = Curves.easeInOutCubic;
+  static const Curve enter = Curves.easeOutCubic;
+  static const Curve exit = Curves.easeInCubic;
+  static const Curve spring = Curves.elasticOut;
+  static const Curve bounce = Curves.bounceOut;
+
+  // Stagger helpers
+  static Duration stagger(int index, {int ms = 60}) =>
+      Duration(milliseconds: ms * index);
+}
+
+// ─── Shadow presets ───────────────────────────────────────────
+
+class AppShadows {
+  AppShadows._();
+
+  static List<BoxShadow> get sm => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ];
+
+  static List<BoxShadow> get md => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.07),
+          blurRadius: 14,
+          offset: const Offset(0, 4),
+        ),
+      ];
+
+  static List<BoxShadow> get lg => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.10),
+          blurRadius: 28,
+          offset: const Offset(0, 8),
+        ),
+      ];
+
+  static List<BoxShadow> glow(Color color, {double intensity = 0.35}) => [
+        BoxShadow(
+          color: color.withValues(alpha: intensity),
+          blurRadius: 20,
+          offset: const Offset(0, 6),
+        ),
+        BoxShadow(
+          color: color.withValues(alpha: intensity * 0.4),
+          blurRadius: 40,
+          spreadRadius: 4,
+          offset: const Offset(0, 12),
+        ),
+      ];
+}
+

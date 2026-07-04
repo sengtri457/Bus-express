@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -15,33 +16,31 @@ class TripStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = _config;
+    final isLive = _isLiveStatus(status);
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: fontSize == 12 ? 10 : 14,
-        vertical: fontSize == 12 ? 4 : 6,
+    return AnimatedSwitcher(
+      duration: AppAnimations.medium,
+      switchInCurve: AppAnimations.enter,
+      switchOutCurve: AppAnimations.exit,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.88, end: 1.0).animate(animation),
+          child: child,
+        ),
       ),
-      decoration: BoxDecoration(
-        color: config.color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: config.color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(config.icon, size: fontSize + 2, color: config.color),
-          const SizedBox(width: 4),
-          Text(
-            config.label,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              color: config.color,
-            ),
-          ),
-        ],
+      child: _BadgeContent(
+        key: ValueKey(status),
+        config: config,
+        fontSize: fontSize,
+        isLive: isLive,
       ),
     );
+  }
+
+  static bool _isLiveStatus(String status) {
+    final s = status.toLowerCase();
+    return s == 'in_progress' || s == 'pending' || s == 'boarded';
   }
 
   _StatusConfig get _config {
@@ -133,6 +132,103 @@ class TripStatusBadge extends StatelessWidget {
     }
   }
 }
+
+// ─── Badge UI ─────────────────────────────────────────────────
+
+class _BadgeContent extends StatelessWidget {
+  final _StatusConfig config;
+  final double fontSize;
+  final bool isLive;
+
+  const _BadgeContent({
+    super.key,
+    required this.config,
+    required this.fontSize,
+    required this.isLive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: fontSize == 12 ? 10 : 14,
+        vertical: fontSize == 12 ? 4 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: config.color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: config.color.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Live pulse dot OR static icon
+          if (isLive)
+            _PulseDot(color: config.color, size: fontSize - 1)
+          else
+            Icon(config.icon, size: fontSize + 2, color: config.color),
+          const SizedBox(width: 5),
+          Text(
+            config.label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              color: config.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Inline PulseDot for badge use ───────────────────────────
+
+class _PulseDot extends StatelessWidget {
+  final Color color;
+  final double size;
+
+  const _PulseDot({required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size * 2.0,
+      height: size * 2.0,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: size * 2.0,
+            height: size * 2.0,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.25),
+            ),
+          )
+              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .scaleXY(
+                begin: 0.4,
+                end: 1.0,
+                duration: 900.ms,
+                curve: Curves.easeInOut,
+              )
+              .fadeIn(begin: 0.1, duration: 900.ms),
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Data class ───────────────────────────────────────────────
 
 class _StatusConfig {
   final String label;

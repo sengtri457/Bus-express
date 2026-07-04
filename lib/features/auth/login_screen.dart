@@ -54,7 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result is Success<UserModel>) {
-      NavigationHelper.navigateByRole(context, result.data.role);
+      _showLoginSuccessDialog(result.data.role ?? 'passenger');
     } else {
       _showError((result as Failure).message);
     }
@@ -115,7 +115,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             'status': 'active',
           });
           if (!mounted) return;
-          NavigationHelper.navigateByRole(context, 'passenger');
+          _showLoginSuccessDialog('passenger');
           return;
         }
 
@@ -128,7 +128,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
 
         final role = existing['role'] as String? ?? 'passenger';
-        NavigationHelper.navigateByRole(context, role);
+        _showLoginSuccessDialog(role);
       });
     } catch (e) {
       _showError(context.tr.googleSignInError);
@@ -140,6 +140,166 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
+  }
+
+  void _showLoginSuccessDialog(String role) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child:
+              Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Align(
+                            alignment: Alignment.topRight,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                NavigationHelper.navigateByRole(context, role);
+                              },
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceGrey,
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: AppColors.textSecondary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 300.ms, delay: 100.ms)
+                          .slideX(begin: 0.3),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              'assets/images/popup.webp',
+                              width: double.infinity,
+                              height: 200,
+                              fit: BoxFit.fill,
+                              errorBuilder: (_, _, _) => Container(
+                                width: double.infinity,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceSoft,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.warmGrey,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.image_outlined,
+                                      size: 48,
+                                      color: AppColors.textMuted.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Welcome Info Image',
+                                      style: TextStyle(
+                                        color: AppColors.textMuted.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms, delay: 200.ms)
+                          .scale(
+                            begin: Offset(0.92, 0.92),
+                            curve: Curves.easeOutCubic,
+                          ),
+                      const SizedBox(height: 20),
+                      const Text(
+                            'Welcome to Bus Express!',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkSlate,
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 300.ms, delay: 350.ms)
+                          .slideY(begin: 0.3, curve: Curves.easeOutCubic),
+                      const SizedBox(height: 8),
+                      Text(
+                            'Thank you for signing in. You can now book tickets, track your trips, and enjoy a seamless travel experience.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.9,
+                              ),
+                              height: 1.5,
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 300.ms, delay: 450.ms)
+                          .slideY(begin: 0.2, curve: Curves.easeOutCubic),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                NavigationHelper.navigateByRole(context, role);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Get Started',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 300.ms, delay: 550.ms)
+                          .scale(
+                            begin: Offset(0.9, 0.9),
+                            curve: Curves.easeOutBack,
+                          ),
+                    ],
+                  )
+                  .animate()
+                  .scale(
+                    begin: const Offset(0.85, 0.85),
+                    duration: 400.ms,
+                    curve: Curves.easeOutBack,
+                  )
+                  .fadeIn(duration: 300.ms),
+        ),
+      ),
     );
   }
 
