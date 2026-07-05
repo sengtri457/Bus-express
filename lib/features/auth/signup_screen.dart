@@ -63,7 +63,7 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
-      // Trigger already inserted into users table automatically ✅
+      // Trigger already inserted into users table automatically
       _showSuccess();
     } on AuthException catch (e) {
       _showError(e.message);
@@ -379,7 +379,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                 ),
                               ),
                             ],
-
                             // Step 2: Credentials
                             if (_currentStep == 1) ...[
                               AuthTextField(
