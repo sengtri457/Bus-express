@@ -108,9 +108,9 @@ class AuthRepository extends BaseRepository {
     }
   }
 
-  Future<Result<void>> resetPassword(String email) async {
+  Future<Result<void>> resetPassword(String email, {String? redirectTo}) async {
     try {
-      await client.auth.resetPasswordForEmail(email);
+      await client.auth.resetPasswordForEmail(email, redirectTo: redirectTo);
       return const Success(null);
     } on AuthException catch (e) {
       return Failure(e.message);

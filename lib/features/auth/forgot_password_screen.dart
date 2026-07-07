@@ -1,14 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../supabase_config.dart';
+import '../../core/error/result.dart';
+import '../../repositories/auth_repository.dart';
 import 'widgets/auth_text_field.dart';
-import 'login_screen.dart';
 import '../../l10n/tr_extension.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  final int initialStep;
-  const ForgotPasswordScreen({super.key, this.initialStep = 0});
+  const ForgotPasswordScreen({super.key});
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -16,30 +14,15 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   bool _emailSent = false;
   bool _canResend = true;
   int _resendCountdown = 0;
 
-  // Step: 0 = enter email, 1 = reset password (after clicking email link)
-  // Note: Supabase handles the OTP via deep link. Here we show the
-  // reset password form for users who return from the email link.
-  late int _step;
-
-  @override
-  void initState() {
-    super.initState();
-    _step = widget.initialStep;
-  }
-
   @override
   void dispose() {
     _emailController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -56,10 +39,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final redirectUrl = kIsWeb
           ? Uri.base.toString()
           : 'io.supabase.busbooking://reset-callback/';
-      await SupabaseConfig.client.auth.resetPasswordForEmail(
+      final result = await AuthRepository().resetPassword(
         email,
         redirectTo: redirectUrl,
       );
+
+      if (result is Failure) {
+        if (!mounted) return;
+        _showError(result.message);
+        return;
+      }
 
       if (!mounted) return;
       setState(() {
@@ -68,37 +57,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       });
 
       _startResendCountdown();
-    } on AuthException catch (e) {
-      _showError(e.message);
     } catch (_) {
-      _showError(context.tr.somethingWentWrong);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _updatePassword() async {
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      _showError(context.tr.passwordsDoNotMatchValidator);
-      return;
-    }
-    if (_newPasswordController.text.length < 8) {
-      _showError(context.tr.passwordMinLength8);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      await SupabaseConfig.client.auth.updateUser(
-        UserAttributes(password: _newPasswordController.text.trim()),
-      );
-
       if (!mounted) return;
-      _showSuccessDialog();
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } catch (_) {
       _showError(context.tr.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -140,65 +100,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD1FAE5),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFF10B981),
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                context.tr.passwordResetTitle,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                context.tr.passwordResetBody,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7280),
-                  height: 1.6,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -218,16 +119,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               color: Color(0xFF0F172A),
               size: 20,
             ),
-            onPressed: () {
-              if (widget.initialStep == 1) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              } else {
-                Navigator.pop(context);
-              }
-            },
+            onPressed: () => Navigator.pop(context),
           ),
         ),
       ),
@@ -243,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              child: _step == 0 ? _buildEmailStep() : _buildResetStep(),
+              child: _buildEmailStep(),
             ),
           ),
         ],
@@ -546,141 +438,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  // ─── Step 1: Reset Password Form ────────────────────────────────────────────
-
-  Widget _buildResetStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 10),
-
-        Center(
-          child: Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: const Color(0xFFDBEAFE), width: 1.5),
-            ),
-            child: const Icon(
-              Icons.key_rounded,
-              size: 38,
-              color: Color(0xFF2563EB),
-            ),
-          ),
-        ),
-        const SizedBox(height: 28),
-
-        Text(
-          context.tr.setNewPassword,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-            letterSpacing: -0.8,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          context.tr.setNewPasswordSubtitle,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 15,
-            color: Color(0xFF64748B),
-            height: 1.5,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 32),
-
-        // Beautiful Form Card
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AuthTextField(
-                label: context.tr.newPasswordLabel,
-                hint: context.tr.newPasswordHint,
-                icon: Icons.lock_outline_rounded,
-                controller: _newPasswordController,
-                isPassword: true,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return context.tr.passwordRequired;
-                  if (v.length < 8) return context.tr.passwordMinLength8;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              AuthTextField(
-                label: context.tr.confirmNewPasswordLabel,
-                hint: context.tr.confirmNewPasswordHint,
-                icon: Icons.lock_outline_rounded,
-                controller: _confirmPasswordController,
-                isPassword: true,
-                validator: (v) {
-                  if (v != _newPasswordController.text) {
-                    return context.tr.passwordsDoNotMatchValidator;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 28),
-
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _updatePassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFF93C5FD),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          context.tr.resetPasswordButton,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-      ],
-    );
-  }
 }
 
 // ─── Info Step Widget ─────────────────────────────────────────────────────────
