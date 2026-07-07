@@ -540,7 +540,6 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     ),
                     const SizedBox(height: 40),
-
                     // Login link
                     Center(
                       child: Row(

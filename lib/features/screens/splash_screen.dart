@@ -106,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
         decoration: const BoxDecoration(gradient: AppGradients.darkBlue),
         child: Stack(
           children: [
-            // ── Decorative background circles ──────────────────
+            // ── Decorative background circles 
             const Positioned(
               top: -80,
               right: -60,
