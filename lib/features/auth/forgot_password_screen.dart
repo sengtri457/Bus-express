@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../supabase_config.dart';
@@ -6,7 +7,8 @@ import 'login_screen.dart';
 import '../../l10n/tr_extension.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+  final int initialStep;
+  const ForgotPasswordScreen({super.key, this.initialStep = 0});
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -25,7 +27,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // Step: 0 = enter email, 1 = reset password (after clicking email link)
   // Note: Supabase handles the OTP via deep link. Here we show the
   // reset password form for users who return from the email link.
-  final int _step = 0;
+  late int _step;
+
+  @override
+  void initState() {
+    super.initState();
+    _step = widget.initialStep;
+  }
 
   @override
   void dispose() {
@@ -45,10 +53,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final redirectUrl = kIsWeb
+          ? Uri.base.toString()
+          : 'io.supabase.busbooking://reset-callback/';
       await SupabaseConfig.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: 'io.supabase.busbooking://reset-callback/',
-        // Change this to your app's deep link scheme
+        redirectTo: redirectUrl,
       );
 
       if (!mounted) return;
@@ -173,37 +183,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    context.tr.backToLogin,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
       ),
     );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    });
   }
 
   @override
@@ -225,7 +218,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               color: Color(0xFF0F172A),
               size: 20,
             ),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (widget.initialStep == 1) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              } else {
+                Navigator.pop(context);
+              }
+            },
           ),
         ),
       ),
