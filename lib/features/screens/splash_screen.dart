@@ -9,7 +9,6 @@ import '../../core/error/result.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/user_repository.dart';
 import '../auth/login_screen.dart';
-import '../auth/reset_password_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -33,9 +32,10 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
-    _ringAnim = Tween<double>(begin: 0.85, end: 1.15).animate(
-      CurvedAnimation(parent: _ringCtrl, curve: Curves.easeInOutSine),
-    );
+    _ringAnim = Tween<double>(
+      begin: 0.85,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _ringCtrl, curve: Curves.easeInOutSine));
 
     // Logo entrance
     _logoCtrl = AnimationController(
@@ -49,11 +49,6 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkAuthAndNavigate() async {
     await Future.delayed(const Duration(milliseconds: 2600));
     if (!mounted) return;
-
-    if (ResetPasswordScreen.isRecoveringPassword) {
-      // Abort normal navigation, let password recovery flow take over
-      return;
-    }
 
     final authRepo = AuthRepository();
     final supabaseUser = AuthRepository().client.auth.currentUser;
@@ -90,10 +85,8 @@ class _SplashScreenState extends State<SplashScreen>
       PageRouteBuilder(
         pageBuilder: (ctx, a1, a2) => screen,
         transitionDuration: const Duration(milliseconds: 500),
-        transitionsBuilder: (ctx, animation, a2, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        transitionsBuilder: (ctx, animation, a2, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     );
   }
@@ -112,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen>
         decoration: const BoxDecoration(gradient: AppGradients.darkBlue),
         child: Stack(
           children: [
-            // ── Decorative background circles 
+            // ── Decorative background circles
             const Positioned(
               top: -80,
               right: -60,
@@ -132,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
 
-            // ── Main content ───────────────────────────────────
+            // ── Main content
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -189,8 +182,9 @@ class _SplashScreenState extends State<SplashScreen>
                             borderRadius: BorderRadius.circular(26),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF2563EB)
-                                    .withValues(alpha: 0.4),
+                                color: const Color(
+                                  0xFF2563EB,
+                                ).withValues(alpha: 0.4),
                                 blurRadius: 30,
                                 spreadRadius: 2,
                                 offset: const Offset(0, 8),
@@ -215,14 +209,14 @@ class _SplashScreenState extends State<SplashScreen>
 
                   // App title — character reveal
                   Text(
-                    context.tr.appTitle,
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -1.0,
-                    ),
-                  )
+                        context.tr.appTitle,
+                        style: const TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -1.0,
+                        ),
+                      )
                       .animate(delay: 300.ms)
                       .fadeIn(duration: 600.ms, curve: Curves.easeOut)
                       .slideY(
@@ -236,14 +230,14 @@ class _SplashScreenState extends State<SplashScreen>
 
                   // Subtitle — staggered word fade
                   Text(
-                    'Premium Travel Made Simple',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.70),
-                      letterSpacing: 0.3,
-                    ),
-                  )
+                        'Premium Travel Made Simple',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withValues(alpha: 0.70),
+                          letterSpacing: 0.3,
+                        ),
+                      )
                       .animate(delay: 500.ms)
                       .fadeIn(duration: 700.ms)
                       .slideY(
@@ -310,34 +304,34 @@ class _SplashLoader extends StatelessWidget {
       children: List.generate(3, (i) {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.7),
-              shape: BoxShape.circle,
-            ),
-          )
-              .animate(
-                onPlay: (c) => c.repeat(),
-                delay: Duration(milliseconds: i * 180),
-              )
-              .moveY(
-                begin: 0,
-                end: -10,
-                duration: 420.ms,
-                curve: Curves.easeInOut,
-              )
-              .then()
-              .moveY(
-                begin: -10,
-                end: 0,
-                duration: 420.ms,
-                curve: Curves.easeInOut,
-              ),
+          child:
+              Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                  .animate(
+                    onPlay: (c) => c.repeat(),
+                    delay: Duration(milliseconds: i * 180),
+                  )
+                  .moveY(
+                    begin: 0,
+                    end: -10,
+                    duration: 420.ms,
+                    curve: Curves.easeInOut,
+                  )
+                  .then()
+                  .moveY(
+                    begin: -10,
+                    end: 0,
+                    duration: 420.ms,
+                    curve: Curves.easeInOut,
+                  ),
         );
       }),
     );
   }
 }
-

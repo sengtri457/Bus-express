@@ -54,7 +54,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result is Success<UserModel>) {
-      _showLoginSuccessDialog(result.data.role ?? 'passenger');
+      final role = result.data.role ?? 'passenger';
+      if (role == 'passenger') {
+        _showLoginSuccessDialog(role);
+      } else {
+        NavigationHelper.navigateByRole(context, role);
+      }
     } else {
       _showError((result as Failure).message);
     }
@@ -128,7 +133,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
 
         final role = existing['role'] as String? ?? 'passenger';
-        _showLoginSuccessDialog(role);
+        if (role == 'passenger') {
+          _showLoginSuccessDialog(role);
+        } else {
+          NavigationHelper.navigateByRole(context, role);
+        }
       });
     } catch (e) {
       _showError(context.tr.googleSignInError);
