@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:app_links/app_links.dart';
 import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +20,10 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
+
+  // Capture initial deep link (cold start) before Supabase initializes
+  final initialUri = kIsWeb ? null : await AppLinks().getLatestLink();
+
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
@@ -25,6 +31,18 @@ void main() async {
       authFlowType: AuthFlowType.implicit,
     ),
   );
+
+  // Process the initial deep link manually (supabase_flutter skips on mobile)
+  if (initialUri != null &&
+      initialUri.fragment.contains('access_token') &&
+      initialUri.fragment.contains('type=recovery')) {
+    try {
+      await Supabase.instance.client.auth.getSessionFromUrl(initialUri);
+    } catch (_) {
+      // silently fail — auth state listener handles the result
+    }
+  }
+
   await NotificationService.instance.init();
   // runApp(
   //   DevicePreview(
@@ -49,9 +67,10 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      final event = data.event;
-      if (event == AuthChangeEvent.passwordRecovery) {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
+      data,
+    ) {
+      if (data.event == AuthChangeEvent.passwordRecovery) {
         ResetPasswordScreen.isRecoveringPassword = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           navigatorKey.currentState?.push(
@@ -75,6 +94,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     final locale = ref.watch(localeProvider);
     return MaterialApp(
       navigatorKey: navigatorKey,
+      // ignore: deprecated_member_use
       useInheritedMediaQuery: true,
       builder: DevicePreview.appBuilder,
       locale: locale,

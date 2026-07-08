@@ -105,7 +105,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ),
     );
 
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+      ResetPasswordScreen.isRecoveringPassword = false;
+      await SupabaseConfig.client.auth.signOut();
       if (!mounted) return;
       Navigator.of(context).pop();
       Navigator.of(context).pushAndRemoveUntil(

@@ -56,6 +56,7 @@ dependencies:
   google_fonts: ^6.2.1
   khqrcode: ^1.0.0
   flutter_animate: ^4.5.0
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   mocktail: ^1.0.4
+  flutter_launcher_icons: ^0.14.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

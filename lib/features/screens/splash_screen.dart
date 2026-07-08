@@ -9,6 +9,7 @@ import '../../core/error/result.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/user_repository.dart';
 import '../auth/login_screen.dart';
+import '../auth/reset_password_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,6 +50,9 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkAuthAndNavigate() async {
     await Future.delayed(const Duration(milliseconds: 2600));
     if (!mounted) return;
+
+    // Don't navigate if user is in password recovery flow
+    if (ResetPasswordScreen.isRecoveringPassword) return;
 
     final authRepo = AuthRepository();
     final supabaseUser = AuthRepository().client.auth.currentUser;

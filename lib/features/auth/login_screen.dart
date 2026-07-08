@@ -80,6 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
 
       if (!launched || !mounted) {
+        // ignore: use_build_context_synchronously
         _showError(context.tr.googleSignInFailed);
         return;
       }
