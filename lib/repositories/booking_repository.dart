@@ -166,4 +166,56 @@ class BookingRepository extends BaseRepository {
       return Failure('Failed to validate cancellation', error: e);
     }
   }
+
+  Future<Result<void>> holdSeats({
+    required String tripId,
+    required List<String> seatNumbers,
+    required String passengerId,
+  }) async {
+    try {
+      try {
+        await client.rpc('clean_expired_holds');
+      } catch (_) {
+        await client
+            .from('seat_holds')
+            .delete()
+            .lt('expires_at', DateTime.now().toIso8601String());
+      }
+
+      final expiresAt = DateTime.now().add(const Duration(minutes: 10)).toIso8601String();
+      final holds = seatNumbers.map((seat) => {
+        'trip_id': tripId,
+        'seat_number': seat,
+        'passenger_id': passengerId,
+        'expires_at': expiresAt,
+      }).toList();
+
+      await client.from('seat_holds').insert(holds);
+      return const Success(null);
+    } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('unique') || errStr.contains('duplicate') || errStr.contains('23505') || errStr.contains('409')) {
+        return Failure('One or more selected seats are currently reserved by another passenger. Please refresh and try again.', error: e);
+      }
+      return Failure('Failed to reserve seats', error: e);
+    }
+  }
+
+  Future<Result<void>> releaseSeatsHold({
+    required String tripId,
+    required List<String> seatNumbers,
+    required String passengerId,
+  }) async {
+    try {
+      await client
+          .from('seat_holds')
+          .delete()
+          .eq('trip_id', tripId)
+          .eq('passenger_id', passengerId)
+          .inFilter('seat_number', seatNumbers);
+      return const Success(null);
+    } catch (e) {
+      return Failure('Failed to release seat holds', error: e);
+    }
+  }
 }

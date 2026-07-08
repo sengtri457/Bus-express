@@ -533,6 +533,17 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         'status': 'valid',
       });
     }
+
+    try {
+      await SupabaseConfig.client
+          .from('seat_holds')
+          .delete()
+          .eq('trip_id', tripId)
+          .eq('passenger_id', userId)
+          .inFilter('seat_number', widget.seatNumbers);
+    } catch (e) {
+      debugPrint('[BookingConfirm] Failed to delete holds: $e');
+    }
   }
 
   Future<void> _trackPromoUsage(String userId) async {

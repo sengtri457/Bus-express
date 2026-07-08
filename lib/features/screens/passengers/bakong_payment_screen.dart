@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:gal/gal.dart';
 
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
@@ -37,6 +40,9 @@ class BakongPaymentScreen extends StatefulWidget {
 
 class _BakongPaymentScreenState extends State<BakongPaymentScreen>
     with TickerProviderStateMixin {
+  final GlobalKey _qrKey = GlobalKey();
+  bool _isSavingImage = false;
+
   Timer? _countdownTimer;
   Timer? _pollTimer;
   int _secondsRemaining = 0;
@@ -46,6 +52,48 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
   bool _isExpired = false;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  Future<void> _saveQrToGallery() async {
+    if (_isSavingImage) return;
+    setState(() => _isSavingImage = true);
+
+    try {
+      final hasAccess = await Gal.hasAccess(toAlbum: true);
+      if (!hasAccess) {
+        final requestGranted = await Gal.requestAccess(toAlbum: true);
+        if (!requestGranted) {
+          _showSnackBar('Permission to save to gallery was denied', isError: true);
+          setState(() => _isSavingImage = false);
+          return;
+        }
+      }
+
+      final boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      
+      if (byteData == null) {
+        throw Exception('Failed to generate image bytes');
+      }
+      
+      final pngBytes = byteData.buffer.asUint8List();
+
+      await Gal.putImageBytes(pngBytes, name: 'KHQR_${DateTime.now().millisecondsSinceEpoch}.png');
+
+      if (mounted) {
+        _showSnackBar('QR Code saved to gallery successfully!', isError: false);
+      }
+    } catch (e) {
+      debugPrint('[BakongScreen] Error saving QR: $e');
+      if (mounted) {
+        _showSnackBar('Failed to save QR code: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingImage = false);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -211,9 +259,9 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Bakong KHQR Payment',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
@@ -235,15 +283,12 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: Column(
               children: [
-                _buildMerchantHeader(),
+                _buildKhqrCard(),
                 const SizedBox(height: 24),
-                _buildAmountCard(),
-                const SizedBox(height: 24),
-                _buildQrCard(),
-                const SizedBox(height: 20),
                 _buildInstruction(),
                 const SizedBox(height: 16),
                 _buildTimerBar(),
@@ -258,150 +303,193 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
     );
   }
 
-  Widget _buildMerchantHeader() {
-    return Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.account_balance_rounded,
-            color: AppColors.primaryBlue,
-            size: 28,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          widget.merchantName,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAmountCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Amount to Pay',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '\$${widget.amount.toStringAsFixed(2)}',
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF065F46),
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD1FAE5),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text(
-              'USD',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF059669),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQrCard() {
+  Widget _buildKhqrCard() {
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
         return Transform.scale(
           scale: _isSuccess ? _pulseAnimation.value : 1.0,
           child: Container(
-            padding: const EdgeInsets.all(16),
+            width: 320,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: QrImageView(
-                    data: widget.khqrString,
-                    version: QrVersions.auto,
-                    size: 240,
-                    backgroundColor: Colors.white,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: AppColors.textDark,
+                // 1. Red Header
+                Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE52329), // Brand Red
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: AppColors.textDark,
+                  ),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'KH',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'QR',
+                            style: TextStyle(
+                              color: Color(0xFFE52329),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+
+                // 2. Merchant & Amount Section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.security_rounded,
-                        size: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                      SizedBox(width: 6),
                       Text(
-                        'Scan with any Bakong-enabled app',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
+                        widget.merchantName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            widget.amount.toStringAsFixed(2),
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'USD',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
+                  ),
+                ),
+
+                // 3. Dashed Divider
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: List.generate(
+                      24,
+                      (index) => Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          height: 1.5,
+                          color: index % 2 == 0 ? Colors.transparent : const Color(0xFFCBD5E1),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 4. QR Code Area with center emblem
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: Center(
+                    child: RepaintBoundary(
+                      key: _qrKey,
+                      child: Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(8),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: QrImageView(
+                                data: widget.khqrString,
+                                size: 200,
+                                backgroundColor: Colors.white,
+                                eyeStyle: const QrEyeStyle(
+                                  eyeShape: QrEyeShape.square,
+                                  color: Color(0xFF0F172A),
+                                ),
+                                dataModuleStyle: const QrDataModuleStyle(
+                                  dataModuleShape: QrDataModuleShape.square,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                            // Center Emblem
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE52329),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  '\$',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -420,19 +508,19 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFFDE68A)),
       ),
-      child: Row(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
             size: 16,
             color: Color(0xFFF59E0B),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Text(
               'Open your banking app, scan this QR code, and complete the payment. Your booking will be confirmed automatically.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: Color(0xFF92400E),
                 height: 1.5,
@@ -603,6 +691,39 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
     );
   }
 
+  void _showSnackBar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError
+            ? const Color(0xFFEF4444)
+            : const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   Widget _buildBottomActions() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -619,25 +740,57 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: (_isPolling || _isExpired || _isSuccess)
-                  ? null
-                  : _checkNow,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('I\'ve Paid — Check Now'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: const Color(0xFF93C5FD),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: (_isExpired || _isSuccess || _isSavingImage) ? null : _saveQrToGallery,
+                    icon: _isSavingImage
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+                            ),
+                          )
+                        : const Icon(Icons.download_rounded, size: 18),
+                    label: const Text('Save QR Code'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryBlue,
+                      side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: (_isPolling || _isExpired || _isSuccess)
+                        ? null
+                        : _checkNow,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Check Now'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFF93C5FD),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           TextButton(

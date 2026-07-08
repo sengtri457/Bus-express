@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../supabase_config.dart';
-import 'operator_routes_screen.dart';
 
 class OperatorBusesScreen extends StatefulWidget {
   final String operatorId;
@@ -374,6 +373,7 @@ class _BusFormSheetState extends State<_BusFormSheet> {
   final _modelCtrl = TextEditingController();
   final _capacityCtrl = TextEditingController();
   bool _isLoading = false;
+  String _presetType = 'van_14';
 
   @override
   void initState() {
@@ -381,7 +381,11 @@ class _BusFormSheetState extends State<_BusFormSheet> {
     if (widget.existing != null) {
       _plateCtrl.text = widget.existing!['plate_number'] ?? '';
       _modelCtrl.text = widget.existing!['model'] ?? '';
-      _capacityCtrl.text = widget.existing!['capacity']?.toString() ?? '';
+      final capacity = widget.existing!['capacity'] ?? 14;
+      _capacityCtrl.text = capacity.toString();
+      _presetType = capacity == 14 ? 'van_14' : 'large_bus';
+    } else {
+      _capacityCtrl.text = '14';
     }
   }
 
@@ -397,11 +401,12 @@ class _BusFormSheetState extends State<_BusFormSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
+      final capacity = _presetType == 'van_14' ? 14 : int.parse(_capacityCtrl.text.trim());
       final data = {
         'operator_id': widget.operatorId,
         'plate_number': _plateCtrl.text.trim(),
         'model': _modelCtrl.text.trim(),
-        'capacity': int.parse(_capacityCtrl.text.trim()),
+        'capacity': capacity,
         'status': 'active',
       };
 
@@ -495,14 +500,39 @@ class _BusFormSheetState extends State<_BusFormSheet> {
                 validator: (v) => v!.isEmpty ? context.tr.required : null,
               ),
               const SizedBox(height: 14),
-              _FormField(
-                controller: _capacityCtrl,
-                label: context.tr.seatCapacity,
-                hint: context.tr.seatCapacityHint,
-                icon: Icons.event_seat_rounded,
-                keyboardType: TextInputType.number,
-                validator: (v) => v!.isEmpty ? context.tr.required : null,
+              _PresetDropdown(
+                value: _presetType,
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _presetType = val;
+                      if (val == 'van_14') {
+                         _capacityCtrl.text = '14';
+                      } else {
+                         _capacityCtrl.text = widget.existing != null && widget.existing!['capacity'] > 14
+                             ? widget.existing!['capacity'].toString()
+                             : '';
+                      }
+                    });
+                  }
+                },
               ),
+              if (_presetType == 'large_bus') ...[
+                const SizedBox(height: 14),
+                _FormField(
+                  controller: _capacityCtrl,
+                  label: context.tr.seatCapacity,
+                  hint: context.tr.seatCapacityHint,
+                  icon: Icons.event_seat_rounded,
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return context.tr.required;
+                    final cap = int.tryParse(v);
+                    if (cap == null || cap <= 14) return 'Capacity must be greater than 14';
+                    return null;
+                  },
+                ),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -540,6 +570,77 @@ class _BusFormSheetState extends State<_BusFormSheet> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PresetDropdown extends StatelessWidget {
+  final String value;
+  final ValueChanged<String?> onChanged;
+
+  const _PresetDropdown({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Seating Layout Preset',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: value,
+          onChanged: onChanged,
+          items: const [
+            DropdownMenuItem(
+              value: 'van_14',
+              child: Text('14-Seat Minivan (1 Driver + 13 Passengers)'),
+            ),
+            DropdownMenuItem(
+              value: 'large_bus',
+              child: Text('Large Bus (>14 Seats)'),
+            ),
+          ],
+          decoration: InputDecoration(
+            prefixIcon: const Icon(
+              Icons.grid_view_rounded,
+              color: Color(0xFF6B7280),
+              size: 18,
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF059669), width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          style: const TextStyle(
+            color: Color(0xFF1F2937),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          dropdownColor: Colors.white,
+          icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF6B7280)),
+        ),
+      ],
     );
   }
 }

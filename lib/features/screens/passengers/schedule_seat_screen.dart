@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../repositories/trip_repository.dart';
+import '../../../repositories/booking_repository.dart';
 import '../../widgets/animations.dart';
 import 'booking_confirmation_screen.dart';
 
@@ -25,6 +28,10 @@ class ScheduleSeatScreen extends StatefulWidget {
 
 class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
   final _tripRepo = TripRepository();
+  final _bookingRepo = BookingRepository();
+  RealtimeChannel? _realtimeChannel;
+  bool _isLockingSeats = false;
+
   List<String> _bookedSeats = [];
   final List<String> _selectedSeats = [];
   bool _isLoading = true;
@@ -96,8 +103,78 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
 
   @override
   void dispose() {
+    _realtimeChannel?.unsubscribe();
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _subscribeRealtime(String tripId) {
+    _realtimeChannel?.unsubscribe();
+    
+    _realtimeChannel = _tripRepo.client
+        .channel('trip_seats_$tripId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'seat_holds',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'trip_id',
+            value: tripId,
+          ),
+          callback: (payload) {
+            _loadBookedSeatsSilent(tripId);
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'bookings',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'trip_id',
+            value: tripId,
+          ),
+          callback: (payload) {
+            _loadBookedSeatsSilent(tripId);
+          },
+        );
+    _realtimeChannel?.subscribe();
+  }
+
+  Future<void> _loadBookedSeatsSilent(String tripId) async {
+    try {
+      final currentUserId = _tripRepo.client.auth.currentUser?.id;
+
+      final bookings = await _tripRepo.client
+          .from('bookings')
+          .select('seat_number')
+          .eq('trip_id', tripId)
+          .inFilter('status', ['confirmed', 'pending', 'boarded']);
+
+      final holds = await _tripRepo.client
+          .from('seat_holds')
+          .select('seat_number, passenger_id')
+          .eq('trip_id', tripId)
+          .gt('expires_at', DateTime.now().toIso8601String());
+
+      if (mounted) {
+        final bookedList = (bookings as List)
+            .map((b) => b['seat_number'] as String)
+            .toList();
+
+        final heldList = (holds as List)
+            .where((h) => h['passenger_id'] != currentUserId)
+            .map((h) => h['seat_number'] as String)
+            .toList();
+
+        setState(() {
+          _bookedSeats = {...bookedList, ...heldList}.toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error silent loading seats: $e');
+    }
   }
 
   Future<void> _loadBookedSeats() async {
@@ -111,20 +188,11 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
           .maybeSingle();
 
       if (tripData != null) {
-        final bookings = await _tripRepo.client
-            .from('bookings')
-            .select('seat_number')
-            .eq('trip_id', tripData['id'])
-            .inFilter('status', ['confirmed', 'pending', 'boarded']);
-
-        if (mounted) {
-          setState(() {
-            _tripStatus = tripData['status'] as String?;
-            _bookedSeats = (bookings as List)
-                .map((b) => b['seat_number'] as String)
-                .toList();
-          });
-        }
+        final tripId = tripData['id'] as String;
+        _tripStatus = tripData['status'] as String?;
+        
+        _subscribeRealtime(tripId);
+        await _loadBookedSeatsSilent(tripId);
       } else {
         if (mounted) {
           setState(() {
@@ -150,7 +218,8 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     });
   }
 
-  void _proceedToBooking() {
+  Future<void> _proceedToBooking() async {
+    if (_isLockingSeats) return;
     HapticFeedback.mediumImpact();
     if (_selectedSeats.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,16 +232,83 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BookingConfirmationScreen(
-          schedule: widget.schedule,
-          date: widget.date,
-          seatNumbers: _selectedSeats,
-        ),
-      ),
-    );
+    setState(() => _isLockingSeats = true);
+
+    try {
+      final tripData = await _tripRepo.client
+          .from('trips')
+          .select('id')
+          .eq('schedule_id', widget.schedule['id'])
+          .eq('trip_date', widget.date.toIso8601String().split('T')[0])
+          .maybeSingle();
+
+      if (tripData == null) {
+        throw Exception('Trip not found for this schedule and date');
+      }
+
+      final tripId = tripData['id'] as String;
+      final passengerId = _tripRepo.client.auth.currentUser?.id;
+
+      if (passengerId == null) {
+        throw Exception('User session not found. Please log in again.');
+      }
+
+      final holdResult = await _bookingRepo.holdSeats(
+        tripId: tripId,
+        seatNumbers: _selectedSeats,
+        passengerId: passengerId,
+      );
+
+      if (holdResult is Failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(holdResult.message),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          await _loadBookedSeatsSilent(tripId);
+        }
+        return;
+      }
+
+      if (mounted) {
+        final bookingFinished = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookingConfirmationScreen(
+              schedule: widget.schedule,
+              date: widget.date,
+              seatNumbers: _selectedSeats,
+            ),
+          ),
+        );
+
+        if (bookingFinished != true) {
+          await _bookingRepo.releaseSeatsHold(
+            tripId: tripId,
+            seatNumbers: _selectedSeats,
+            passengerId: passengerId,
+          );
+          await _loadBookedSeatsSilent(tripId);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error reserving seats: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLockingSeats = false);
+      }
+    }
   }
 
   @override
@@ -372,7 +508,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                               const SizedBox(height: 16),
                               const Divider(color: AppColors.divider),
                               const SizedBox(height: 16),
-                              const _ColumnHeaders(),
+                              _ColumnHeaders(capacity: _capacity),
                               const SizedBox(height: 8),
                               _SeatGrid(
                                 capacity: _capacity,
@@ -519,6 +655,7 @@ class _SeatWidget extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        height: 48,
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
@@ -590,20 +727,7 @@ class _LegendItem extends StatelessWidget {
 }
 
 class _BusLayout {
-  static const int seatsPerRow = 4;
-  static const List<String> colLetters = ['A', 'B', 'C', 'D'];
   static const double aisleWidth = 28;
-
-  static int rowsFromCapacity(int capacity) =>
-      (capacity + seatsPerRow - 1) ~/ seatsPerRow;
-
-  static String seatLabel(int index) {
-    final row = (index ~/ seatsPerRow) + 1;
-    final col = index % seatsPerRow;
-    return '$row${colLetters[col]}';
-  }
-
-  static bool isEmptySlot(int index, int capacity) => index >= capacity;
 }
 
 class _FrontIndicator extends StatelessWidget {
@@ -671,19 +795,34 @@ class _FrontIndicator extends StatelessWidget {
 }
 
 class _ColumnHeaders extends StatelessWidget {
-  const _ColumnHeaders();
+  final int capacity;
+  const _ColumnHeaders({required this.capacity});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: _headerLabel('A')),
-        Expanded(child: _headerLabel('B')),
-        _buildAisle(),
-        Expanded(child: _headerLabel('C')),
-        Expanded(child: _headerLabel('D')),
-      ],
-    );
+    if (capacity == 14) {
+      return Row(
+        children: [
+          Expanded(child: _headerLabel('A')),
+          const SizedBox(width: 8),
+          Expanded(child: _headerLabel('B')),
+          const SizedBox(width: 8),
+          Expanded(child: _headerLabel('C')),
+          // Align with right column plus spacing
+          const SizedBox(width: 44),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          Expanded(child: _headerLabel('A')),
+          _buildAisle(),
+          Expanded(child: _headerLabel('B')),
+          // Align with right column plus spacing
+          const SizedBox(width: 44),
+        ],
+      );
+    }
   }
 
   static Widget _headerLabel(String label) {
@@ -697,17 +836,10 @@ class _ColumnHeaders extends StatelessWidget {
   }
 
   static Widget _buildAisle() {
-    return SizedBox(
+    return const SizedBox(
       width: _BusLayout.aisleWidth,
       child: Center(
-        child: Container(
-          width: 2,
-          height: 24,
-          decoration: BoxDecoration(
-            color: AppColors.border,
-            borderRadius: BorderRadius.circular(1),
-          ),
-        ),
+        child: SizedBox(),
       ),
     );
   }
@@ -736,64 +868,269 @@ class _SeatGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = _BusLayout.rowsFromCapacity(capacity);
-    return Column(
-        children: List.generate(rows, (i) => _buildRow(i)));
+    if (capacity == 14) {
+      return _buildMinivanGrid(context);
+    } else {
+      return _buildLargeBusGrid(context);
+    }
   }
 
-  Widget _buildRow(int rowIndex) {
-    final rowNum = rowIndex + 1;
+  Widget _buildMinivanGrid(BuildContext context) {
+    return Column(
+      children: [
+        _buildMinivanRow(
+          context,
+          col1: _buildDriverSeat(),
+          col2: _buildSeatWidget('1B'),
+          col3: _buildSeatWidget('1C'),
+          col4: _buildDoor(),
+        ),
+        _buildMinivanRow(
+          context,
+          col1: _buildSeatWidget('2A'),
+          col2: _buildSeatWidget('2B'),
+          col3: _buildSeatWidget('2C'),
+          col4: const SizedBox(width: 32),
+        ),
+        _buildMinivanRow(
+          context,
+          col1: _buildSeatWidget('3A'),
+          col2: _buildSeatWidget('3B'),
+          col3: _buildMinivanWalkway(),
+          col4: _buildSlideDoor(),
+        ),
+        _buildMinivanRow(
+          context,
+          col1: _buildSeatWidget('4A'),
+          col2: _buildSeatWidget('4B'),
+          col3: _buildSeatWidget('4C'),
+          col4: const SizedBox(width: 32),
+        ),
+        _buildMinivanRow(
+          context,
+          col1: _buildSeatWidget('5A'),
+          col2: _buildSeatWidget('5B'),
+          col3: _buildSeatWidget('5C'),
+          col4: const SizedBox(width: 32),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMinivanRow(
+    BuildContext context, {
+    required Widget col1,
+    required Widget col2,
+    required Widget col3,
+    required Widget col4,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          _buildSeat(rowNum, 0),
-          _buildSeat(rowNum, 1),
-          _buildAisleGap(),
-          _buildSeat(rowNum, 2),
-          _buildSeat(rowNum, 3),
+          Expanded(child: col1),
+          const SizedBox(width: 8),
+          Expanded(child: col2),
+          const SizedBox(width: 8),
+          Expanded(child: col3),
+          const SizedBox(width: 12),
+          col4,
         ],
       ),
     );
   }
 
-  Widget _buildSeat(int row, int col) {
-    final index = (row - 1) * _BusLayout.seatsPerRow + col;
-    if (_BusLayout.isEmptySlot(index, capacity)) {
-      return const Expanded(child: SizedBox());
-    }
-    final seat = _BusLayout.seatLabel(index);
+  Widget _buildLargeBusGrid(BuildContext context) {
+    final totalRows = 1 + (capacity ~/ 2);
+    return Column(
+      children: List.generate(totalRows, (rowIndex) {
+        final rowNum = rowIndex + 1;
+        
+        Widget leftCol;
+        Widget rightCol;
+        Widget farRightCol;
+
+        if (rowNum == 1) {
+          leftCol = _buildDriverSeat();
+          rightCol = _buildSeatWidget('1B');
+          farRightCol = _buildDoor();
+        } else {
+          final leftSeatIndex = (rowNum - 2) * 2 + 2;
+          final rightSeatIndex = (rowNum - 2) * 2 + 3;
+
+          if (leftSeatIndex <= capacity) {
+            leftCol = _buildSeatWidget('${rowNum}A');
+          } else {
+            leftCol = const Expanded(child: SizedBox());
+          }
+
+          if (rightSeatIndex <= capacity) {
+            rightCol = _buildSeatWidget('${rowNum}B');
+          } else {
+            rightCol = const Expanded(child: SizedBox());
+          }
+
+          farRightCol = const SizedBox(width: 32);
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            children: [
+              leftCol is Expanded ? leftCol : Expanded(child: leftCol),
+              _buildLargeBusWalkway(rowIndex),
+              rightCol is Expanded ? rightCol : Expanded(child: rightCol),
+              const SizedBox(width: 12),
+              farRightCol,
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildSeatWidget(String seat) {
     final status = _status(seat);
-    return Expanded(
-      child: _SeatWidget(
-        label: seat,
-        status: status,
-        onTap: (status == SeatStatus.booked || isExpired)
-            ? null
-            : () => onSeatTap(seat),
+    return _SeatWidget(
+      label: seat,
+      status: status,
+      onTap: (status == SeatStatus.booked || isExpired)
+          ? null
+          : () => onSeatTap(seat),
+    );
+  }
+
+  Widget _buildDriverSeat() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.airline_seat_recline_normal_rounded,
+            size: 18,
+            color: Color(0xFF9CA3AF),
+          ),
+          SizedBox(height: 2),
+          Text(
+            'Driver',
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF9CA3AF),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  static Widget _buildAisleGap() {
-    return SizedBox(
-      width: _BusLayout.aisleWidth,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppColors.divider),
-        ),
+  Widget _buildDoor() {
+    return Container(
+      width: 32,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.meeting_room_rounded,
+            size: 16,
+            color: Color(0xFFD97706),
+          ),
+          SizedBox(height: 2),
+          Text(
+            'Door',
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFD97706),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSlideDoor() {
+    return Container(
+      width: 32,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: const RotatedBox(
+        quarterTurns: 3,
         child: Center(
-          child: Container(
-            width: 2,
-            decoration: BoxDecoration(
-              color: AppColors.border.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(1),
+          child: Text(
+            'Slide Door',
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2563EB),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMinivanWalkway() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Center(
+        child: Text(
+          'Walkway',
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF9CA3AF),
+            letterSpacing: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLargeBusWalkway(int rowIndex) {
+    final showLabel = rowIndex % 5 == 2;
+    return SizedBox(
+      width: _BusLayout.aisleWidth,
+      height: 48,
+      child: Center(
+        child: showLabel
+            ? const RotatedBox(
+                quarterTurns: 3,
+                child: Text(
+                  'WALKWAY',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF9CA3AF),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              )
+            : Container(
+                width: 1.5,
+                height: 24,
+                color: const Color(0xFFE5E7EB),
+              ),
       ),
     );
   }
