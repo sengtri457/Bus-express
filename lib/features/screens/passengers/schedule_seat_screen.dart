@@ -235,18 +235,32 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     setState(() => _isLockingSeats = true);
 
     try {
+      final tripDateStr = widget.date.toIso8601String().split('T')[0];
       final tripData = await _tripRepo.client
           .from('trips')
           .select('id')
           .eq('schedule_id', widget.schedule['id'])
-          .eq('trip_date', widget.date.toIso8601String().split('T')[0])
+          .eq('trip_date', tripDateStr)
           .maybeSingle();
 
+      String tripId;
       if (tripData == null) {
-        throw Exception('Trip not found for this schedule and date');
+        final newTrip = await _tripRepo.client
+            .from('trips')
+            .insert({
+              'schedule_id': widget.schedule['id'],
+              'trip_date': tripDateStr,
+              'bus_id': widget.schedule['buses']?['id'],
+              'driver_id': widget.schedule['driver_id'],
+              'conductor_id': widget.schedule['conductor_id'],
+              'status': 'scheduled',
+            })
+            .select('id')
+            .single();
+        tripId = newTrip['id'] as String;
+      } else {
+        tripId = tripData['id'] as String;
       }
-
-      final tripId = tripData['id'] as String;
       final passengerId = _tripRepo.client.auth.currentUser?.id;
 
       if (passengerId == null) {
