@@ -173,12 +173,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
   Future<void> _signOut() async {
     try {
       await SupabaseConfig.client.auth.signOut();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
+      if (mounted) _replaceWithLogin();
     } catch (e) {
       if (mounted) {
         _showSnackBar(context.tr.profileErrorSignOut(e.toString()), isError: true);
@@ -187,10 +182,17 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
   }
 
   void _navigateToLogin() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+    _replaceWithLogin();
+  }
+
+  void _replaceWithLogin() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    });
   }
 
   void _showSnackBar(String message, {required bool isError}) {

@@ -8,7 +8,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
 import '../../../l10n/tr_extension.dart';
 import '../../../repositories/trip_repository.dart';
+import '../../../supabase_config.dart';
 import '../../../repositories/booking_repository.dart';
+import '../../auth/login_screen.dart';
 import '../../widgets/animations.dart';
 import 'booking_confirmation_screen.dart';
 
@@ -218,6 +220,38 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     });
   }
 
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Sign In Required', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Please sign in to continue booking your tickets.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Not Now', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Sign In'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _proceedToBooking() async {
     if (_isLockingSeats) return;
     HapticFeedback.mediumImpact();
@@ -229,6 +263,12 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+      return;
+    }
+
+    final user = SupabaseConfig.client.auth.currentUser;
+    if (user == null) {
+      _showLoginRequiredDialog();
       return;
     }
 

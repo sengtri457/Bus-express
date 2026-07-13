@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../l10n/tr_extension.dart';
@@ -10,6 +12,8 @@ import '../../repositories/auth_repository.dart';
 import '../../repositories/user_repository.dart';
 import '../auth/login_screen.dart';
 import '../auth/reset_password_screen.dart';
+import '../onboarding/onboarding_screen.dart';
+import 'passengers/passenger_main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -51,21 +55,22 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 2600));
     if (!mounted) return;
 
-    // Don't navigate if user is in password recovery flow
     if (ResetPasswordScreen.isRecoveringPassword) return;
 
-    final authRepo = AuthRepository();
     final supabaseUser = AuthRepository().client.auth.currentUser;
 
-    if (supabaseUser == null) {
-      _navigateTo(const LoginScreen());
+    if (supabaseUser != null) {
+      await _handleAuthenticated(supabaseUser);
       return;
     }
 
-    try {
-      final userRepo = UserRepository();
-      final result = await userRepo.getCurrentUser(supabaseUser.id);
+    await _handleUnauthenticated();
+  }
 
+  Future<void> _handleAuthenticated(User supabaseUser) async {
+    final authRepo = AuthRepository();
+    try {
+      final result = await UserRepository().getCurrentUser(supabaseUser.id);
       if (!mounted) return;
 
       if (result is Success<UserModel>) {
@@ -75,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen>
           if (mounted) _navigateTo(const LoginScreen());
           return;
         }
-        NavigationHelper.navigateByRole(context, user.role);
+        _navigateByRole(user.role);
       } else {
         _navigateTo(const LoginScreen());
       }
@@ -84,15 +89,41 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
+  void _navigateByRole(String? role) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      NavigationHelper.navigateByRole(context, role);
+    });
+  }
+
+  Future<void> _handleUnauthenticated() async {
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingDone = prefs.getBool('onboarding_completed') ?? false;
+    final skippedLogin = prefs.getBool('has_skipped_login') ?? false;
+
+    if (!mounted) return;
+
+    if (!onboardingDone) {
+      _navigateTo(const OnboardingScreen());
+    } else if (skippedLogin) {
+      _navigateTo(const PassengerMainScreen());
+    } else {
+      _navigateTo(const LoginScreen());
+    }
+  }
+
   void _navigateTo(Widget screen) {
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (ctx, a1, a2) => screen,
-        transitionDuration: const Duration(milliseconds: 500),
-        transitionsBuilder: (ctx, animation, a2, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (ctx, a1, a2) => screen,
+          transitionDuration: const Duration(milliseconds: 500),
+          transitionsBuilder: (ctx, animation, a2, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+      );
+    });
   }
 
   @override
