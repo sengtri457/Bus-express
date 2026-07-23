@@ -645,7 +645,7 @@ class _StepDot extends StatelessWidget {
                 : Text(
                     '${step + 1}',
                     style: TextStyle(
-                      color: isActive ? Colors.white : const Color(0xFF94A3B8),
+                      color: isActive ? Colors.white : const Color(0xFF64748B),
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
@@ -657,7 +657,7 @@ class _StepDot extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 11,
-            color: isActive ? AppColors.primaryBlue : const Color(0xFF94A3B8),
+            color: isActive ? AppColors.primaryBlue : const Color(0xFF64748B),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -758,7 +758,7 @@ class _PasswordStrengthIndicator extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           context.tr.passwordStrengthHint,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
         ),
       ],
     );

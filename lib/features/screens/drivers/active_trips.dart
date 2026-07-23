@@ -653,7 +653,7 @@ class _TimelineRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 14,
-              color: done ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
+              color: done ? const Color(0xFF111827) : const Color(0xFF6B7280),
             ),
           ),
         ),
@@ -662,7 +662,7 @@ class _TimelineRow extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: done ? activeColor : const Color(0xFF9CA3AF),
+            color: done ? activeColor : const Color(0xFF6B7280),
           ),
         ),
       ],
@@ -705,7 +705,7 @@ class _GpsCard extends StatelessWidget {
       case _GpsState.requesting:
         return const Color(0xFFD97706);
       default:
-        return const Color(0xFF9CA3AF);
+        return const Color(0xFF6B7280);
     }
   }
 
@@ -834,8 +834,8 @@ class _CoordChip extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 9,
-                color: Color(0xFF9CA3AF),
+                fontSize: 11,
+                color: Color(0xFF6B7280),
                 fontWeight: FontWeight.w600,
               ),
             ),

@@ -754,7 +754,7 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
             prefixIcon: Icon(
               icon,
               color: enabled ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),

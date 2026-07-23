@@ -164,8 +164,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
     }
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => RouteListScreen(
+      AppPageTransitions.slideHorizontal(
+        RouteListScreen(
           origin: _originController.text.trim(),
           destination: _destinationController.text.trim(),
           date: _selectedDate,
@@ -249,28 +249,43 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                         ),
                       ),
                       const NotificationBell(),
-                      GestureDetector(
-                        onTap: () {
-                          if (widget.onProfileTap != null) {
-                            widget.onProfileTap!();
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PassengerProfileScreen(),
+                      Semantics(
+                        button: true,
+                        label: context.tr.navProfile,
+                        excludeSemantics: true,
+                        child: InkWell(
+                          onTap: () {
+                            if (widget.onProfileTap != null) {
+                              widget.onProfileTap!();
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const PassengerProfileScreen(),
+                                ),
+                              ).then((_) => _loadUserName());
+                            }
+                          },
+                          customBorder: const CircleBorder(),
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Center(
+                              child: CircleAvatar(
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.2,
+                                ),
+                                child: Text(
+                                  _userName.isNotEmpty
+                                      ? _userName[0].toUpperCase()
+                                      : 'P',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                            ).then((_) => _loadUserName());
-                          }
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          child: Text(
-                            _userName.isNotEmpty
-                                ? _userName[0].toUpperCase()
-                                : 'P',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
@@ -311,8 +326,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                         onRouteTap: (origin, destination) {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => RouteListScreen(
+                            AppPageTransitions.slideHorizontal(
+                              RouteListScreen(
                                 origin: origin,
                                 destination: destination,
                                 date: _selectedDate,
@@ -368,18 +383,32 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                 const SizedBox(width: 20),
                 Container(width: 1, height: 20, color: AppColors.border),
                 const Spacer(),
-                GestureDetector(
-                  onTap: _swapLocations,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: AppRadius.smR,
-                    ),
-                    child: const Icon(
-                      Icons.swap_vert_rounded,
-                      color: AppColors.primary,
-                      size: 20,
+                Semantics(
+                  button: true,
+                  label: context.tr.homeSwapLocations,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _swapLocations,
+                      borderRadius: BorderRadius.circular(24),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: AppRadius.smR,
+                            ),
+                            child: const Icon(
+                              Icons.swap_vert_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -396,49 +425,59 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             const SizedBox(height: 16),
             const Divider(color: AppColors.border),
             const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _pickDate,
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: AppRadius.mdR,
-                    ),
-                    child: const Icon(
-                      Icons.calendar_today_rounded,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            Semantics(
+              button: true,
+              label:
+                  '${context.tr.homeTravelDate}, ${DateHelpers.formatDateFromDt(_selectedDate)}',
+              excludeSemantics: true,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _pickDate,
+                  borderRadius: AppRadius.mdR,
+                  child: Row(
                     children: [
-                      Text(
-                        context.tr.homeTravelDate,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: AppRadius.mdR,
+                        ),
+                        child: const Icon(
+                          Icons.calendar_today_rounded,
+                          color: AppColors.primary,
+                          size: 20,
                         ),
                       ),
-                      Text(
-                        DateHelpers.formatDateFromDt(_selectedDate),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr.homeTravelDate,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            DateHelpers.formatDateFromDt(_selectedDate),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textHint,
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.textHint,
-                  ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -518,65 +557,74 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final op = _operators[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RouteListScreen(
-                    origin: '',
-                    destination: '',
-                    date: _selectedDate,
-                    operatorId: op.id,
-                    operatorName: op.name,
+          return Semantics(
+            button: true,
+            label: op.name,
+            excludeSemantics: true,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: AppRadius.lgR,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    AppPageTransitions.slideHorizontal(
+                      RouteListScreen(
+                        origin: '',
+                        destination: '',
+                        date: _selectedDate,
+                        operatorId: op.id,
+                        operatorName: op.name,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 100,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: AppRadius.lgR,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: AppRadius.mdR,
+                        child: op.logoUrl != null
+                            ? Image.network(
+                                op.logoUrl!,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _defaultOperatorAvatar(op),
+                              )
+                            : _defaultOperatorAvatar(op),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        op.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-            child: Container(
-              width: 100,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: AppRadius.lgR,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: AppRadius.mdR,
-                    child: op.logoUrl != null
-                        ? Image.network(
-                            op.logoUrl!,
-                            width: 44,
-                            height: 44,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _defaultOperatorAvatar(op),
-                          )
-                        : _defaultOperatorAvatar(op),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    op.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
               ),
             ),
           );

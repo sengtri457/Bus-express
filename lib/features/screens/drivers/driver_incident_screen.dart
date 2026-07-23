@@ -452,7 +452,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                           type['icon'] as IconData,
                           color: isSelected
                               ? type['color'] as Color
-                              : const Color(0xFF9CA3AF),
+                              : const Color(0xFF6B7280),
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -582,7 +582,7 @@ class _DriverIncidentScreenState extends State<DriverIncidentScreen> {
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   hintText: context.tr.driverIncidentHintText,
-                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                  hintStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
                 ),
@@ -709,7 +709,7 @@ class _IncidentTile extends StatelessWidget {
                       _formatTimestamp(incident['created_at'] as String),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF9CA3AF),
+                        color: Color(0xFF6B7280),
                       ),
                     ),
                   ],

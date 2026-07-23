@@ -109,7 +109,7 @@ class _OperatorStaffScreenState extends State<OperatorStaffScreen>
               controller: _tabController,
               indicatorColor: const Color(0xFF059669),
               labelColor: const Color(0xFF059669),
-              unselectedLabelColor: const Color(0xFF9CA3AF),
+              unselectedLabelColor: const Color(0xFF6B7280),
               labelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -306,7 +306,7 @@ class _StaffCard extends StatelessWidget {
                       const Icon(
                         Icons.email_outlined,
                         size: 12,
-                        color: Color(0xFF9CA3AF),
+                        color: Color(0xFF6B7280),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -327,7 +327,7 @@ class _StaffCard extends StatelessWidget {
                       const Icon(
                         Icons.phone_outlined,
                         size: 12,
-                        color: Color(0xFF9CA3AF),
+                        color: Color(0xFF6B7280),
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -636,7 +636,7 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                     decoration: InputDecoration(
                       hintText: context.tr.min8Chars,
                       hintStyle: const TextStyle(
-                        color: Color(0xFF9CA3AF),
+                        color: Color(0xFF6B7280),
                         fontSize: 14,
                       ),
                       prefixIcon: const Icon(
@@ -793,7 +793,7 @@ class _RoleButton extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? color : const Color(0xFF9CA3AF),
+              color: isSelected ? color : const Color(0xFF6B7280),
               size: 24,
             ),
             const SizedBox(height: 6),
@@ -851,7 +851,7 @@ class _FormField extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
             prefixIcon: Icon(
               icon,
               color: iconColor ?? const Color(0xFF6B7280),
@@ -909,7 +909,7 @@ class _EmptyState extends StatelessWidget {
               color: const Color(0xFFF3F4F6),
               borderRadius: BorderRadius.circular(50),
             ),
-            child: Icon(icon, size: 40, color: const Color(0xFF9CA3AF)),
+            child: Icon(icon, size: 40, color: const Color(0xFF6B7280)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -923,7 +923,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
         ],
       ),

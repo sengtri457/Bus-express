@@ -668,7 +668,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                           const Icon(
                             Icons.schedule_rounded,
                             size: 48,
-                            color: Color(0xFF9CA3AF),
+                            color: Color(0xFF6B7280),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -685,7 +685,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF9CA3AF),
+                              color: Color(0xFF6B7280),
                               height: 1.5,
                             ),
                           ),
@@ -904,7 +904,7 @@ class _StatusOverlayCard extends StatelessWidget {
                     context.tr.liveDepartedAt(_formatTime(departedAt!)),
                     style: const TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF9CA3AF),
+                      color: Color(0xFF6B7280),
                     ),
                   ),
               ],
@@ -1075,7 +1075,7 @@ class _BottomInfoCard extends StatelessWidget {
                   children: [
                     Text(
                       context.tr.liveBusLocation,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1115,7 +1115,7 @@ class _BottomInfoCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF9CA3AF),
+                      color: Color(0xFF6B7280),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1143,7 +1143,7 @@ class _BottomInfoCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF9CA3AF),
+                      color: Color(0xFF6B7280),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1370,7 +1370,7 @@ class _IncidentAlertBannerState extends State<_IncidentAlertBanner> {
                                   _formatTimestamp(iTime),
                                   style: const TextStyle(
                                     fontSize: 10,
-                                    color: Color(0xFF9CA3AF),
+                                    color: Color(0xFF6B7280),
                                   ),
                                 ),
                               ],

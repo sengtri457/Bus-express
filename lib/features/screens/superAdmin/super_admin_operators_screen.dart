@@ -195,7 +195,7 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
                 _FilterChip(
                   label: context.tr.inactiveFilter,
                   isSelected: _filter == 'inactive',
-                  color: const Color(0xFF9CA3AF),
+                  color: const Color(0xFF6B7280),
                   onTap: () {
                     setState(() => _filter = 'inactive');
                     _loadOperators();
@@ -214,7 +214,7 @@ class _SuperAdminOperatorsScreenState extends State<SuperAdminOperatorsScreen> {
                         ? Center(
                             child: Text(
                               context.tr.noOperatorsFound,
-                              style: const TextStyle(color: Color(0xFF9CA3AF)),
+                              style: const TextStyle(color: Color(0xFF6B7280)),
                             ),
                           )
                         : ListView.builder(
@@ -307,7 +307,7 @@ class _OperatorCard extends StatelessWidget {
                               const Icon(
                                 Icons.phone_outlined,
                                 size: 12,
-                                color: Color(0xFF9CA3AF),
+                                color: Color(0xFF6B7280),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -343,7 +343,7 @@ class _OperatorCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: isActive
                                   ? const Color(0xFF059669)
-                                  : const Color(0xFF9CA3AF),
+                                  : const Color(0xFF6B7280),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -355,7 +355,7 @@ class _OperatorCard extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                               color: isActive
                                   ? const Color(0xFF059669)
-                                  : const Color(0xFF9CA3AF),
+                                  : const Color(0xFF6B7280),
                             ),
                           ),
                         ],
@@ -390,7 +390,7 @@ class _OperatorCard extends StatelessWidget {
                       _formatDate(operator['created_at'] as String? ?? ''),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF9CA3AF),
+                        color: Color(0xFF6B7280),
                       ),
                     ),
                   ],
@@ -499,7 +499,7 @@ class _OperatorAvatar extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: isActive
                       ? Colors.white
-                      : const Color(0xFF9CA3AF),
+                      : const Color(0xFF6B7280),
                 ),
               ),
             ),
@@ -525,7 +525,7 @@ class _MiniStat extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: const Color(0xFF9CA3AF)),
+        Icon(icon, size: 13, color: const Color(0xFF6B7280)),
         const SizedBox(width: 4),
         Text(
           '$value $label',
@@ -730,7 +730,7 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
                           children: [
                             Icon(
                               Icons.add_photo_alternate_outlined,
-                              color: const Color(0xFF9CA3AF),
+                              color: const Color(0xFF6B7280),
                               size: 28,
                             ),
                             const SizedBox(height: 4),
@@ -738,7 +738,7 @@ class _OperatorFormSheetState extends State<_OperatorFormSheet> {
                               context.tr.logo,
                               style: const TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF9CA3AF),
+                                color: Color(0xFF6B7280),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -841,7 +841,7 @@ class _Field extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
             prefixIcon: Icon(icon, color: const Color(0xFF6B7280), size: 18),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),

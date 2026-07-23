@@ -133,7 +133,7 @@ class _BusCard extends StatelessWidget {
       case 'maintenance':
         return const Color(0xFFF59E0B);
       default:
-        return const Color(0xFF9CA3AF);
+        return const Color(0xFF6B7280);
     }
   }
 
@@ -223,7 +223,7 @@ class _BusCard extends StatelessWidget {
                           const Icon(
                             Icons.event_seat_rounded,
                             size: 12,
-                            color: Color(0xFF9CA3AF),
+                            color: Color(0xFF6B7280),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -323,7 +323,7 @@ class _BusCard extends StatelessWidget {
                         children: [
                           const Icon(
                             Icons.cancel_rounded,
-                            color: Color(0xFF9CA3AF),
+                            color: Color(0xFF6B7280),
                             size: 18,
                           ),
                           const SizedBox(width: 8),
@@ -684,7 +684,7 @@ class _FormField extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
             prefixIcon: Icon(
               icon,
               color: iconColor ?? const Color(0xFF6B7280),
@@ -742,7 +742,7 @@ class _EmptyState extends StatelessWidget {
               color: const Color(0xFFF3F4F6),
               borderRadius: BorderRadius.circular(50),
             ),
-            child: Icon(icon, size: 40, color: const Color(0xFF9CA3AF)),
+            child: Icon(icon, size: 40, color: const Color(0xFF6B7280)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -756,7 +756,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
         ],
       ),

@@ -49,10 +49,10 @@ class _AuthTextFieldState extends State<AuthTextField> {
           style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
             prefixIcon: Icon(
               widget.icon,
-              color: const Color(0xFF94A3B8),
+              color: const Color(0xFF64748B),
               size: 20,
             ),
             suffixIcon: widget.isPassword
@@ -61,7 +61,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                       _obscureText
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: const Color(0xFF94A3B8),
+                      color: const Color(0xFF64748B),
                       size: 20,
                     ),
                     onPressed: () =>

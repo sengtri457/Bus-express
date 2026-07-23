@@ -10,24 +10,35 @@ import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
 import '../../../l10n/tr_extension.dart';
+import '../../../repositories/booking_repository.dart';
 import '../../../services/bakong_payment_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/receipt_service.dart';
 import '../../../services/resend_email_service.dart';
 import '../../../supabase_config.dart';
+import '../../widgets/animations.dart';
 import 'bakong_payment_screen.dart';
 import 'passenger_main_screen.dart';
+import 'widgets/booking_success_overlay.dart';
 
 class BookingConfirmationScreen extends StatefulWidget {
   final Map<String, dynamic> schedule;
   final DateTime date;
   final List<String> seatNumbers;
 
+  /// Trip the held seats belong to, resolved race-free by the seat screen.
+  final String tripId;
+
+  /// When the seat reservation lapses. Drives the checkout countdown.
+  final DateTime holdExpiresAt;
+
   const BookingConfirmationScreen({
     super.key,
     required this.schedule,
     required this.date,
     required this.seatNumbers,
+    required this.tripId,
+    required this.holdExpiresAt,
   });
 
   @override
@@ -37,7 +48,13 @@ class BookingConfirmationScreen extends StatefulWidget {
 
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _bookingRepo = BookingRepository();
   bool _isLoading = false;
+
+  // Seat reservation countdown
+  Timer? _holdTicker;
+  Duration _holdRemaining = Duration.zero;
+  bool _holdExpired = false;
 
   // Passenger info controllers
   final TextEditingController _nameController = TextEditingController();
@@ -76,17 +93,48 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   double get _pricePerSeat => (widget.schedule['price'] as num).toDouble();
   double get _totalPrice => _pricePerSeat * widget.seatNumbers.length;
   double get _finalPrice => _totalPrice - _discountAmount;
-  double get _discountPerSeat =>
-      widget.seatNumbers.isEmpty ? 0 : _discountAmount / widget.seatNumbers.length;
+  double get _discountPerSeat => widget.seatNumbers.isEmpty
+      ? 0
+      : _discountAmount / widget.seatNumbers.length;
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+    _startHoldCountdown();
   }
+
+  void _startHoldCountdown() {
+    void tick() {
+      final remaining = widget.holdExpiresAt.difference(DateTime.now());
+      if (!mounted) return;
+      setState(() {
+        _holdRemaining = remaining.isNegative ? Duration.zero : remaining;
+        _holdExpired = remaining.isNegative || remaining == Duration.zero;
+      });
+      if (_holdExpired) _holdTicker?.cancel();
+    }
+
+    tick();
+    _holdTicker = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+  }
+
+  String get _holdRemainingLabel {
+    final m = _holdRemaining.inMinutes;
+    final s = _holdRemaining.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  /// Maps a repository conflict code onto a localised, human message.
+  String _conflictMessage(String code) => switch (code) {
+    bookingSeatTaken => context.tr.bookingSeatTakenError,
+    bookingHoldExpired => context.tr.bookingHoldExpiredError,
+    _ => context.tr.bookingFailedGeneric(code),
+  };
 
   @override
   void dispose() {
+    _holdTicker?.cancel();
     _nameController.dispose();
     _ageController.dispose();
     _phoneController.dispose();
@@ -184,7 +232,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       }
 
       final expiresAt = promo['expires_at'] as String?;
-      if (expiresAt != null && DateTime.now().isAfter(DateTime.parse(expiresAt))) {
+      if (expiresAt != null &&
+          DateTime.now().isAfter(DateTime.parse(expiresAt))) {
         setState(() {
           _isValidatingPromo = false;
           _promoError = context.tr.bookingPromoExpired;
@@ -196,7 +245,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       if (minPurchase != null && _totalPrice < minPurchase) {
         setState(() {
           _isValidatingPromo = false;
-          _promoError = context.tr.bookingMinPurchase('\$${minPurchase.toStringAsFixed(2)}');
+          _promoError = context.tr.bookingMinPurchase(
+            '\$${minPurchase.toStringAsFixed(2)}',
+          );
         });
         return;
       }
@@ -226,7 +277,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           if (userCount >= maxPerUser) {
             setState(() {
               _isValidatingPromo = false;
-              _promoError = context.tr.bookingPromoPerUser(userCount, maxPerUser);
+              _promoError = context.tr.bookingPromoPerUser(
+                userCount,
+                maxPerUser,
+              );
             });
             return;
           }
@@ -240,10 +294,14 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
       if (discountType == 'percentage') {
         discountAmount = _totalPrice * (discountValue / 100);
-        discountLabel = context.tr.bookingPromoPercentage(discountValue.toStringAsFixed(0));
+        discountLabel = context.tr.bookingPromoPercentage(
+          discountValue.toStringAsFixed(0),
+        );
       } else {
         discountAmount = discountValue.clamp(0, _totalPrice);
-        discountLabel = context.tr.bookingPromoFixed(discountValue.toStringAsFixed(2));
+        discountLabel = context.tr.bookingPromoFixed(
+          discountValue.toStringAsFixed(2),
+        );
       }
 
       setState(() {
@@ -296,7 +354,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       // Validate email
       final email = _emailController.text.trim();
       if (email.isNotEmpty) {
-        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+        final emailRegex = RegExp(
+          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+        );
         if (!emailRegex.hasMatch(email)) {
           throw Exception(context.tr.bookingInvalidEmail);
         }
@@ -318,57 +378,33 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         debugPrint('[BookingConfirm] User profile created');
       } catch (_) {
         // Record already exists — update instead
-        await SupabaseConfig.client.from('users')
+        await SupabaseConfig.client
+            .from('users')
             .update(profileData)
             .eq('id', user.id);
         debugPrint('[BookingConfirm] User profile updated');
       }
 
-      final scheduleId = widget.schedule['id'] as String;
-      final tripDate = widget.date.toIso8601String().split('T')[0];
+      // The trip was resolved race-free before the seats were held.
+      final tripId = widget.tripId;
 
-      // Step 1: Get or create trip
-      String tripId;
-      final existingTrip = await SupabaseConfig.client
+      // Safety check: the trip must not have started, ended or been cancelled.
+      final trip = await SupabaseConfig.client
           .from('trips')
-          .select('id, status')
-          .eq('schedule_id', scheduleId)
-          .eq('trip_date', tripDate)
+          .select('status')
+          .eq('id', tripId)
           .maybeSingle();
 
-      if (existingTrip != null) {
-        tripId = existingTrip['id'] as String;
-
-        // Safety check: ensure the existing trip has not already started, ended, or been cancelled
-        final tripStatus = existingTrip['status'] as String?;
-        if (tripStatus == 'in_progress' || tripStatus == 'completed' || tripStatus == 'cancelled') {
-          final reason = tripStatus == 'in_progress'
-              ? context.tr.bookingTripDeparted
-              : tripStatus == 'completed'
-                  ? context.tr.bookingTripEnded
-                  : context.tr.bookingTripCancelled;
-          throw Exception(context.tr.bookingTripNotBookable(reason));
-        }
-      } else {
-        // FIX 1: was .single() — crashes if RLS blocks the insert or
-        // the DB returns 0 rows. Use .maybeSingle() and check for null.
-        final newTrip = await SupabaseConfig.client
-            .from('trips')
-            .insert({
-              'schedule_id': scheduleId,
-              'trip_date': tripDate,
-              'bus_id': widget.schedule['buses']?['id'],
-              'driver_id': widget.schedule['driver_id'],
-              'conductor_id': widget.schedule['conductor_id'],
-              'status': 'scheduled',
-            })
-            .select('id')
-            .maybeSingle();
-
-        if (newTrip == null) {
-          throw Exception(context.tr.bookingFailedCreateTrip);
-        }
-        tripId = newTrip['id'] as String;
+      final tripStatus = trip?['status'] as String?;
+      if (tripStatus == 'in_progress' ||
+          tripStatus == 'completed' ||
+          tripStatus == 'cancelled') {
+        final reason = tripStatus == 'in_progress'
+            ? context.tr.bookingTripDeparted
+            : tripStatus == 'completed'
+            ? context.tr.bookingTripEnded
+            : context.tr.bookingTripCancelled;
+        throw Exception(context.tr.bookingTripNotBookable(reason));
       }
 
       // Step 2: Bakong QR payment (cash on board removed)
@@ -386,34 +422,25 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     required String tripId,
     required User user,
   }) async {
-    final nowStr = DateTime.now().toIso8601String();
-    final List<String> bookingIds = [];
+    // 1. Create every pending booking atomically. If any seat was taken
+    //    in the meantime the whole batch rolls back, so the passenger is
+    //    never charged for a partially booked group.
+    final pending = await _bookingRepo.createPendingBookings(
+      tripId: tripId,
+      seatNumbers: widget.seatNumbers,
+      pricePerSeat: _pricePerSeat,
+      passengerName: _nameController.text.trim(),
+      passengerAge: int.tryParse(_ageController.text.trim()),
+      passengerPhone: _phoneController.text.trim(),
+      passengerNationality: _nationalityController.text.trim(),
+    );
 
-    // 1. Create bookings as 'pending' (no payments, no tickets yet)
-    for (final seat in widget.seatNumbers) {
-      final booking = await SupabaseConfig.client
-          .from('bookings')
-          .insert({
-            'trip_id': tripId,
-            'passenger_id': user.id,
-            'seat_number': seat,
-            'status': 'pending',
-            'total_price': _pricePerSeat,
-            'booked_at': nowStr,
-            'booking_channel': 'online',
-            'passenger_name': _nameController.text.trim(),
-            'passenger_age': int.tryParse(_ageController.text.trim()),
-            'passenger_phone': _phoneController.text.trim(),
-            'passenger_nationality': _nationalityController.text.trim(),
-          })
-          .select('id')
-          .maybeSingle();
-
-      if (booking == null) {
-        throw Exception(context.tr.bookingFailedCreateBooking(seat));
-      }
-      bookingIds.add(booking['id'] as String);
+    if (pending is Failure<List<String>>) {
+      if (!mounted) return;
+      throw Exception(_conflictMessage(pending.message));
     }
+
+    final bookingIds = (pending as Success<List<String>>).data;
 
     // 2. Generate KHQR
     final khqr = BakongPaymentService.generateKhqr(
@@ -472,10 +499,16 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       await _sendReceiptIfNeeded(receiptBookings);
 
       if (!mounted) return;
+      await BookingSuccessOverlay.show(
+        context,
+        seatCount: widget.seatNumbers.length,
+      );
+
+      if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => PassengerMainScreen(
+        AppPageTransitions.slideUpFade(
+          PassengerMainScreen(
             initialIndex: 1,
             newBookingId: bookingIds.first,
             newSeatCount: widget.seatNumbers.length,
@@ -484,9 +517,15 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         (route) => route.isFirst,
       );
     } else {
-      // 4b. Payment failed — cancel pending bookings
+      // 4b. Payment abandoned or timed out — undo the pending bookings and
+      // put the seats into cooldown rather than freeing them instantly.
       await _cancelPendingBookings(bookingIds);
-      _showError('Payment cancelled or timed out. Please try again.');
+      await _bookingRepo.releaseSeatsHold(
+        tripId: tripId,
+        seatNumbers: widget.seatNumbers,
+        passengerId: user.id,
+      );
+      if (mounted) Navigator.pop(context, false);
     }
   }
 
@@ -525,8 +564,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       });
 
       // Create ticket
-      final qrCode =
-          'BUS-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
+      final qrCode = 'BUS-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
       await SupabaseConfig.client.from('tickets').insert({
         'booking_id': bookingId,
         'qr_code': qrCode,
@@ -621,10 +659,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       to: receiptEmail,
       bookings: receiptBookings,
       passengerName: _nameController.text.trim(),
-    ).timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {},
-    );
+    ).timeout(const Duration(seconds: 10), onTimeout: () {});
   }
 
   void _onUseSavedInfoChanged(bool useSaved) {
@@ -662,8 +697,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     final tripDate = DateHelpers.formatFullDate(
       widget.date.toIso8601String().split('T')[0],
     );
-    final departureTime =
-        _formatTime(widget.schedule['departure_time'] as String);
+    final departureTime = _formatTime(
+      widget.schedule['departure_time'] as String,
+    );
 
     final pdfResult = await ReceiptService.generate(bookings: bookings);
 
@@ -678,8 +714,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           tripDate: tripDate,
           departureTime: departureTime,
           seatCount: bookings.length,
-          totalPrice:
-              bookings.fold<double>(0, (s, b) => s + (b['total_price'] as num).toDouble()),
+          totalPrice: bookings.fold<double>(
+            0,
+            (s, b) => s + (b['total_price'] as num).toDouble(),
+          ),
           passengerName: passengerName,
         );
         if (emailResult is Success && mounted) {
@@ -711,367 +749,351 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     final route = widget.schedule['routes'] as Map<String, dynamic>;
     final bus = widget.schedule['buses'] as Map<String, dynamic>?;
 
-    return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (await _confirmLeave()) {
+          if (mounted) Navigator.pop(context, false);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surfaceLight,
+        appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
+          ),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Text(
+            context.tr.bookingConfirmTitle,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          context.tr.bookingConfirmTitle,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Trip Details
-            _SectionCard(
-              title: context.tr.bookingTripDetails,
-              icon: Icons.directions_bus_rounded,
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _formatTime(widget.schedule['departure_time']),
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                          Text(
-                            route['origin'],
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '${route['duration_min']} min',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textHint,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Container(
-                                  height: 1.5,
-                                  color: AppColors.border,
-                                ),
-                                const Icon(
-                                  Icons.directions_bus_rounded,
-                                  size: 16,
-                                  color: AppColors.primaryBlue,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            _formatTime(widget.schedule['arrival_time']),
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                          Text(
-                            route['destination'],
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24, color: AppColors.divider),
-                  _InfoRow(
-                    icon: Icons.calendar_today_rounded,
-                    label: context.tr.bookingDate,
-                    value: _formatDate(widget.date),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.event_seat_rounded,
-                        size: 16,
-                        color: AppColors.textHint,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        context.tr.bookingSeats,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Flexible(
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          alignment: WrapAlignment.end,
-                          children: widget.seatNumbers.map((seat) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryBlueLight,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.primaryBlueBorder,
-                                ),
-                              ),
-                              child: Text(
-                                seat,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryBlue,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (bus != null) ...[
-                    const SizedBox(height: 10),
-                    _InfoRow(
-                      icon: Icons.directions_bus_outlined,
-                      label: context.tr.bookingBus,
-                      value: '${bus['model']} • ${bus['plate_number']}',
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Passenger Info
-            _SectionCard(
-              title: context.tr.bookingPassenger,
-              icon: Icons.person_outline_rounded,
-              child: Form(
-                key: _formKey,
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _buildHoldBanner(),
+              // Trip Details
+              _SectionCard(
+                title: context.tr.bookingTripDetails,
+                icon: Icons.directions_bus_rounded,
                 child: Column(
                   children: [
-                    if (_hasStoredInfo)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
+                    Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: Checkbox(
-                                value: _useStoredInfo,
-                                onChanged: (v) => _onUseSavedInfoChanged(v ?? true),
-                                activeColor: AppColors.primaryBlue,
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            Text(
+                              _formatTime(widget.schedule['departure_time']),
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            GestureDetector(
-                              onTap: () => _onUseSavedInfoChanged(!_useStoredInfo),
-                              child: RichText(
-                                text: TextSpan(
-                                  text: context.tr.bookingUseSavedInfo,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                  children: [
-                                    if (_savedInfoPreview.isNotEmpty)
-                                      TextSpan(
-                                        text: ' ($_savedInfoPreview)',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                  ],
-                                ),
+                            Text(
+                              route['origin'],
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: _inputDecoration(
-                        label: context.tr.fullNameLabel,
-                        icon: Icons.person_rounded,
-                      ),
-                      textCapitalization: TextCapitalization.words,
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? context.tr.bookingEnterFullName : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _ageController,
-                      decoration: _inputDecoration(
-                        label: context.tr.bookingAgeLabel,
-                        icon: Icons.numbers_rounded,
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return context.tr.bookingEnterAge;
-                        final age = int.tryParse(v);
-                        if (age == null || age < 1 || age > 120) return context.tr.bookingEnterValidAge;
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _phoneController,
-                      decoration: _inputDecoration(
-                        label: context.tr.bookingPhoneLabel,
-                        icon: Icons.phone_outlined,
-                        helperText: context.tr.bookingPhoneHelper,
-                      ),
-                      keyboardType: TextInputType.phone,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return context.tr.bookingEnterPhone;
-                        final phone = v.trim();
-                        if (!phone.startsWith('+')) return context.tr.bookingIncludeCountryCode;
-                        final digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
-                        if (digitsOnly.length < 8 || digitsOnly.length > 15) {
-                          return context.tr.bookingEnterValidPhone;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _nationalityController,
-                      decoration: _inputDecoration(
-                        label: context.tr.bookingNationalityLabel,
-                        icon: Icons.flag_rounded,
-                      ),
-                      textCapitalization: TextCapitalization.words,
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? context.tr.bookingEnterNationality : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: _inputDecoration(
-                        label: context.tr.bookingEmailHolder,
-                        icon: Icons.email_outlined,
-                        helperText: context.tr.bookingEmailHelper,
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return null;
-                        final emailRegex = RegExp(
-                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-                        );
-                        if (!emailRegex.hasMatch(v.trim())) {
-                          return context.tr.bookingEnterValidEmail;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline_rounded,
-                            size: 14, color: AppColors.textHint),
-                        const SizedBox(width: 6),
-                        Text(
-                          context.tr.bookingDetailsSaved,
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.textHint),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                '${route['duration_min']} min',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    height: 1.5,
+                                    color: AppColors.border,
+                                  ),
+                                  const Icon(
+                                    Icons.directions_bus_rounded,
+                                    size: 16,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _formatTime(widget.schedule['arrival_time']),
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            Text(
+                              route['destination'],
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
+                    const Divider(height: 24, color: AppColors.divider),
+                    _InfoRow(
+                      icon: Icons.calendar_today_rounded,
+                      label: context.tr.bookingDate,
+                      value: _formatDate(widget.date),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.event_seat_rounded,
+                          size: 16,
+                          color: AppColors.textHint,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          context.tr.bookingSeats,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Flexible(
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            alignment: WrapAlignment.end,
+                            children: widget.seatNumbers.map((seat) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryBlueLight,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColors.primaryBlueBorder,
+                                  ),
+                                ),
+                                child: Text(
+                                  seat,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (bus != null) ...[
+                      const SizedBox(height: 10),
+                      _InfoRow(
+                        icon: Icons.directions_bus_outlined,
+                        label: context.tr.bookingBus,
+                        value: '${bus['model']} • ${bus['plate_number']}',
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Payment
-            _SectionCard(
-              title: context.tr.bookingPayment,
-              icon: Icons.qr_code_rounded,
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.successGreenBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.qr_code_rounded, color: AppColors.successGreen, size: 22),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+              // Passenger Info
+              _SectionCard(
+                title: context.tr.bookingPassenger,
+                icon: Icons.person_outline_rounded,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      if (_hasStoredInfo)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
                             children: [
-                              Text(
-                                'Bakong KHQR',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.successGreen,
-                                  fontSize: 14,
+                              SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: Checkbox(
+                                  value: _useStoredInfo,
+                                  onChanged: (v) =>
+                                      _onUseSavedInfoChanged(v ?? true),
+                                  activeColor: AppColors.primaryBlue,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                               ),
-                              Text(
-                                'Pay now via Bakong-enabled banking app',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.successGreen,
+                              const SizedBox(width: 10),
+                              GestureDetector(
+                                onTap: () =>
+                                    _onUseSavedInfoChanged(!_useStoredInfo),
+                                child: RichText(
+                                  text: TextSpan(
+                                    text: context.tr.bookingUseSavedInfo,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF374151),
+                                    ),
+                                    children: [
+                                      if (_savedInfoPreview.isNotEmpty)
+                                        TextSpan(
+                                          text: ' ($_savedInfoPreview)',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w400,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.check_circle_rounded, color: AppColors.successGreen, size: 20),
-                      ],
-                    ),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: _inputDecoration(
+                          label: context.tr.fullNameLabel,
+                          icon: Icons.person_rounded,
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? context.tr.bookingEnterFullName
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _ageController,
+                        decoration: _inputDecoration(
+                          label: context.tr.bookingAgeLabel,
+                          icon: Icons.numbers_rounded,
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty)
+                            return context.tr.bookingEnterAge;
+                          final age = int.tryParse(v);
+                          if (age == null || age < 1 || age > 120)
+                            return context.tr.bookingEnterValidAge;
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _phoneController,
+                        decoration: _inputDecoration(
+                          label: context.tr.bookingPhoneLabel,
+                          icon: Icons.phone_outlined,
+                          helperText: context.tr.bookingPhoneHelper,
+                        ),
+                        keyboardType: TextInputType.phone,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty)
+                            return context.tr.bookingEnterPhone;
+                          final phone = v.trim();
+                          if (!phone.startsWith('+'))
+                            return context.tr.bookingIncludeCountryCode;
+                          final digitsOnly = phone.replaceAll(
+                            RegExp(r'\D'),
+                            '',
+                          );
+                          if (digitsOnly.length < 8 || digitsOnly.length > 15) {
+                            return context.tr.bookingEnterValidPhone;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _nationalityController,
+                        decoration: _inputDecoration(
+                          label: context.tr.bookingNationalityLabel,
+                          icon: Icons.flag_rounded,
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? context.tr.bookingEnterNationality
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: _inputDecoration(
+                          label: context.tr.bookingEmailHolder,
+                          icon: Icons.email_outlined,
+                          helperText: context.tr.bookingEmailHelper,
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final emailRegex = RegExp(
+                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                          );
+                          if (!emailRegex.hasMatch(v.trim())) {
+                            return context.tr.bookingEnterValidEmail;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 14,
+                            color: AppColors.textHint,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            context.tr.bookingDetailsSaved,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
 
-                  // Promo Code
-                  if (_isPromoApplied)
+              // Payment
+              _SectionCard(
+                title: context.tr.bookingPayment,
+                icon: Icons.qr_code_rounded,
+                child: Column(
+                  children: [
                     Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(12),
@@ -1079,350 +1101,491 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppColors.successGreenLight,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.discount_rounded,
-                              color: AppColors.successGreen,
-                              size: 18,
-                            ),
+                          Icon(
+                            Icons.qr_code_rounded,
+                            color: AppColors.successGreen,
+                            size: 22,
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _discountLabel,
+                                  'Bakong KHQR',
                                   style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                     color: AppColors.successGreen,
+                                    fontSize: 14,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
                                 Text(
-                                  _appliedPromoCode!,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
+                                  'Pay now via Bakong-enabled banking app',
+                                  style: TextStyle(
+                                    fontSize: 12,
                                     color: AppColors.successGreen,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          GestureDetector(
-                            onTap: _removePromoCode,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.successGreenLight,
-                                ),
-                              ),
-                              child: Text(
-                                context.tr.bookingPromoRemove,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.error,
-                                ),
-                              ),
-                            ),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.successGreen,
+                            size: 20,
                           ),
                         ],
                       ),
-                    )
-                  else ...[
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _promoCodeController,
-                                  textCapitalization:
-                                      TextCapitalization.characters,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1.5,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: context.tr.bookingPromoCodeHint,
-                                    hintStyle: TextStyle(
-                                      color: AppColors.textHint,
-                                      fontSize: 14,
-                                      letterSpacing: 0,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    filled: true,
-                                    fillColor: AppColors.background,
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(10),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.border,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(10),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.border,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(10),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.primaryBlue,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              SizedBox(
-                                height: 44,
-                                child: ElevatedButton(
-                                  onPressed: _isValidatingPromo
-                                      ? null
-                                      : _validatePromoCode,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        AppColors.primaryBlue,
-                                    foregroundColor: Colors.white,
-                                    disabledBackgroundColor:
-                                        AppColors.primaryBlue.withValues(alpha: 0.6),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(10),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                    ),
-                                  ),
-                                  child: _isValidatingPromo
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child:
-                                              CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : Text(
-                                          context.tr.bookingPromoApply,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Promo Code
+                    if (_isPromoApplied)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.successGreenBorder,
                           ),
-                          if (_promoError != null)
-                            Padding(
-                              padding:
-                                  const EdgeInsets.only(top: 8, left: 2),
-                              child: Row(
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.successGreenLight,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.discount_rounded,
+                                color: AppColors.successGreen,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(
-                                    Icons.error_outline_rounded,
-                                    size: 14,
-                                    color: AppColors.error,
-                                  ),
-                                  const SizedBox(width: 6),
                                   Text(
-                                    _promoError!,
+                                    _discountLabel,
                                     style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.error,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.successGreen,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _appliedPromoCode!,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.successGreen,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  _InfoRow(
-                    icon: Icons.confirmation_number_outlined,
-                    label: context.tr.bookingPricePerSeat,
-                    value: '\$${_pricePerSeat.toStringAsFixed(2)}',
-                  ),
-                  const SizedBox(height: 10),
-                  _InfoRow(
-                    icon: Icons.event_seat_rounded,
-                    label: context.tr.bookingNumberOfSeats,
-                    value: '${widget.seatNumbers.length}',
-                  ),
-                  if (_isPromoApplied) ...[
-                    const SizedBox(height: 10),
-                    _InfoRow(
-                      icon: Icons.discount_rounded,
-                      label: context.tr.bookingDiscount,
-                      value: '-\$${_discountAmount.toStringAsFixed(2)}',
-                      valueColor: AppColors.successGreen,
-                    ),
-                  ],
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(color: AppColors.border),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        context.tr.bookingTotal,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
+                            GestureDetector(
+                              onTap: _removePromoCode,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColors.successGreenLight,
+                                  ),
+                                ),
+                                child: Text(
+                                  context.tr.bookingPromoRemove,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else ...[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _promoCodeController,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 1.5,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: context.tr.bookingPromoCodeHint,
+                                      hintStyle: TextStyle(
+                                        color: AppColors.textHint,
+                                        fontSize: 14,
+                                        letterSpacing: 0,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      filled: true,
+                                      fillColor: AppColors.background,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 12,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: const BorderSide(
+                                          color: AppColors.border,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: const BorderSide(
+                                          color: AppColors.border,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: const BorderSide(
+                                          color: AppColors.primaryBlue,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  height: 44,
+                                  child: ElevatedButton(
+                                    onPressed: _isValidatingPromo
+                                        ? null
+                                        : _validatePromoCode,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryBlue,
+                                      foregroundColor: Colors.white,
+                                      disabledBackgroundColor: AppColors
+                                          .primaryBlue
+                                          .withValues(alpha: 0.6),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 18,
+                                      ),
+                                    ),
+                                    child: _isValidatingPromo
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            context.tr.bookingPromoApply,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_promoError != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8, left: 2),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      size: 14,
+                                      color: AppColors.error,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _promoError!,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (_isPromoApplied)
-                            Text(
-                              '\$${_totalPrice.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textHint,
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                          Text(
-                            '\$${_finalPrice.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: _isPromoApplied ? 20 : 20,
-                              fontWeight: FontWeight.w700,
-                              color: _isPromoApplied
-                                  ? AppColors.successGreen
-                                  : AppColors.primaryBlue,
-                            ),
-                          ),
-                          if (widget.seatNumbers.length > 1)
-                            Text(
-                              '\$${_pricePerSeat.toStringAsFixed(2)} × ${widget.seatNumbers.length}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textHint,
-                              ),
-                            ),
-                        ],
+                    ],
+
+                    _InfoRow(
+                      icon: Icons.confirmation_number_outlined,
+                      label: context.tr.bookingPricePerSeat,
+                      value: '\$${_pricePerSeat.toStringAsFixed(2)}',
+                    ),
+                    const SizedBox(height: 10),
+                    _InfoRow(
+                      icon: Icons.event_seat_rounded,
+                      label: context.tr.bookingNumberOfSeats,
+                      value: '${widget.seatNumbers.length}',
+                    ),
+                    if (_isPromoApplied) ...[
+                      const SizedBox(height: 10),
+                      _InfoRow(
+                        icon: Icons.discount_rounded,
+                        label: context.tr.bookingDiscount,
+                        value: '-\$${_discountAmount.toStringAsFixed(2)}',
+                        valueColor: AppColors.successGreen,
                       ),
                     ],
-                  ),
-                ],
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(color: AppColors.border),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          context.tr.bookingTotal,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (_isPromoApplied)
+                              Text(
+                                '\$${_totalPrice.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textHint,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            Text(
+                              '\$${_finalPrice.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: _isPromoApplied ? 20 : 20,
+                                fontWeight: FontWeight.w700,
+                                color: _isPromoApplied
+                                    ? AppColors.successGreen
+                                    : AppColors.primaryBlue,
+                              ),
+                            ),
+                            if (widget.seatNumbers.length > 1)
+                              Text(
+                                '\$${_pricePerSeat.toStringAsFixed(2)} × ${widget.seatNumbers.length}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Notice
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.warningLight,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.warningBorder),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    color: AppColors.warning,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      context.tr.bookingNotice,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.warningText,
-                        height: 1.5,
+              // Notice
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.warningLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.warningBorder),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: AppColors.warning,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        context.tr.bookingNotice,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.warningText,
+                          height: 1.5,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, -3),
+              ),
+            ],
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _confirmBooking,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.primaryBlue.withValues(
+                  alpha: 0.6,
+                ),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      widget.seatNumbers.length > 1
+                          ? context.tr.bookingConfirmCountSeats(
+                              widget.seatNumbers.length,
+                            )
+                          : context.tr.bookingConfirmButton,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
-            const SizedBox(height: 100),
-          ],
+          ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, -3),
-            ),
-          ],
+    );
+  }
+
+  /// Asks before abandoning checkout, since leaving frees the seats for
+  /// other passengers. Skipped once the hold has already lapsed.
+  Future<bool> _confirmLeave() async {
+    if (_holdExpired) return true;
+
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.xlR),
+        title: Text(
+          context.tr.bookingLeaveTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        child: SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _confirmBooking,
+        content: Text(context.tr.bookingLeaveMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(context.tr.bookingLeaveStay),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.primaryBlue.withValues(alpha: 0.6),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(context.tr.bookingLeaveRelease),
+          ),
+        ],
+      ),
+    );
+    return leave ?? false;
+  }
+
+  /// Live countdown so the passenger can see their reservation ticking
+  /// down instead of discovering it lapsed at the payment step.
+  Widget _buildHoldBanner() {
+    final expiringSoon = _holdRemaining.inMinutes < 2;
+    final color = _holdExpired || expiringSoon
+        ? AppColors.error
+        : AppColors.primaryBlue;
+    final background = _holdExpired || expiringSoon
+        ? AppColors.errorLight
+        : AppColors.primaryBlueLight;
+
+    final label = _holdExpired
+        ? context.tr.bookingHoldExpiredError
+        : expiringSoon
+        ? context.tr.bookingHoldExpiringSoon(_holdRemainingLabel)
+        : context.tr.bookingHoldRemaining(_holdRemainingLabel);
+
+    return Semantics(
+      liveRegion: true,
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: AppRadius.mdR,
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _holdExpired ? Icons.timer_off_rounded : Icons.timer_outlined,
+              size: 20,
+              color: color,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
               ),
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    widget.seatNumbers.length > 1
-                        ? context.tr.bookingConfirmCountSeats(widget.seatNumbers.length)
-                        : context.tr.bookingConfirmButton,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-          ),
+          ],
         ),
       ),
     );

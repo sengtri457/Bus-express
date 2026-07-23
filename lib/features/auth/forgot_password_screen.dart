@@ -390,7 +390,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             onPressed: _canResend ? _sendResetEmail : null,
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF2563EB),
-              disabledForegroundColor: const Color(0xFF94A3B8),
+              disabledForegroundColor: const Color(0xFF64748B),
               side: BorderSide(
                 color: _canResend
                     ? const Color(0xFF2563EB)

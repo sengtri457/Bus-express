@@ -9,6 +9,7 @@ import 'package:gal/gal.dart';
 
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../services/bakong_payment_service.dart';
 
 class BakongPaymentResult {
@@ -248,32 +249,75 @@ class _BakongPaymentScreenState extends State<BakongPaymentScreen>
     return '$min:$sec';
   }
 
+  /// Confirms before abandoning payment, since leaving cancels the
+  /// booking and frees the seats. Skipped once paid or expired — there
+  /// is nothing left to lose in either case.
+  Future<bool> _confirmAbandonPayment() async {
+    if (_isSuccess || _isExpired) return true;
+
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.xlR),
+        title: Text(
+          context.tr.paymentLeaveTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: Text(context.tr.paymentLeaveMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(context.tr.paymentLeaveStay),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(context.tr.paymentLeaveCancel),
+          ),
+        ],
+      ),
+    );
+    return leave ?? false;
+  }
+
+  Future<void> _handleAbandon() async {
+    if (await _confirmAbandonPayment() && mounted) {
+      Navigator.of(context).pop(const BakongPaymentResult(isSuccess: false));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _handleAbandon();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(gradient: AppGradients.primaryBlue),
+          ),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            'Bakong KHQR Payment',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: _isSuccess ? null : _handleAbandon,
+          ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Bakong KHQR Payment',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        body: SafeArea(
+          child: _isExpired ? _buildExpiredView() : _buildPaymentView(),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: _isSuccess
-              ? null
-              : () => Navigator.of(context).pop(
-                    const BakongPaymentResult(isSuccess: false),
-                  ),
-        ),
-      ),
-      body: SafeArea(
-        child: _isExpired ? _buildExpiredView() : _buildPaymentView(),
       ),
     );
   }

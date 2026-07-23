@@ -189,7 +189,7 @@ class IncidentCard extends StatelessWidget {
                       child: Text(
                         type.toUpperCase(),
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: cfg.primary,
                         ),

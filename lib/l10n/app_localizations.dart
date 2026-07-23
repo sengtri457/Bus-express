@@ -734,6 +734,12 @@ abstract class AppLocalizations {
   /// **'Travel Date'**
   String get homeTravelDate;
 
+  /// No description provided for @homeSwapLocations.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap origin and destination'**
+  String get homeSwapLocations;
+
   /// No description provided for @homeSearchBuses.
   ///
   /// In en, this message translates to:
@@ -1248,6 +1254,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Booking failed: {message}'**
   String bookingFailedGeneric(String message);
+
+  /// No description provided for @bookingSeatTakenError.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorry, one of your seats was just booked by someone else. Please choose another seat.'**
+  String get bookingSeatTakenError;
+
+  /// No description provided for @bookingHoldFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reserve those seats. Please try again.'**
+  String get bookingHoldFailedError;
+
+  /// No description provided for @bookingSeatCooldownError.
+  ///
+  /// In en, this message translates to:
+  /// **'That seat was just released and is briefly unavailable. Please try again in a moment.'**
+  String get bookingSeatCooldownError;
+
+  /// No description provided for @bookingHoldExpiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Your seat reservation expired. Please select your seats again.'**
+  String get bookingHoldExpiredError;
+
+  /// No description provided for @bookingHoldRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Seats held for {time}'**
+  String bookingHoldRemaining(String time);
+
+  /// No description provided for @bookingHoldExpiringSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Reservation expiring soon — {time} left'**
+  String bookingHoldExpiringSoon(String time);
+
+  /// No description provided for @paymentLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this payment?'**
+  String get paymentLeaveTitle;
+
+  /// No description provided for @paymentLeaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your booking will be cancelled and your seats released. You will need to start again.'**
+  String get paymentLeaveMessage;
+
+  /// No description provided for @paymentLeaveStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue payment'**
+  String get paymentLeaveStay;
+
+  /// No description provided for @paymentLeaveCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel booking'**
+  String get paymentLeaveCancel;
+
+  /// No description provided for @bookingLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Release your seats?'**
+  String get bookingLeaveTitle;
+
+  /// No description provided for @bookingLeaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reserved seats will be released and someone else may book them.'**
+  String get bookingLeaveMessage;
+
+  /// No description provided for @bookingLeaveStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep my seats'**
+  String get bookingLeaveStay;
+
+  /// No description provided for @bookingLeaveRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Release and go back'**
+  String get bookingLeaveRelease;
 
   /// No description provided for @bookingReceiptSent.
   ///

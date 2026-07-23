@@ -152,9 +152,9 @@ class _RouteSelectorSheetState extends State<RouteSelectorSheet> {
                   decoration: InputDecoration(
                     hintText: context.tr.routeSelectorSearchHint,
                     hintStyle: const TextStyle(
-                        color: Color(0xFF9CA3AF), fontSize: 14),
+                        color: Color(0xFF6B7280), fontSize: 14),
                     prefixIcon: const Icon(Icons.search_rounded,
-                        size: 20, color: Color(0xFF9CA3AF)),
+                        size: 20, color: Color(0xFF6B7280)),
                     filled: true,
                     fillColor: const Color(0xFFF9FAFB),
                     contentPadding: const EdgeInsets.symmetric(
@@ -186,7 +186,7 @@ class _RouteSelectorSheetState extends State<RouteSelectorSheet> {
                                   ? context.tr.routeSelectorNoRoutes
                                   : context.tr.routeSelectorNoMatch(_searchController.text),
                               style: const TextStyle(
-                                  color: Color(0xFF9CA3AF), fontSize: 14),
+                                  color: Color(0xFF6B7280), fontSize: 14),
                             ),
                           )
                         : ListView.builder(

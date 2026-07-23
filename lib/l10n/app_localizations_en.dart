@@ -342,6 +342,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeTravelDate => 'Travel Date';
 
   @override
+  String get homeSwapLocations => 'Swap origin and destination';
+
+  @override
   String get homeSearchBuses => 'Search Buses';
 
   @override
@@ -638,6 +641,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String bookingFailedGeneric(String message) {
     return 'Booking failed: $message';
   }
+
+  @override
+  String get bookingSeatTakenError =>
+      'Sorry, one of your seats was just booked by someone else. Please choose another seat.';
+
+  @override
+  String get bookingHoldFailedError =>
+      'Could not reserve those seats. Please try again.';
+
+  @override
+  String get bookingSeatCooldownError =>
+      'That seat was just released and is briefly unavailable. Please try again in a moment.';
+
+  @override
+  String get bookingHoldExpiredError =>
+      'Your seat reservation expired. Please select your seats again.';
+
+  @override
+  String bookingHoldRemaining(String time) {
+    return 'Seats held for $time';
+  }
+
+  @override
+  String bookingHoldExpiringSoon(String time) {
+    return 'Reservation expiring soon — $time left';
+  }
+
+  @override
+  String get paymentLeaveTitle => 'Cancel this payment?';
+
+  @override
+  String get paymentLeaveMessage =>
+      'Your booking will be cancelled and your seats released. You will need to start again.';
+
+  @override
+  String get paymentLeaveStay => 'Continue payment';
+
+  @override
+  String get paymentLeaveCancel => 'Cancel booking';
+
+  @override
+  String get bookingLeaveTitle => 'Release your seats?';
+
+  @override
+  String get bookingLeaveMessage =>
+      'Your reserved seats will be released and someone else may book them.';
+
+  @override
+  String get bookingLeaveStay => 'Keep my seats';
+
+  @override
+  String get bookingLeaveRelease => 'Release and go back';
 
   @override
   String get bookingReceiptSent => 'Receipt sent to your email';

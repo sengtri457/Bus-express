@@ -6,6 +6,19 @@ import 'package:flutter_animate/flutter_animate.dart';
 export 'package:flutter_animate/flutter_animate.dart';
 
 // ════════════════════════════════════════════════════════════════
+//  0. Reduced motion
+// ════════════════════════════════════════════════════════════════
+
+/// Honours the platform "remove animations" accessibility setting.
+extension MotionQuery on BuildContext {
+  /// True when the user has asked the OS to minimise animation.
+  bool get reduceMotion => MediaQuery.maybeDisableAnimationsOf(this) ?? false;
+
+  /// Collapses [duration] to zero when reduced motion is requested.
+  Duration motion(Duration duration) => reduceMotion ? Duration.zero : duration;
+}
+
+// ════════════════════════════════════════════════════════════════
 //  1. SlideFadeIn — slides up + fades in on mount
 // ════════════════════════════════════════════════════════════════
 
@@ -28,15 +41,11 @@ class SlideFadeIn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.reduceMotion) return child;
     return child
         .animate(delay: delay)
         .fadeIn(duration: duration, curve: curve)
-        .slideY(
-          begin: offset / 100,
-          end: 0,
-          duration: duration,
-          curve: curve,
-        );
+        .slideY(begin: offset / 100, end: 0, duration: duration, curve: curve);
   }
 }
 
@@ -143,9 +152,10 @@ class _ShimmerBoxState extends State<ShimmerBox>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
-    _anim = Tween<double>(begin: -2, end: 2).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOutSine),
-    );
+    _anim = Tween<double>(
+      begin: -2,
+      end: 2,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOutSine));
   }
 
   @override
@@ -201,13 +211,13 @@ class PulseDot extends StatelessWidget {
         children: [
           // Outer pulsing ring
           Container(
-            width: size * 2.2,
-            height: size * 2.2,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withValues(alpha: 0.25),
-            ),
-          )
+                width: size * 2.2,
+                height: size * 2.2,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: 0.25),
+                ),
+              )
               .animate(onPlay: (c) => c.repeat(reverse: true))
               .scaleXY(
                 begin: 0.5,
@@ -221,10 +231,7 @@ class PulseDot extends StatelessWidget {
           Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-            ),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
           ),
         ],
       ),
@@ -253,31 +260,32 @@ class WaveLoadingIndicator extends StatelessWidget {
       children: List.generate(3, (i) {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 3),
-          child: Container(
-            width: dotSize,
-            height: dotSize,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          )
-              .animate(
-                onPlay: (c) => c.repeat(),
-                delay: Duration(milliseconds: i * 160),
-              )
-              .moveY(
-                begin: 0,
-                end: -dotSize * 0.85,
-                duration: 420.ms,
-                curve: Curves.easeInOut,
-              )
-              .then()
-              .moveY(
-                begin: -dotSize * 0.85,
-                end: 0,
-                duration: 420.ms,
-                curve: Curves.easeInOut,
-              ),
+          child:
+              Container(
+                    width: dotSize,
+                    height: dotSize,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                  .animate(
+                    onPlay: (c) => c.repeat(),
+                    delay: Duration(milliseconds: i * 160),
+                  )
+                  .moveY(
+                    begin: 0,
+                    end: -dotSize * 0.85,
+                    duration: 420.ms,
+                    curve: Curves.easeInOut,
+                  )
+                  .then()
+                  .moveY(
+                    begin: -dotSize * 0.85,
+                    end: 0,
+                    duration: 420.ms,
+                    curve: Curves.easeInOut,
+                  ),
         );
       }),
     );
@@ -385,8 +393,7 @@ class _CheckmarkPainter extends CustomPainter {
         ..lineTo(size.width * 0.75, size.height * 0.35);
 
       final metrics = path.computeMetrics().first;
-      final drawPath =
-          metrics.extractPath(0, metrics.length * checkProgress);
+      final drawPath = metrics.extractPath(0, metrics.length * checkProgress);
 
       canvas.drawPath(
         drawPath,
@@ -480,10 +487,13 @@ class AppPageTransitions {
       transitionDuration: const Duration(milliseconds: 380),
       reverseTransitionDuration: const Duration(milliseconds: 300),
       transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
-        final slide = Tween<Offset>(
-          begin: const Offset(0, 0.08),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+        final slide =
+            Tween<Offset>(
+              begin: const Offset(0, 0.08),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            );
 
         return FadeTransition(
           opacity: animation,
@@ -512,8 +522,7 @@ class AppPageTransitions {
   }
 
   /// Horizontal slide. Use for step-by-step flows.
-  static Route<T> slideHorizontal<T>(Widget page,
-      {bool fromRight = true}) {
+  static Route<T> slideHorizontal<T>(Widget page, {bool fromRight = true}) {
     return PageRouteBuilder<T>(
       pageBuilder: (ctx, a1, a2) => page,
       transitionDuration: const Duration(milliseconds: 360),
@@ -523,13 +532,16 @@ class AppPageTransitions {
         final slide = Tween<Offset>(begin: begin, end: Offset.zero).animate(
           CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
         );
-        final secondary = Tween<Offset>(
-          begin: Offset.zero,
-          end: Offset(fromRight ? -0.3 : 0.3, 0),
-        ).animate(
-          CurvedAnimation(
-              parent: secondaryAnimation, curve: Curves.easeOutCubic),
-        );
+        final secondary =
+            Tween<Offset>(
+              begin: Offset.zero,
+              end: Offset(fromRight ? -0.3 : 0.3, 0),
+            ).animate(
+              CurvedAnimation(
+                parent: secondaryAnimation,
+                curve: Curves.easeOutCubic,
+              ),
+            );
         return SlideTransition(
           position: secondary,
           child: SlideTransition(position: slide, child: child),
@@ -624,10 +636,7 @@ class SkeletonList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: List.generate(
-        count,
-        (_) => SkeletonCard(height: cardHeight),
-      ),
+      children: List.generate(count, (_) => SkeletonCard(height: cardHeight)),
     );
   }
 }
@@ -745,9 +754,10 @@ class _TapScaleEffectState extends State<TapScaleEffect>
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    _scale = Tween<double>(begin: 1.0, end: widget.scale).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: widget.scale,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -799,34 +809,32 @@ class GlowContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.white,
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: glowColor.withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+          padding: padding,
+          decoration: BoxDecoration(
+            color: backgroundColor ?? Colors.white,
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: glowColor.withValues(alpha: 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: glowColor.withValues(alpha: 0.15),
+                blurRadius: 40,
+                spreadRadius: 4,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-          BoxShadow(
-            color: glowColor.withValues(alpha: 0.15),
-            blurRadius: 40,
-            spreadRadius: 4,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: child,
-    )
+          child: child,
+        )
         .animate(onPlay: (c) => c.repeat(reverse: true))
         .custom(
           duration: 2400.ms,
           curve: Curves.easeInOut,
-          builder: (context, value, child) => Transform.scale(
-            scale: 1.0 + (value * 0.008),
-            child: child,
-          ),
+          builder: (context, value, child) =>
+              Transform.scale(scale: 1.0 + (value * 0.008), child: child),
         );
   }
 }

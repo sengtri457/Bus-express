@@ -10,7 +10,7 @@ This document covers all Supabase database operations used in the BusExpress app
 
 **Anon Key Header:** `apikey: YOUR_SUPABASE_ANON_KEY`
 
----
+***
 
 ## 📋 Table of Contents
 
@@ -27,7 +27,7 @@ This document covers all Supabase database operations used in the BusExpress app
 11. [Incidents](https://claude.ai/chat/2b32515a-7ae7-4b99-914c-3731090cef67#11-incidents)
 12. [Stops](https://claude.ai/chat/2b32515a-7ae7-4b99-914c-3731090cef67#12-stops)
 
----
+***
 
 ## 1. Authentication
 
@@ -82,7 +82,7 @@ final response = await supabase.auth.signUp(
 
 ```
 
----
+***
 
 ### Login
 
@@ -112,7 +112,7 @@ final jwt = response.session?.accessToken;
 
 ```
 
----
+***
 
 ### Logout
 
@@ -128,7 +128,7 @@ await supabase.auth.signOut();
 
 ```
 
----
+***
 
 ### Reset Password
 
@@ -153,7 +153,7 @@ await supabase.auth.resetPasswordForEmail(email);
 
 ```
 
----
+***
 
 ## 2. Users
 
@@ -191,7 +191,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Update user profile
 
@@ -210,7 +210,7 @@ await supabase
 
 ```
 
----
+***
 
 ### Get all users (Super Admin only)
 
@@ -229,7 +229,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Update user role (Super Admin only)
 
@@ -252,7 +252,7 @@ await supabase
 
 **Status values:** `active` | `inactive` | `suspended`
 
----
+***
 
 ## 3. Operators
 
@@ -273,7 +273,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Create operator (Super Admin only)
 
@@ -304,7 +304,7 @@ await supabase.from('operators').insert({
 
 ```
 
----
+***
 
 ### Update operator status (Super Admin only)
 
@@ -323,7 +323,7 @@ await supabase
 
 ```
 
----
+***
 
 ## 4. Routes
 
@@ -344,7 +344,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Search routes by origin and destination
 
@@ -365,7 +365,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Create route (Operator Admin)
 
@@ -389,7 +389,7 @@ POST /rest/v1/routes
 
 ```
 
----
+***
 
 ### Update route
 
@@ -408,7 +408,7 @@ await supabase
 
 ```
 
----
+***
 
 ## 5. Buses
 
@@ -429,7 +429,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Create bus
 
@@ -453,7 +453,7 @@ POST /rest/v1/buses
 
 **Status values:** `active` | `maintenance` | `retired`
 
----
+***
 
 ### Update bus status
 
@@ -472,7 +472,7 @@ await supabase
 
 ```
 
----
+***
 
 ## 6. Schedules
 
@@ -519,7 +519,7 @@ final data = await supabase
 
 **`days_of_week`** **format:** Comma-separated numbers `1=Mon ... 7=Sun` e.g. `"1,2,3,4,5"` = Weekdays, `"1,2,3,4,5,6,7"` = Every day
 
----
+***
 
 ### Create schedule
 
@@ -545,7 +545,7 @@ POST /rest/v1/schedules
 
 ```
 
----
+***
 
 ## 7. Trips
 
@@ -576,7 +576,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Get or create trip instance
 
@@ -614,7 +614,7 @@ if (existing == null) {
 
 ```
 
----
+***
 
 ### Start trip (Driver)
 
@@ -633,7 +633,7 @@ PATCH /rest/v1/trips?id=eq.{trip_id}
 
 ```
 
----
+***
 
 ### Update GPS location (Driver — every 15 seconds)
 
@@ -662,7 +662,7 @@ await supabase.from('trips').update({
 
 ```
 
----
+***
 
 ### End trip (Driver)
 
@@ -681,7 +681,7 @@ PATCH /rest/v1/trips?id=eq.{trip_id}
 
 ```
 
----
+***
 
 ### Subscribe to live GPS (Passenger — Realtime)
 
@@ -700,7 +700,7 @@ supabase
 
 ```
 
----
+***
 
 ## 8. Bookings
 
@@ -728,7 +728,7 @@ POST /rest/v1/bookings
 
 **`booking_channel`** **values:** `online` | `counter` | `conductor`
 
----
+***
 
 ### Get passenger's bookings
 
@@ -759,7 +759,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ### Get booked seats for a trip (seat availability)
 
@@ -781,7 +781,7 @@ final bookedSeats = bookings.map((b) => b['seat_number'] as String).toList();
 
 ```
 
----
+***
 
 ### Cancel booking (Passenger)
 
@@ -809,7 +809,7 @@ await supabase
 
 ```
 
----
+***
 
 ### Mark passenger as boarded (Conductor)
 
@@ -835,7 +835,7 @@ pending → confirmed → boarded
 
 ```
 
----
+***
 
 ## 9. Tickets
 
@@ -859,7 +859,7 @@ POST /rest/v1/tickets
 
 **QR code format:** `BUS-{booking_uuid}-{unix_timestamp}`
 
----
+***
 
 ### Look up ticket by QR code (Conductor scan)
 
@@ -885,7 +885,7 @@ final ticket = await supabase
 
 ```
 
----
+***
 
 ### Scan / validate ticket (Conductor)
 
@@ -907,7 +907,7 @@ PATCH /rest/v1/tickets?id=eq.{ticket_id}
 
 **Ticket status values:** `valid` | `used` | `expired` | `cancelled`
 
----
+***
 
 ### Cancel ticket
 
@@ -925,7 +925,7 @@ PATCH /rest/v1/tickets?booking_id=eq.{booking_id}
 
 ```
 
----
+***
 
 ## 10. Payments
 
@@ -952,7 +952,7 @@ POST /rest/v1/payments
 
 **`status`** **values:** `pending` | `paid` | `failed` | `refunded`
 
----
+***
 
 ### Get payment for a booking
 
@@ -972,7 +972,7 @@ final payment = await supabase
 
 ```
 
----
+***
 
 ### Mark payment as refunded (on cancellation)
 
@@ -990,7 +990,7 @@ PATCH /rest/v1/payments?booking_id=eq.{booking_id}&status=eq.paid
 
 ```
 
----
+***
 
 ## 11. Incidents
 
@@ -1016,7 +1016,7 @@ POST /rest/v1/incidents
 
 **`type`** **values:** `breakdown` | `delay` | `accident` | `other`
 
----
+***
 
 ### Get incidents for a trip
 
@@ -1036,7 +1036,7 @@ final data = await supabase
 
 ```
 
----
+***
 
 ## 12. Stops
 
@@ -1069,7 +1069,7 @@ final stops = await supabase
 
 ```
 
----
+***
 
 ## ⚠️ Error Handling
 
@@ -1102,7 +1102,7 @@ try {
 | `42501`    | RLS policy denied                 | User doesn't have permission      |
 | `23503`    | Foreign key violation             | Referenced ID doesn't exist       |
 
----
+***
 
 ## 🔄 Realtime Subscriptions
 
@@ -1141,7 +1141,7 @@ final subscription = supabase
 
 ```
 
----
+***
 
 ## 📊 Database Relationships
 
@@ -1165,6 +1165,6 @@ routes
 
 ```
 
----
+***
 
 _Generated for BusExpress v1.0.0 — Built with Flutter + Supabase_

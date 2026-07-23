@@ -17,7 +17,9 @@ class BookingRepository extends BaseRepository {
     tickets ( id, qr_code, status, scanned_at )
   ''';
 
-  Future<Result<List<BookingModel>>> getPassengerBookings(String passengerId) async {
+  Future<Result<List<BookingModel>>> getPassengerBookings(
+    String passengerId,
+  ) async {
     try {
       final data = await client
           .from('bookings')
@@ -118,7 +120,9 @@ class BookingRepository extends BaseRepository {
     }
   }
 
-  Future<Result<BookingModel?>> validateBookingCanCancel(String bookingId) async {
+  Future<Result<BookingModel?>> validateBookingCanCancel(
+    String bookingId,
+  ) async {
     try {
       final booking = await client
           .from('bookings')
@@ -167,55 +171,140 @@ class BookingRepository extends BaseRepository {
     }
   }
 
-  Future<Result<void>> holdSeats({
+  /// How long a passenger keeps their seats while completing checkout.
+  static const Duration holdDuration = Duration(minutes: 10);
+
+  /// Reserves [seatNumbers] for [passengerId], returning the moment the
+  /// reservation lapses so the UI can count down against it.
+  Future<Result<DateTime>> holdSeats({
     required String tripId,
     required List<String> seatNumbers,
     required String passengerId,
   }) async {
     try {
-      try {
-        await client.rpc('clean_expired_holds');
-      } catch (_) {
-        await client
-            .from('seat_holds')
-            .delete()
-            .lt('expires_at', DateTime.now().toIso8601String());
+      final rows = await client.rpc(
+        'hold_seats',
+        params: {
+          'p_trip_id': tripId,
+          'p_seats': seatNumbers,
+          'p_ttl_seconds': holdDuration.inSeconds,
+        },
+      );
+
+      final granted = (rows as List)
+          .map((r) => (r as Map<String, dynamic>)['held_seat'] as String)
+          .toSet();
+
+      // Any seat the upsert declined is held live by another passenger.
+      final refused = seatNumbers.where((s) => !granted.contains(s)).toList();
+      if (refused.isNotEmpty) {
+        return Failure(bookingSeatTaken, error: refused);
       }
 
-      final expiresAt = DateTime.now().add(const Duration(minutes: 10)).toIso8601String();
-      final holds = seatNumbers.map((seat) => {
-        'trip_id': tripId,
-        'seat_number': seat,
-        'passenger_id': passengerId,
-        'expires_at': expiresAt,
-      }).toList();
-
-      await client.from('seat_holds').insert(holds);
-      return const Success(null);
+      final expires = (rows.first as Map<String, dynamic>)['expires'];
+      return Success(
+        expires is String
+            ? DateTime.parse(expires).toLocal()
+            : DateTime.now().add(holdDuration),
+      );
     } catch (e) {
-      final errStr = e.toString().toLowerCase();
-      if (errStr.contains('unique') || errStr.contains('duplicate') || errStr.contains('23505') || errStr.contains('409')) {
-        return Failure('One or more selected seats are currently reserved by another passenger. Please refresh and try again.', error: e);
+      log('hold_seats RPC failed: $e');
+      final err = e.toString().toUpperCase();
+      if (err.contains('COOLDOWN')) {
+        return Failure(bookingSeatCooldown, error: e);
       }
-      return Failure('Failed to reserve seats', error: e);
+      if (err.contains('SEAT_TAKEN') ||
+          err.contains('23505') ||
+          err.contains('DUPLICATE')) {
+        return Failure(bookingSeatTaken, error: e);
+      }
+      return Failure(bookingHoldFailed, error: e);
     }
   }
 
+  /// How long a released seat stays blocked before anyone may rebook it.
+  static const Duration releaseCooldown = Duration(seconds: 30);
+
+  /// Gives up [seatNumbers], leaving them blocked for [releaseCooldown]
+  /// so the seat is not instantly reclaimed — by anyone, including the
+  /// passenger who just abandoned checkout.
   Future<Result<void>> releaseSeatsHold({
     required String tripId,
     required List<String> seatNumbers,
     required String passengerId,
   }) async {
     try {
-      await client
-          .from('seat_holds')
-          .delete()
-          .eq('trip_id', tripId)
-          .eq('passenger_id', passengerId)
-          .inFilter('seat_number', seatNumbers);
+      await client.rpc(
+        'release_seats',
+        params: {
+          'p_trip_id': tripId,
+          'p_seats': seatNumbers,
+          'p_cooldown_seconds': releaseCooldown.inSeconds,
+        },
+      );
       return const Success(null);
     } catch (e) {
+      log('release_seats RPC failed: $e');
       return Failure('Failed to release seat holds', error: e);
     }
   }
+
+  /// Creates every pending booking in one transaction.
+  ///
+  /// Fails as a whole if any seat was taken in the meantime, so the
+  /// passenger is never charged for a partially booked group. On
+  /// failure [Failure.message] carries one of [bookingSeatTaken],
+  /// [bookingHoldExpired] or [bookingCreateFailed] for the UI to
+  /// localise.
+  Future<Result<List<String>>> createPendingBookings({
+    required String tripId,
+    required List<String> seatNumbers,
+    required double pricePerSeat,
+    String? passengerName,
+    int? passengerAge,
+    String? passengerPhone,
+    String? passengerNationality,
+  }) async {
+    try {
+      final rows = await client.rpc(
+        'create_pending_bookings',
+        params: {
+          'p_trip_id': tripId,
+          'p_seats': seatNumbers,
+          'p_price': pricePerSeat,
+          'p_name': passengerName,
+          'p_age': passengerAge,
+          'p_phone': passengerPhone,
+          'p_nationality': passengerNationality,
+        },
+      );
+
+      final ids = (rows as List)
+          .map((r) => (r as Map<String, dynamic>)['booking_id'] as String)
+          .toList();
+
+      if (ids.length != seatNumbers.length) {
+        return Failure(bookingCreateFailed);
+      }
+      return Success(ids);
+    } catch (e) {
+      final err = e.toString().toUpperCase();
+      if (err.contains('SEAT_TAKEN') ||
+          err.contains('23505') ||
+          err.contains('DUPLICATE')) {
+        return Failure(bookingSeatTaken, error: e);
+      }
+      if (err.contains('HOLD_EXPIRED')) {
+        return Failure(bookingHoldExpired, error: e);
+      }
+      return Failure(bookingCreateFailed, error: e);
+    }
+  }
 }
+
+/// Stable codes returned by [BookingRepository.createPendingBookings].
+const String bookingSeatTaken = 'SEAT_TAKEN';
+const String bookingHoldExpired = 'HOLD_EXPIRED';
+const String bookingCreateFailed = 'CREATE_FAILED';
+const String bookingHoldFailed = 'HOLD_FAILED';
+const String bookingSeatCooldown = 'COOLDOWN';

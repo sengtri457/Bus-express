@@ -214,7 +214,7 @@ class _RouteCard extends StatelessWidget {
                     Icons.route_rounded,
                     color: isActive
                         ? const Color(0xFF059669)
-                        : const Color(0xFF9CA3AF),
+                        : const Color(0xFF6B7280),
                     size: 22,
                   ),
                 ),
@@ -237,7 +237,7 @@ class _RouteCard extends StatelessWidget {
                           const Icon(
                             Icons.straighten_rounded,
                             size: 12,
-                            color: Color(0xFF9CA3AF),
+                            color: Color(0xFF6B7280),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -251,7 +251,7 @@ class _RouteCard extends StatelessWidget {
                           const Icon(
                             Icons.access_time_rounded,
                             size: 12,
-                            color: Color(0xFF9CA3AF),
+                            color: Color(0xFF6B7280),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -285,7 +285,7 @@ class _RouteCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: isActive
                           ? const Color(0xFF059669)
-                          : const Color(0xFF9CA3AF),
+                          : const Color(0xFF6B7280),
                     ),
                   ),
                 ),
@@ -593,7 +593,7 @@ class _FormField extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
             prefixIcon: Icon(
               icon,
               color: iconColor ?? const Color(0xFF6B7280),
@@ -651,7 +651,7 @@ class _EmptyState extends StatelessWidget {
               color: const Color(0xFFF3F4F6),
               borderRadius: BorderRadius.circular(50),
             ),
-            child: Icon(icon, size: 40, color: const Color(0xFF9CA3AF)),
+            child: Icon(icon, size: 40, color: const Color(0xFF6B7280)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -665,7 +665,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
         ],
       ),

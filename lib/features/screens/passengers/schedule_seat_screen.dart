@@ -44,13 +44,15 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
   bool get _isExpired {
     if (_tripStatus == 'in_progress' ||
         _tripStatus == 'completed' ||
-        _tripStatus == 'cancelled') return true;
+        _tripStatus == 'cancelled')
+      return true;
 
     try {
-      final arrivalParts =
-          (widget.schedule['arrival_time'] as String).split(':');
-      final departureParts =
-          (widget.schedule['departure_time'] as String).split(':');
+      final arrivalParts = (widget.schedule['arrival_time'] as String).split(
+        ':',
+      );
+      final departureParts = (widget.schedule['departure_time'] as String)
+          .split(':');
 
       var arrival = DateTime(
         widget.date.year,
@@ -73,8 +75,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
     } catch (_) {}
 
     try {
-      final parts =
-          (widget.schedule['departure_time'] as String).split(':');
+      final parts = (widget.schedule['departure_time'] as String).split(':');
       final departure = DateTime(
         widget.date.year,
         widget.date.month,
@@ -112,7 +113,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
 
   void _subscribeRealtime(String tripId) {
     _realtimeChannel?.unsubscribe();
-    
+
     _realtimeChannel = _tripRepo.client
         .channel('trip_seats_$tripId')
         .onPostgresChanges(
@@ -156,26 +157,40 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
 
       final holds = await _tripRepo.client
           .from('seat_holds')
-          .select('seat_number, passenger_id')
+          .select('seat_number, passenger_id, is_cooldown')
           .eq('trip_id', tripId)
-          .gt('expires_at', DateTime.now().toIso8601String());
+          // Must be UTC: a bare local ISO string carries no offset, so
+          // Postgres reads it as UTC and the comparison is skewed by the
+          // device's timezone offset — which hid every live hold.
+          .gt('expires_at', DateTime.now().toUtc().toIso8601String());
 
       if (mounted) {
         final bookedList = (bookings as List)
             .map((b) => b['seat_number'] as String)
             .toList();
 
+        // My own live hold stays selectable, but a cooldown blocks
+        // everyone — including the passenger who just released it.
         final heldList = (holds as List)
-            .where((h) => h['passenger_id'] != currentUserId)
+            .where(
+              (h) =>
+                  h['passenger_id'] != currentUserId ||
+                  h['is_cooldown'] == true,
+            )
             .map((h) => h['seat_number'] as String)
             .toList();
+
+        debugPrint(
+          '[SeatMap] booked=$bookedList blocked-holds=$heldList '
+          '(raw holds: ${(holds as List).length})',
+        );
 
         setState(() {
           _bookedSeats = {...bookedList, ...heldList}.toList();
         });
       }
     } catch (e) {
-      debugPrint('Error silent loading seats: $e');
+      debugPrint('[SeatMap] FAILED to load seats: $e');
     }
   }
 
@@ -192,7 +207,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       if (tripData != null) {
         final tripId = tripData['id'] as String;
         _tripStatus = tripData['status'] as String?;
-        
+
         _subscribeRealtime(tripId);
         await _loadBookedSeatsSilent(tripId);
       } else {
@@ -208,6 +223,14 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  /// Maps a repository hold code onto a localised, human message.
+  String _holdErrorMessage(String code) => switch (code) {
+    bookingSeatTaken => context.tr.bookingSeatTakenError,
+    bookingSeatCooldown => context.tr.bookingSeatCooldownError,
+    bookingHoldExpired => context.tr.bookingHoldExpiredError,
+    _ => context.tr.bookingHoldFailedError,
+  };
 
   void _toggleSeat(String seat) {
     HapticFeedback.lightImpact();
@@ -225,12 +248,18 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Sign In Required', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Sign In Required',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         content: const Text('Please sign in to continue booking your tickets.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Not Now', style: TextStyle(color: AppColors.textMuted)),
+            child: Text(
+              'Not Now',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -243,7 +272,9 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Sign In'),
           ),
@@ -276,31 +307,19 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
 
     try {
       final tripDateStr = widget.date.toIso8601String().split('T')[0];
-      final tripData = await _tripRepo.client
-          .from('trips')
-          .select('id')
-          .eq('schedule_id', widget.schedule['id'])
-          .eq('trip_date', tripDateStr)
-          .maybeSingle();
+      final tripId =
+          await _tripRepo.client.rpc(
+                'get_or_create_trip',
+                params: {
+                  'p_schedule_id': widget.schedule['id'],
+                  'p_trip_date': tripDateStr,
+                  'p_bus_id': widget.schedule['buses']?['id'],
+                  'p_driver_id': widget.schedule['driver_id'],
+                  'p_conductor_id': widget.schedule['conductor_id'],
+                },
+              )
+              as String;
 
-      String tripId;
-      if (tripData == null) {
-        final newTrip = await _tripRepo.client
-            .from('trips')
-            .insert({
-              'schedule_id': widget.schedule['id'],
-              'trip_date': tripDateStr,
-              'bus_id': widget.schedule['buses']?['id'],
-              'driver_id': widget.schedule['driver_id'],
-              'conductor_id': widget.schedule['conductor_id'],
-              'status': 'scheduled',
-            })
-            .select('id')
-            .single();
-        tripId = newTrip['id'] as String;
-      } else {
-        tripId = tripData['id'] as String;
-      }
       final passengerId = _tripRepo.client.auth.currentUser?.id;
 
       if (passengerId == null) {
@@ -313,11 +332,11 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
         passengerId: passengerId,
       );
 
-      if (holdResult is Failure) {
+      if (holdResult is Failure<DateTime>) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(holdResult.message),
+              content: Text(_holdErrorMessage(holdResult.message)),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
             ),
@@ -330,25 +349,40 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
       if (mounted) {
         final bookingFinished = await Navigator.push<bool>(
           context,
-          MaterialPageRoute(
-            builder: (_) => BookingConfirmationScreen(
+          AppPageTransitions.slideHorizontal(
+            BookingConfirmationScreen(
               schedule: widget.schedule,
               date: widget.date,
               seatNumbers: _selectedSeats,
+              tripId: tripId,
+              holdExpiresAt: (holdResult as Success<DateTime>).data,
             ),
           ),
         );
 
         if (bookingFinished != true) {
-          await _bookingRepo.releaseSeatsHold(
+          final released = await _bookingRepo.releaseSeatsHold(
             tripId: tripId,
             seatNumbers: _selectedSeats,
             passengerId: passengerId,
           );
+          if (released is Failure<void> && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(released.message),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          // The hold is gone, so the seats must not stay highlighted as
+          // still-mine — otherwise the map contradicts the database.
+          if (mounted) setState(() => _selectedSeats.clear());
           await _loadBookedSeatsSilent(tripId);
         }
       }
     } catch (e) {
+      debugPrint('[SeatHold] reserve failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -439,9 +473,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        DateHelpers.formatTime(
-                          widget.schedule['arrival_time'],
-                        ),
+                        DateHelpers.formatTime(widget.schedule['arrival_time']),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -496,8 +528,7 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                             ),
                             const SizedBox(width: 20),
                             _LegendItem(
-                              color:
-                                  AppColors.error.withValues(alpha: 0.15),
+                              color: AppColors.error.withValues(alpha: 0.15),
                               label: context.tr.scheduleBooked,
                               textColor: AppColors.error,
                             ),
@@ -530,8 +561,8 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                                   _tripStatus == 'completed'
                                       ? context.tr.scheduleTripEnded
                                       : _tripStatus == 'cancelled'
-                                          ? context.tr.scheduleTripCancelled
-                                          : context.tr.scheduleTripOver,
+                                      ? context.tr.scheduleTripCancelled
+                                      : context.tr.scheduleTripOver,
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFFEF4444),
@@ -604,7 +635,10 @@ class _ScheduleSeatScreenState extends State<ScheduleSeatScreen> {
                 Text(
                   _selectedSeats.isEmpty
                       ? context.tr.scheduleNoSeatSelected
-                      : context.tr.scheduleSeatCount(_selectedSeats.length, _selectedSeats.join(', ')),
+                      : context.tr.scheduleSeatCount(
+                          _selectedSeats.length,
+                          _selectedSeats.join(', '),
+                        ),
                   style: TextStyle(
                     fontSize: 12,
                     color: _selectedSeats.isNotEmpty
@@ -706,37 +740,64 @@ class _SeatWidget extends StatelessWidget {
         borderColor = const Color(0xFFFECACA);
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
+    final statusLabel = switch (status) {
+      SeatStatus.available => context.tr.scheduleAvailable,
+      SeatStatus.selected => context.tr.scheduleSelected,
+      SeatStatus.booked => context.tr.scheduleBooked,
+    };
+
+    final isSelected = status == SeatStatus.selected;
+
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      selected: isSelected,
+      label: '$label, $statusLabel',
+      excludeSemantics: true,
+      child: AnimatedScale(
+        scale: isSelected ? 1.06 : 1.0,
+        duration: context.motion(AppAnimations.fast),
+        curve: AppAnimations.enter,
+        child: Material(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: borderColor),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.event_seat_rounded,
-              size: 18,
-              color: status == SeatStatus.booked
-                  ? AppColors.error.withValues(alpha: 0.5)
-                  : status == SeatStatus.selected
-                      ? Colors.white
-                      : AppColors.textHint,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: textColor,
+          animationDuration: context.motion(AppAnimations.fast),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: AnimatedContainer(
+              height: 48,
+              duration: context.motion(AppAnimations.fast),
+              curve: AppAnimations.enter,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.event_seat_rounded,
+                    size: 18,
+                    color: status == SeatStatus.booked
+                        ? AppColors.error.withValues(alpha: 0.5)
+                        : status == SeatStatus.selected
+                        ? Colors.white
+                        : AppColors.textHint,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -748,11 +809,7 @@ class _LegendItem extends StatelessWidget {
   final String label;
   final Color? textColor;
 
-  const _LegendItem({
-    required this.color,
-    required this.label,
-    this.textColor,
-  });
+  const _LegendItem({required this.color, required this.label, this.textColor});
 
   @override
   Widget build(BuildContext context) {
@@ -802,14 +859,20 @@ class _FrontIndicator extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.directions_bus_rounded,
-                  size: 16, color: AppColors.primaryBlue),
+              const Icon(
+                Icons.directions_bus_rounded,
+                size: 16,
+                color: AppColors.primaryBlue,
+              ),
               const SizedBox(width: 6),
-              Text(context.tr.scheduleFrontLabel,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryBlue)),
+              Text(
+                context.tr.scheduleFrontLabel,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
               const SizedBox(width: 4),
               Container(
                 width: 1,
@@ -817,14 +880,20 @@ class _FrontIndicator extends StatelessWidget {
                 color: AppColors.primaryBlueBorder,
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.meeting_room_rounded,
-                  size: 14, color: AppColors.primaryBlue),
+              const Icon(
+                Icons.meeting_room_rounded,
+                size: 14,
+                color: AppColors.primaryBlue,
+              ),
               const SizedBox(width: 4),
-              Text(context.tr.scheduleDoorLabel,
-                  style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryBlue)),
+              Text(
+                context.tr.scheduleDoorLabel,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
             ],
           ),
         ),
@@ -838,9 +907,10 @@ class _FrontIndicator extends StatelessWidget {
           child: Text(
             context.tr.scheduleSeatsLeft(availableCount),
             style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.w600),
+              fontSize: 12,
+              color: AppColors.primaryBlue,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -881,20 +951,21 @@ class _ColumnHeaders extends StatelessWidget {
 
   static Widget _headerLabel(String label) {
     return Center(
-      child: Text(label,
-          style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textHint)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textHint,
+        ),
+      ),
     );
   }
 
   static Widget _buildAisle() {
     return const SizedBox(
       width: _BusLayout.aisleWidth,
-      child: Center(
-        child: SizedBox(),
-      ),
+      child: Center(child: SizedBox()),
     );
   }
 }
@@ -999,7 +1070,7 @@ class _SeatGrid extends StatelessWidget {
     return Column(
       children: List.generate(totalRows, (rowIndex) {
         final rowNum = rowIndex + 1;
-        
+
         Widget leftCol;
         Widget rightCol;
         Widget farRightCol;
@@ -1068,15 +1139,15 @@ class _SeatGrid extends StatelessWidget {
           Icon(
             Icons.airline_seat_recline_normal_rounded,
             size: 18,
-            color: Color(0xFF9CA3AF),
+            color: Color(0xFF6B7280),
           ),
           SizedBox(height: 2),
           Text(
             'Driver',
             style: TextStyle(
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF9CA3AF),
+              color: Color(0xFF6B7280),
             ),
           ),
         ],
@@ -1096,16 +1167,12 @@ class _SeatGrid extends StatelessWidget {
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.meeting_room_rounded,
-            size: 16,
-            color: Color(0xFFD97706),
-          ),
+          Icon(Icons.meeting_room_rounded, size: 16, color: Color(0xFFD97706)),
           SizedBox(height: 2),
           Text(
             'Door',
             style: TextStyle(
-              fontSize: 8,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               color: Color(0xFFD97706),
             ),
@@ -1151,9 +1218,9 @@ class _SeatGrid extends StatelessWidget {
         child: Text(
           'Walkway',
           style: TextStyle(
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF9CA3AF),
+            color: Color(0xFF6B7280),
             letterSpacing: 1.0,
           ),
         ),
@@ -1175,16 +1242,12 @@ class _SeatGrid extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 8,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF9CA3AF),
+                    color: Color(0xFF6B7280),
                     letterSpacing: 1.5,
                   ),
                 ),
               )
-            : Container(
-                width: 1.5,
-                height: 24,
-                color: const Color(0xFFE5E7EB),
-              ),
+            : Container(width: 1.5, height: 24, color: const Color(0xFFE5E7EB)),
       ),
     );
   }
@@ -1206,14 +1269,20 @@ class _BackIndicator extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.directions_bus_rounded,
-                size: 14, color: AppColors.textHint),
+            Icon(
+              Icons.directions_bus_rounded,
+              size: 14,
+              color: AppColors.textHint,
+            ),
             const SizedBox(width: 6),
-            Text(context.tr.scheduleBackLabel,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textHint)),
+            Text(
+              context.tr.scheduleBackLabel,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textHint,
+              ),
+            ),
           ],
         ),
       ),

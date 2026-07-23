@@ -30,7 +30,7 @@ class LocationField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: const TextStyle(
-                color: Color(0xFF9CA3AF),
+                color: Color(0xFF6B7280),
                 fontSize: 14,
               ),
               label: Text(label),

@@ -695,7 +695,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                   ? Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                      child: Center(child: Text(context.tr.driverTripNoPassengers, style: const TextStyle(color: Color(0xFF9CA3AF)))),
+                      child: Center(child: Text(context.tr.driverTripNoPassengers, style: const TextStyle(color: Color(0xFF6B7280)))),
                     )
                   : Column(children: _passengers.map((p) => _PassengerTile(passenger: p)).toList()),
               const SizedBox(height: 100),
@@ -743,7 +743,7 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
     return _ActionButton(
       label: label,
       icon: Icons.flag_rounded,
-      color: _canEndTrip ? const Color(0xFF1A73E8) : const Color(0xFF9CA3AF),
+      color: _canEndTrip ? const Color(0xFF1A73E8) : const Color(0xFF6B7280),
       isLoading: _isLoading,
       onPressed: _canEndTrip ? _endTrip : null,
     );
@@ -964,7 +964,7 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
+        Icon(icon, size: 16, color: const Color(0xFF6B7280)),
         const SizedBox(width: 10),
         Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         const Spacer(),
@@ -1003,7 +1003,7 @@ class _ActionButton extends StatelessWidget {
         label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         style: ElevatedButton.styleFrom(
           backgroundColor: disabled ? const Color(0xFFD1D5DB) : color,
-          foregroundColor: disabled ? const Color(0xFF9CA3AF) : Colors.white,
+          foregroundColor: disabled ? const Color(0xFF6B7280) : Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
@@ -1116,17 +1116,17 @@ class _TimelineCompare extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF9CA3AF), letterSpacing: 0.5)),
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5)),
         const SizedBox(height: 5),
         Row(
           children: [
-            const Icon(Icons.schedule_rounded, size: 12, color: Color(0xFF9CA3AF)),
+            const Icon(Icons.schedule_rounded, size: 12, color: Color(0xFF6B7280)),
             const SizedBox(width: 4),
             Text(scheduled,
               style: TextStyle(fontSize: 12,
                 color: isMissed ? const Color(0xFFEF4444) : const Color(0xFF6B7280),
                 decoration: hasActual ? TextDecoration.lineThrough : null,
-                decorationColor: const Color(0xFF9CA3AF),
+                decorationColor: const Color(0xFF6B7280),
               )),
           ],
         ),

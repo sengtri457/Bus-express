@@ -275,7 +275,7 @@ class _ConductorPassengersScreenState extends State<ConductorPassengersScreen> {
                         const Icon(
                           Icons.people_outline_rounded,
                           size: 48,
-                          color: Color(0xFF9CA3AF),
+                          color: Color(0xFF6B7280),
                         ),
                         const SizedBox(height: 12),
                         Text(

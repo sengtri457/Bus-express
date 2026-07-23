@@ -171,7 +171,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
                   _iconForType(item['type'] as String?),
                   size: 20,
                   color:
-                      isRead ? const Color(0xFF94A3B8) : const Color(0xFF2563EB),
+                      isRead ? const Color(0xFF64748B) : const Color(0xFF2563EB),
                 ),
               ),
               const SizedBox(width: 12),

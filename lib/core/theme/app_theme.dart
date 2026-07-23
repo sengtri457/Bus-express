@@ -15,7 +15,7 @@ class AppColors {
 
   static const textPrimary = Color(0xFF1F2937);
   static const textSecondary = Color(0xFF6B7280);
-  static const textHint = Color(0xFF9CA3AF);
+  static const textHint = Color(0xFF6B7280);
   static const textOnPrimary = Colors.white;
 
   static const background = Color(0xFFF9FAFB);
@@ -47,7 +47,7 @@ class AppColors {
   // Text variant used across screens
   static const textDark = Color(0xFF111827);
   static const textSoft = Color(0xFF64748B);
-  static const textMuted = Color(0xFF94A3B8);
+  static const textMuted = Color(0xFF64748B);
 
   // Surface variants
   static const surfaceLight = Color(0xFFF8FAFC);
@@ -62,10 +62,25 @@ class AppColors {
 class AppTheme {
   AppTheme._();
 
+  static final ColorScheme lightScheme =
+      ColorScheme.fromSeed(seedColor: AppColors.primary).copyWith(
+        primary: AppColors.primary,
+        onPrimary: AppColors.textOnPrimary,
+        primaryContainer: AppColors.primaryLight,
+        onPrimaryContainer: AppColors.primaryDark,
+        error: AppColors.error,
+        onError: AppColors.textOnPrimary,
+        errorContainer: AppColors.errorLight,
+        surface: AppColors.surface,
+        onSurface: AppColors.textPrimary,
+        onSurfaceVariant: AppColors.textSecondary,
+        outlineVariant: AppColors.border,
+      );
+
   static ThemeData get light => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    colorSchemeSeed: AppColors.primary,
+    colorScheme: lightScheme,
     textTheme: GoogleFonts.notoSansKhmerTextTheme(),
     scaffoldBackgroundColor: AppColors.background,
     appBarTheme: const AppBarTheme(
@@ -88,13 +103,8 @@ class AppTheme {
         foregroundColor: AppColors.textOnPrimary,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -102,9 +112,7 @@ class AppTheme {
         foregroundColor: AppColors.primary,
         side: const BorderSide(color: AppColors.primary),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -131,9 +139,7 @@ class AppTheme {
     chipTheme: ChipThemeData(
       backgroundColor: AppColors.primaryLight,
       labelStyle: const TextStyle(color: AppColors.primary, fontSize: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       side: BorderSide.none,
     ),
     dividerTheme: const DividerThemeData(
@@ -203,11 +209,7 @@ class AppTextStyles {
     color: AppColors.surface,
     borderRadius: AppRadius.lgR,
     boxShadow: [
-      BoxShadow(
-        color: AppColors.shadow,
-        blurRadius: 10,
-        offset: Offset(0, 2),
-      ),
+      BoxShadow(color: AppColors.shadow, blurRadius: 10, offset: Offset(0, 2)),
     ],
   );
 }
@@ -242,41 +244,40 @@ class AppShadows {
   AppShadows._();
 
   static List<BoxShadow> get sm => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.05),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.05),
+      blurRadius: 6,
+      offset: const Offset(0, 2),
+    ),
+  ];
 
   static List<BoxShadow> get md => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.07),
-          blurRadius: 14,
-          offset: const Offset(0, 4),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.07),
+      blurRadius: 14,
+      offset: const Offset(0, 4),
+    ),
+  ];
 
   static List<BoxShadow> get lg => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.10),
-          blurRadius: 28,
-          offset: const Offset(0, 8),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.10),
+      blurRadius: 28,
+      offset: const Offset(0, 8),
+    ),
+  ];
 
   static List<BoxShadow> glow(Color color, {double intensity = 0.35}) => [
-        BoxShadow(
-          color: color.withValues(alpha: intensity),
-          blurRadius: 20,
-          offset: const Offset(0, 6),
-        ),
-        BoxShadow(
-          color: color.withValues(alpha: intensity * 0.4),
-          blurRadius: 40,
-          spreadRadius: 4,
-          offset: const Offset(0, 12),
-        ),
-      ];
+    BoxShadow(
+      color: color.withValues(alpha: intensity),
+      blurRadius: 20,
+      offset: const Offset(0, 6),
+    ),
+    BoxShadow(
+      color: color.withValues(alpha: intensity * 0.4),
+      blurRadius: 40,
+      spreadRadius: 4,
+      offset: const Offset(0, 12),
+    ),
+  ];
 }
-

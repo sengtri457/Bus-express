@@ -262,7 +262,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                               context.tr.departureLabel,
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: Color(0xFF9CA3AF),
+                                                color: Color(0xFF6B7280),
                                               ),
                                             ),
                                           ],
@@ -273,7 +273,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                           ),
                                           child: Icon(
                                             Icons.arrow_forward_rounded,
-                                            color: Color(0xFF9CA3AF),
+                                            color: Color(0xFF6B7280),
                                             size: 16,
                                           ),
                                         ),
@@ -293,7 +293,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                               context.tr.arrivalLabel,
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: Color(0xFF9CA3AF),
+                                                color: Color(0xFF6B7280),
                                               ),
                                             ),
                                           ],
@@ -315,7 +315,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                               context.tr.perSeat,
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: Color(0xFF9CA3AF),
+                                                color: Color(0xFF6B7280),
                                               ),
                                             ),
                                           ],
@@ -328,7 +328,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                         const Icon(
                                           Icons.calendar_today_rounded,
                                           size: 13,
-                                          color: Color(0xFF9CA3AF),
+                                          color: Color(0xFF6B7280),
                                         ),
                                         const SizedBox(width: 5),
                                         Text(
@@ -343,7 +343,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                           const Icon(
                                             Icons.directions_bus_outlined,
                                             size: 13,
-                                            color: Color(0xFF9CA3AF),
+                                            color: Color(0xFF6B7280),
                                           ),
                                           const SizedBox(width: 5),
                                           Text(
@@ -364,7 +364,7 @@ class _OperatorSchedulesScreenState extends State<OperatorSchedulesScreen> {
                                             const Icon(
                                               Icons.person_outline_rounded,
                                               size: 13,
-                                              color: Color(0xFF9CA3AF),
+                                              color: Color(0xFF6B7280),
                                             ),
                                             const SizedBox(width: 5),
                                             Text(
@@ -1091,7 +1091,7 @@ class _FormField extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+            hintStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
             prefixIcon: Icon(
               icon,
               color: iconColor ?? const Color(0xFF6B7280),
@@ -1149,7 +1149,7 @@ class _EmptyState extends StatelessWidget {
               color: const Color(0xFFF3F4F6),
               borderRadius: BorderRadius.circular(50),
             ),
-            child: Icon(icon, size: 40, color: const Color(0xFF9CA3AF)),
+            child: Icon(icon, size: 40, color: const Color(0xFF6B7280)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -1163,7 +1163,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
         ],
       ),

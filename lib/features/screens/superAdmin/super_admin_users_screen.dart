@@ -206,12 +206,12 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
                   decoration: InputDecoration(
                     hintText: context.tr.searchByNameOrEmail,
                     hintStyle: const TextStyle(
-                      color: Color(0xFF9CA3AF),
+                      color: Color(0xFF6B7280),
                       fontSize: 14,
                     ),
                     prefixIcon: const Icon(
                       Icons.search_rounded,
-                      color: Color(0xFF9CA3AF),
+                      color: Color(0xFF6B7280),
                       size: 20,
                     ),
                     suffixIcon: _searchCtrl.text.isNotEmpty
@@ -219,7 +219,7 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
                             icon: const Icon(
                               Icons.clear_rounded,
                               size: 18,
-                              color: Color(0xFF9CA3AF),
+                              color: Color(0xFF6B7280),
                             ),
                             onPressed: () {
                               _searchCtrl.clear();
@@ -303,7 +303,7 @@ class _SuperAdminUsersScreenState extends State<SuperAdminUsersScreen>
                   controller: _tabController,
                   indicatorColor: const Color(0xFF111827),
                   labelColor: const Color(0xFF111827),
-                  unselectedLabelColor: const Color(0xFF9CA3AF),
+                  unselectedLabelColor: const Color(0xFF6B7280),
                   labelStyle: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -361,7 +361,7 @@ class _UserList extends StatelessWidget {
       return Center(
         child: Text(
           context.tr.noUsersFound,
-          style: const TextStyle(color: Color(0xFF9CA3AF)),
+          style: const TextStyle(color: Color(0xFF6B7280)),
         ),
       );
     }
@@ -401,7 +401,7 @@ class _UserCard extends StatelessWidget {
       case 'conductor':
         return const Color(0xFF7C3AED);
       default:
-        return const Color(0xFF9CA3AF);
+        return const Color(0xFF6B7280);
     }
   }
 
