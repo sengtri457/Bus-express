@@ -33,8 +33,11 @@ class SupabaseConfig {
 
   static String get storageUrl => '$supabaseUrl/storage/v1/object/public';
 
-  /// Automatically updates status to 'completed' for trips whose scheduled time has passed.
-  /// - Scheduled (not started): auto-completes when departure time is over.
+  /// Grace period after scheduled departure before auto-cancelling an unstarted trip.
+  static const _noStartGracePeriod = Duration(minutes: 15);
+
+  /// Automatically updates overdue trips.
+  /// - Scheduled (not started): auto-cancels 15 min after departure time.
   /// - In progress: auto-completes when arrival time is over.
   static Future<void> syncOverdueTrips() async {
     try {
@@ -68,7 +71,7 @@ class SupabaseConfig {
           final depParts = departureTimeStr.split(':');
 
           if (status == 'scheduled') {
-            // Driver never started — auto-complete if departure time is past
+            // Driver never started — cancel if departure time is past
             final plannedDeparture = DateTime(
               tripDate.year,
               tripDate.month,
@@ -76,15 +79,14 @@ class SupabaseConfig {
               int.parse(depParts[0]),
               int.parse(depParts[1]),
             );
-            if (now.isAfter(plannedDeparture)) {
-              final nowIso = now.toIso8601String();
+            if (now.isAfter(plannedDeparture.add(_noStartGracePeriod))) {
               await client
                   .from('trips')
-                  .update({'status': 'completed', 'arrived_at': nowIso})
+                  .update({'status': 'cancelled'})
                   .eq('id', trip['id'] as String);
               debugPrint(
-                '[TripAutoEnd] Scheduled trip ${trip['id']} auto-completed. '
-                'Departure was $plannedDeparture',
+                '[TripAutoEnd] Scheduled trip ${trip['id']} auto-cancelled. '
+                'Departure was $plannedDeparture, driver never started.',
               );
             }
           } else if (status == 'in_progress') {

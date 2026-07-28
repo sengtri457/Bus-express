@@ -12,13 +12,11 @@ import 'llm_chat_screen.dart';
 class PassengerMainScreen extends StatefulWidget {
   final int initialIndex;
   final String? newBookingId;
-  final int newSeatCount;
 
   const PassengerMainScreen({
     super.key,
     this.initialIndex = 0,
     this.newBookingId,
-    this.newSeatCount = 1,
   });
 
   @override
@@ -47,7 +45,6 @@ class _PassengerMainScreenState extends State<PassengerMainScreen>
       const TrackingHubScreen(),
       MyTicketsScreen(
         newBookingId: widget.newBookingId,
-        newSeatCount: widget.newSeatCount,
       ),
       const PassengerProfileScreen(isTab: true),
     ];

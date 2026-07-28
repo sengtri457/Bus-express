@@ -511,7 +511,6 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           PassengerMainScreen(
             initialIndex: 1,
             newBookingId: bookingIds.first,
-            newSeatCount: widget.seatNumbers.length,
           ),
         ),
         (route) => route.isFirst,

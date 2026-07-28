@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,7 @@ import '../../../models/chat_message.dart';
 import '../../../providers/llm_provider.dart';
 import '../../../services/llm_api_service.dart';
 import '../route_list_screen.dart';
+import 'chat_history_screen.dart';
 
 class LlmChatScreen extends ConsumerStatefulWidget {
   const LlmChatScreen({super.key});
@@ -146,6 +149,14 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'Chat History',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ChatHistoryScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_outline_rounded),
             tooltip: 'Clear chat',
             onPressed: state.messages.isEmpty ? null : () => ref.read(llmProvider.notifier).clear(),
@@ -157,14 +168,25 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: isEmpty ? _buildWelcome() : _buildMessageList(state),
+          Column(
+            children: [
+              Expanded(
+                child: isEmpty ? _buildWelcome() : _buildMessageList(state),
+              ),
+              if (isEmpty) _buildSuggestions(state),
+              if (state.bookingIntent != null) _buildBookingCard(state.bookingIntent!),
+              _buildInputBar(state),
+            ],
           ),
-          if (isEmpty) _buildSuggestions(state),
-          if (state.bookingIntent != null) _buildBookingCard(state.bookingIntent!),
-          _buildInputBar(state),
+          if (state.isLoadingHistory)
+            Container(
+              color: Colors.black26,
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
         ],
       ),
     );
@@ -471,27 +493,134 @@ class _SuggestionChip extends StatelessWidget {
   }
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   final ChatMessage message;
 
   const _MessageBubble({required this.message});
 
   @override
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<_MessageBubble>
+    with SingleTickerProviderStateMixin {
+  static final _animatedIds = <String>{};
+
+  late AnimationController _typeController;
+  late Animation<int> _charAnim;
+  int _displayedChars = 0;
+  bool _hasAnimated = false;
+  Timer? _cursorTimer;
+  bool _cursorVisible = false;
+
+  static const _msPerChar = 30;
+  static const _minDuration = Duration(milliseconds: 200);
+  static const _maxDuration = Duration(seconds: 5);
+  static const _ageThreshold = Duration(seconds: 2);
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimation();
+  }
+
+  void _setupAnimation() {
+    final msg = widget.message;
+    final isNewMessage =
+        DateTime.now().difference(msg.timestamp) < _ageThreshold;
+    final shouldAnimate = msg.role == ChatMessageRole.assistant &&
+        !msg.isError &&
+        isNewMessage &&
+        !_animatedIds.contains(msg.id);
+
+    if (!shouldAnimate) {
+      _displayedChars = msg.content.length;
+      _hasAnimated = true;
+      _typeController =
+          AnimationController(vsync: this, duration: Duration.zero);
+      return;
+    }
+
+    final total = msg.content.length;
+    final ms = (total * _msPerChar)
+        .clamp(_minDuration.inMilliseconds, _maxDuration.inMilliseconds);
+
+    _typeController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: ms),
+    );
+
+    _charAnim = IntTween(begin: 0, end: total).animate(_typeController);
+
+    _typeController.addListener(_onTypeFrame);
+    _typeController.addStatusListener(_onTypeStatus);
+
+    _cursorTimer = Timer.periodic(const Duration(milliseconds: 530), (_) {
+      if (mounted) setState(() => _cursorVisible = !_cursorVisible);
+    });
+
+    _typeController.forward();
+  }
+
+  void _onTypeFrame() {
+    final next = _charAnim.value;
+    if (next != _displayedChars) {
+      setState(() => _displayedChars = next);
+    }
+  }
+
+  void _onTypeStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _finishAnimation();
+    }
+  }
+
+  void _finishAnimation() {
+    _hasAnimated = true;
+    _cursorTimer?.cancel();
+    _cursorTimer = null;
+    _animatedIds.add(widget.message.id);
+    if (mounted) {
+      setState(() => _displayedChars = widget.message.content.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _typeController.removeListener(_onTypeFrame);
+    _typeController.removeStatusListener(_onTypeStatus);
+    _typeController.dispose();
+    _cursorTimer?.cancel();
+    if (!_hasAnimated && widget.message.role == ChatMessageRole.assistant) {
+      _animatedIds.add(widget.message.id);
+    }
+    super.dispose();
+  }
+
+  String get _displayText =>
+      widget.message.content.substring(0, _displayedChars);
+  bool get _isAnimating =>
+      !_hasAnimated && _displayedChars < widget.message.content.length;
+
+  @override
   Widget build(BuildContext context) {
-    final isUser = message.role == ChatMessageRole.user;
+    final isUser = widget.message.role == ChatMessageRole.user;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) _buildAvatar(),
           if (!isUser) const SizedBox(width: 10),
           Flexible(
             child: Container(
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.78),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 gradient: isUser ? AppGradients.primaryBlue : null,
                 color: isUser ? null : AppColors.surface,
@@ -510,7 +639,8 @@ class _MessageBubble extends StatelessWidget {
                       ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isUser ? 0.15 : 0.04),
+                    color:
+                        Colors.black.withValues(alpha: isUser ? 0.15 : 0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -520,24 +650,45 @@ class _MessageBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.content,
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.45,
-                      color: isUser ? Colors.white : AppColors.textDark,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _displayText,
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.45,
+                            color: isUser
+                                ? Colors.white
+                                : AppColors.textDark,
+                          ),
+                        ),
+                      ),
+                      if (_isAnimating && _cursorVisible)
+                        Container(
+                          width: 2,
+                          height: 16,
+                          margin: const EdgeInsets.only(left: 1, bottom: 2),
+                          decoration: BoxDecoration(
+                            color: isUser
+                                ? Colors.white.withValues(alpha: 0.8)
+                                : AppColors.primary,
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
-                    Text(
-                      _formatTime(message.timestamp),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isUser
-                            ? Colors.white.withValues(alpha: 0.7)
-                            : AppColors.textHint,
-                      ),
+                  Text(
+                    _formatTime(widget.message.timestamp),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isUser
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : AppColors.textHint,
                     ),
+                  ),
                 ],
               ),
             ),
@@ -562,7 +713,8 @@ class _MessageBubble extends StatelessWidget {
       child: isUser
           ? const Icon(Icons.person_rounded, size: 18, color: Colors.white)
           : ClipOval(
-              child: Image.asset('assets/images/aiLogo.png', width: 34, height: 34, fit: BoxFit.cover),
+              child: Image.asset('assets/images/aiLogo.png',
+                  width: 34, height: 34, fit: BoxFit.cover),
             ),
     );
   }

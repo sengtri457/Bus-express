@@ -12,5 +12,6 @@ export 'promotion_model.dart';
 export 'wallet_model.dart';
 export 'payment_model.dart';
 export 'review_model.dart';
+export 'chat_conversation.dart';
 export 'chat_message.dart';
 export 'booking_intent.dart';

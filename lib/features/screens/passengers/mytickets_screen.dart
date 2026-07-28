@@ -12,12 +12,10 @@ import 'widgets/ticket_card.dart';
 
 class MyTicketsScreen extends StatefulWidget {
   final String? newBookingId;
-  final int newSeatCount;
 
   const MyTicketsScreen({
     super.key,
     this.newBookingId,
-    this.newSeatCount = 1,
   });
 
   @override
@@ -51,11 +49,6 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
     _loadTickets();
     _refreshTimer =
         Timer.periodic(const Duration(seconds: 30), (_) => _loadTickets());
-    if (widget.newBookingId != null) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _showBookingSuccessDialog(),
-      );
-    }
   }
 
   @override
@@ -215,75 +208,6 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _showBookingSuccessDialog() {
-    final count = widget.newSeatCount;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.xlR),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD1FAE5),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.success,
-                  size: 44,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                count > 1
-                    ? context.tr.myTicketsSuccessPlural(count)
-                    : context.tr.myTicketsSuccessSingular,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                count > 1
-                    ? context.tr.myTicketsSuccessDescPlural(count)
-                    : context.tr.myTicketsSuccessDescSingular,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    count > 1
-                        ? context.tr.myTicketsViewPlural
-                        : context.tr.myTicketsViewSingular,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override

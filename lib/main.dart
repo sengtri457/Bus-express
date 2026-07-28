@@ -44,14 +44,15 @@ void main() async {
   }
 
   await NotificationService.instance.init();
-  runApp(
-    DevicePreview(
-      enabled: true,
-      tools: const [...DevicePreview.defaultTools],
-      builder: (context) => const ProviderScope(child: MyApp()),
-    ),
-  );
-  // runApp(const ProviderScope(child: MyApp()));
+  // runApp(
+  //   DevicePreview(
+  //     enabled: true,
+  //     tools: const [...DevicePreview.defaultTools],
+  //     builder: (context) => const ProviderScope(child: MyApp()),
+  //   ),
+  // );
+  runApp(const ProviderScope(child: MyApp()));
+
 }
 
 class MyApp extends ConsumerStatefulWidget {

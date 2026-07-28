@@ -72,11 +72,37 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       final tripsResult = await _tripRepo.getDriverTrips(user.id);
       if (mounted && tripsResult is Success<List<TripModel>>) {
         final allTrips = tripsResult.data;
+
+        final tripIds = allTrips.map((t) => t.id).toList();
+        final Map<String, int> bookingCounts = {};
+        if (tripIds.isNotEmpty) {
+          try {
+            final bookings = await _tripRepo.client
+                .from('bookings')
+                .select('trip_id')
+                .inFilter('trip_id', tripIds)
+                .inFilter('status', ['confirmed', 'boarded']);
+            for (final b in bookings as List) {
+              final tid = b['trip_id'] as String;
+              bookingCounts[tid] = (bookingCounts[tid] ?? 0) + 1;
+            }
+          } catch (_) {}
+        }
+
+        int priority(TripModel t) {
+          final hasBookings = (bookingCounts[t.id] ?? 0) > 0;
+          if (t.status == 'scheduled' && hasBookings) return 0;
+          if (t.status == 'in_progress' && hasBookings) return 1;
+          return 2;
+        }
+
         setState(() {
           _todayTrips = allTrips
               .where((t) => t.tripDate == today)
               .toList()
             ..sort((a, b) {
+              final p = priority(a).compareTo(priority(b));
+              if (p != 0) return p;
               final aHas = a.schedule != null;
               final bHas = b.schedule != null;
               if (aHas && !bHas) return -1;
@@ -85,7 +111,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             });
           _upcomingTrips = allTrips
               .where((t) => t.tripDate != today)
-              .toList();
+              .toList()
+            ..sort((a, b) {
+              final p = priority(a).compareTo(priority(b));
+              if (p != 0) return p;
+              return 0;
+            });
           _isLoading = false;
         });
       } else if (mounted && tripsResult is Failure<List<TripModel>>) {
