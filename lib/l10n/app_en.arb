@@ -271,6 +271,10 @@
   "liveTrackingStarts": "Tracking starts when driver departs",
   "liveIncidentReported": "{Type} Reported",
   "@liveIncidentReported": {"placeholders": {"Type": {"type": "String"}}},
+  "trackingNoActiveTrips": "No active trips",
+  "trackingNoActiveSubtitle": "Your in-progress and upcoming\nbookings will show here.",
+  "trackingUpcoming": "Upcoming",
+  "trackingTrack": "TRACK",
 
   "myTicketsTitle": "My Tickets",
   "myTicketsUpcoming": "Upcoming ({count})",
@@ -864,5 +868,18 @@
 
   "language": "Language",
   "english": "English",
-  "khmer": "ភាសាខ្មែរ"
+  "khmer": "ភាសាខ្មែរ",
+
+  "chatApiSettings": "API Settings",
+  "chatApiUrlLabel": "API URL",
+  "chatApiUrlUpdated": "API URL updated",
+  "chatReviewBuses": "Review Available Buses",
+  "chatHistory": "Chat History",
+  "chatFailedLoad": "Failed to load history",
+  "chatRetry": "Retry",
+  "chatNoConversations": "No conversations yet",
+  "chatEmptySubtitle": "Start a chat with the AI assistant\nand your history will appear here.",
+  "chatDeleteTitle": "Delete conversation?",
+  "chatDeleteContent": "Are you sure you want to delete \"{title}\"?",
+  "@chatDeleteContent": {"placeholders": {"title": {"type": "String"}}}
 }

@@ -29,9 +29,14 @@ class DateHelpers {
 
   static String formatTimeFromDt(DateTime dt) => _timeFormat.format(dt.toLocal());
 
+  static DateTime _parseDateOnly(String dateStr) {
+    final parts = dateStr.split('-');
+    return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+  }
+
   static String formatDate(String dateStr) {
     try {
-      final dt = DateTime.parse(dateStr);
+      final dt = _parseDateOnly(dateStr);
       return _dateFormat.format(dt);
     } catch (_) {
       return dateStr;
@@ -42,7 +47,7 @@ class DateHelpers {
 
   static String formatFullDate(String dateStr) {
     try {
-      final dt = DateTime.parse(dateStr);
+      final dt = _parseDateOnly(dateStr);
       return _fullDateFormat.format(dt);
     } catch (_) {
       return dateStr;
@@ -51,7 +56,7 @@ class DateHelpers {
 
   static String formatDayMonth(String dateStr) {
     try {
-      final dt = DateTime.parse(dateStr);
+      final dt = _parseDateOnly(dateStr);
       return _dayMonthFormat.format(dt);
     } catch (_) {
       return dateStr;

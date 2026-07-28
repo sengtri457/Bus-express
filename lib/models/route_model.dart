@@ -1,3 +1,5 @@
+import 'route_stop_model.dart';
+
 class RouteModel {
   final String id;
   final String? operatorId;
@@ -9,6 +11,7 @@ class RouteModel {
   final String? status;
   final String? operatorName;
   final String? operatorLogoUrl;
+  final List<RouteStopModel>? stops;
 
   const RouteModel({
     required this.id,
@@ -21,10 +24,18 @@ class RouteModel {
     this.status,
     this.operatorName,
     this.operatorLogoUrl,
+    this.stops,
   });
 
   factory RouteModel.fromMap(Map<String, dynamic> map) {
     final operators = map['operators'] as Map<String, dynamic>?;
+    List<RouteStopModel>? stops;
+    if (map['route_stops'] != null) {
+      stops = (map['route_stops'] as List)
+          .map((e) => RouteStopModel.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.stopOrder.compareTo(b.stopOrder));
+    }
     return RouteModel(
       id: map['id'] as String,
       operatorId: map['operator_id'] as String?,
@@ -36,6 +47,7 @@ class RouteModel {
       status: map['status'] as String?,
       operatorName: operators?['name'] as String?,
       operatorLogoUrl: operators?['logo_url'] as String?,
+      stops: stops,
     );
   }
 
@@ -51,4 +63,6 @@ class RouteModel {
   };
 
   String get displayName => '$origin → $destination';
+
+  int get stopCount => stops?.length ?? 0;
 }

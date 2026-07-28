@@ -244,6 +244,10 @@
   "liveUpdatesEvery5": "ការធ្វើបច្ចុប្បន្នភាពទីតាំងរៀងរាល់ 5 វិនាទី",
   "liveTrackingStarts": "ការតាមដានចាប់ផ្តើមនៅពេលអ្នកបើកបរចេញដំណើរ",
   "liveIncidentReported": "{Type} ត្រូវបានរាយការណ៍",
+  "trackingNoActiveTrips": "No active trips",
+  "trackingNoActiveSubtitle": "Your in-progress and upcoming\nbookings will show here.",
+  "trackingUpcoming": "Upcoming",
+  "trackingTrack": "TRACK",
 
   "myTicketsTitle": "សំបុត្ររបស់ខ្ញុំ",
   "myTicketsUpcoming": "នាពេលខាងមុខ ({count})",
@@ -758,5 +762,18 @@
 
   "language": "ភាសា",
   "english": "English",
-  "khmer": "ភាសាខ្មែរ"
+  "khmer": "ភាសាខ្មែរ",
+
+  "chatApiSettings": "API Settings",
+  "chatApiUrlLabel": "API URL",
+  "chatApiUrlUpdated": "API URL updated",
+  "chatReviewBuses": "Review Available Buses",
+  "chatHistory": "Chat History",
+  "chatFailedLoad": "Failed to load history",
+  "chatRetry": "Retry",
+  "chatNoConversations": "No conversations yet",
+  "chatEmptySubtitle": "Start a chat with the AI assistant\nand your history will appear here.",
+  "chatDeleteTitle": "Delete conversation?",
+  "chatDeleteContent": "Are you sure you want to delete \"{title}\"?",
+  "@chatDeleteContent": {"placeholders": {"title": {"type": "String"}}}
 }

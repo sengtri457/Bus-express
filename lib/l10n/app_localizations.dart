@@ -1495,6 +1495,30 @@ abstract class AppLocalizations {
   /// **'{Type} Reported'**
   String liveIncidentReported(String Type);
 
+  /// No description provided for @trackingNoActiveTrips.
+  ///
+  /// In en, this message translates to:
+  /// **'No active trips'**
+  String get trackingNoActiveTrips;
+
+  /// No description provided for @trackingNoActiveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your in-progress and upcoming\nbookings will show here.'**
+  String get trackingNoActiveSubtitle;
+
+  /// No description provided for @trackingUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get trackingUpcoming;
+
+  /// No description provided for @trackingTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'TRACK'**
+  String get trackingTrack;
+
   /// No description provided for @myTicketsTitle.
   ///
   /// In en, this message translates to:
@@ -4386,6 +4410,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ភាសាខ្មែរ'**
   String get khmer;
+
+  /// No description provided for @chatApiSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'API Settings'**
+  String get chatApiSettings;
+
+  /// No description provided for @chatApiUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'API URL'**
+  String get chatApiUrlLabel;
+
+  /// No description provided for @chatApiUrlUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'API URL updated'**
+  String get chatApiUrlUpdated;
+
+  /// No description provided for @chatReviewBuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Available Buses'**
+  String get chatReviewBuses;
+
+  /// No description provided for @chatHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat History'**
+  String get chatHistory;
+
+  /// No description provided for @chatFailedLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load history'**
+  String get chatFailedLoad;
+
+  /// No description provided for @chatRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get chatRetry;
+
+  /// No description provided for @chatNoConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get chatNoConversations;
+
+  /// No description provided for @chatEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a chat with the AI assistant\nand your history will appear here.'**
+  String get chatEmptySubtitle;
+
+  /// No description provided for @chatDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete conversation?'**
+  String get chatDeleteTitle;
+
+  /// No description provided for @chatDeleteContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{title}\"?'**
+  String chatDeleteContent(String title);
 }
 
 class _AppLocalizationsDelegate

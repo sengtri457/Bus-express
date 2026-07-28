@@ -783,6 +783,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get trackingNoActiveTrips => 'No active trips';
+
+  @override
+  String get trackingNoActiveSubtitle =>
+      'Your in-progress and upcoming\nbookings will show here.';
+
+  @override
+  String get trackingUpcoming => 'Upcoming';
+
+  @override
+  String get trackingTrack => 'TRACK';
+
+  @override
   String get myTicketsTitle => 'My Tickets';
 
   @override
@@ -2423,4 +2436,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get khmer => 'ភាសាខ្មែរ';
+
+  @override
+  String get chatApiSettings => 'API Settings';
+
+  @override
+  String get chatApiUrlLabel => 'API URL';
+
+  @override
+  String get chatApiUrlUpdated => 'API URL updated';
+
+  @override
+  String get chatReviewBuses => 'Review Available Buses';
+
+  @override
+  String get chatHistory => 'Chat History';
+
+  @override
+  String get chatFailedLoad => 'Failed to load history';
+
+  @override
+  String get chatRetry => 'Retry';
+
+  @override
+  String get chatNoConversations => 'No conversations yet';
+
+  @override
+  String get chatEmptySubtitle =>
+      'Start a chat with the AI assistant\nand your history will appear here.';
+
+  @override
+  String get chatDeleteTitle => 'Delete conversation?';
+
+  @override
+  String chatDeleteContent(String title) {
+    return 'Are you sure you want to delete \"$title\"?';
+  }
 }

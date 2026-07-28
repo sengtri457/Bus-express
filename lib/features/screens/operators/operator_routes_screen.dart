@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../core/error/result.dart';
 import '../../../l10n/tr_extension.dart';
+import '../../../models/route_stop_model.dart';
+import '../../../repositories/stop_repository.dart';
 import '../../../supabase_config.dart';
+import 'route_stops_editor_sheet.dart';
 
 class OperatorRoutesScreen extends StatefulWidget {
   final String operatorId;
@@ -25,9 +29,10 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
     try {
       final data = await SupabaseConfig.client
           .from('routes')
-          .select(
-            'id, name, origin, destination, distance_km, duration_min, status',
-          )
+          .select('''
+            id, name, origin, destination, distance_km, duration_min, status,
+            route_stops ( count )
+          ''')
           .eq('operator_id', widget.operatorId)
           .order('created_at', ascending: false);
       if (mounted) {
@@ -146,6 +151,18 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                           onEdit: () => _showRouteForm(existing: r),
                           onToggle: () => _toggleStatus(r['id'], r['status']),
                           onDelete: () => _deleteRoute(r['id']),
+                          onManageStops: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RouteStopsEditor(
+                                  routeId: r['id'],
+                                  origin: r['origin'] ?? '',
+                                  destination: r['destination'] ?? '',
+                                ),
+                              ),
+                            )?.then((_) => _loadRoutes());
+                          },
                         );
                       },
                     ),
@@ -172,13 +189,25 @@ class _RouteCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
+  final VoidCallback? onManageStops;
 
   const _RouteCard({
     required this.route,
     required this.onEdit,
     required this.onToggle,
     required this.onDelete,
+    this.onManageStops,
   });
+
+  int get _stopCount {
+    final rs = route['route_stops'];
+    if (rs is List) return rs.length;
+    if (rs is Map && rs.containsKey('count')) {
+      final c = rs['count'];
+      if (c is int) return c;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -261,12 +290,25 @@ class _RouteCard extends StatelessWidget {
                               color: Color(0xFF6B7280),
                             ),
                           ),
+                          const SizedBox(width: 10),
+                          const Icon(
+                            Icons.flag_rounded,
+                            size: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$_stopCount stops',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                // Status badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -320,6 +362,15 @@ class _RouteCard extends StatelessWidget {
                         : const Color(0xFF059669),
                   ),
                 ),
+                if (onManageStops != null)
+                  TextButton.icon(
+                    onPressed: onManageStops,
+                    icon: const Icon(Icons.flag_rounded, size: 16),
+                    label: const Text('Stops'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF7C3AED),
+                    ),
+                  ),
                 const Spacer(),
                 IconButton(
                   onPressed: onDelete,
@@ -361,7 +412,10 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
   final _destinationCtrl = TextEditingController();
   final _distanceCtrl = TextEditingController();
   final _durationCtrl = TextEditingController();
+  final _stopRepo = StopRepository();
   bool _isLoading = false;
+  int _stopCount = 0;
+  bool _isLoadingStops = true;
 
   @override
   void initState() {
@@ -371,6 +425,22 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
       _destinationCtrl.text = widget.existing!['destination'] ?? '';
       _distanceCtrl.text = widget.existing!['distance_km']?.toString() ?? '';
       _durationCtrl.text = widget.existing!['duration_min']?.toString() ?? '';
+      _loadStopCount();
+    } else {
+      _isLoadingStops = false;
+    }
+  }
+
+  Future<void> _loadStopCount() async {
+    final routeId = widget.existing!['id'] as String;
+    final result = await _stopRepo.getStopsByRoute(routeId);
+    if (mounted) {
+      setState(() {
+        if (result is Success<List<RouteStopModel>>) {
+          _stopCount = result.data.length;
+        }
+        _isLoadingStops = false;
+      });
     }
   }
 
@@ -510,6 +580,80 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE0D4FC)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.flag_rounded,
+                        size: 18,
+                        color: Color(0xFF7C3AED),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Route Stops',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF374151),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.existing != null
+                                ? _isLoadingStops
+                                    ? 'Loading...'
+                                    : '$_stopCount stop${_stopCount == 1 ? '' : 's'} assigned'
+                                : 'Save route first, then manage stops',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _stopCount > 0
+                                  ? const Color(0xFF059669)
+                                  : const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (widget.existing != null)
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RouteStopsEditor(
+                                routeId: widget.existing!['id'],
+                                origin: _originCtrl.text.trim(),
+                                destination: _destinationCtrl.text.trim(),
+                              ),
+                            ),
+                          )?.then((_) => _loadStopCount());
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF7C3AED),
+                        ),
+                        child: const Text('Manage'),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(

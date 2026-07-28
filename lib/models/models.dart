@@ -15,3 +15,5 @@ export 'review_model.dart';
 export 'chat_conversation.dart';
 export 'chat_message.dart';
 export 'booking_intent.dart';
+export 'stop_model.dart';
+export 'route_stop_model.dart';

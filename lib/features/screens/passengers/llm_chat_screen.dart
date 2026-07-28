@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../models/booking_intent.dart';
 import '../../../models/chat_message.dart';
 import '../../../providers/llm_provider.dart';
@@ -75,11 +76,11 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.lgR),
-        title: const Text('API Settings'),
+        title: Text(ctx.tr.chatApiSettings),
         content: TextField(
           controller: urlController,
-          decoration: const InputDecoration(
-            labelText: 'API URL',
+          decoration: InputDecoration(
+            labelText: ctx.tr.chatApiUrlLabel,
             hintText: 'https://cadmic-beverlee-merocrine.ngrok-free.dev/api/chat',
             border: OutlineInputBorder(),
           ),
@@ -89,11 +90,11 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(ctx.tr.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, urlController.text.trim()),
-            child: const Text('Save'),
+            child: Text(ctx.tr.save),
           ),
         ],
       ),
@@ -105,7 +106,7 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('API URL updated'),
+            content: Text(context.tr.chatApiUrlUpdated),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: AppRadius.smR),
           ),
@@ -341,7 +342,7 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
               child: FilledButton.icon(
                 onPressed: () => _navigateToBooking(intent, date),
                 icon: const Icon(Icons.search_rounded, size: 18),
-                label: const Text('Review Available Buses'),
+                label: Text(context.tr.chatReviewBuses),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,

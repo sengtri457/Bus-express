@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../models/chat_conversation.dart';
 import '../../../providers/chat_providers.dart';
 import '../../../providers/llm_provider.dart';
@@ -16,7 +17,7 @@ class ChatHistoryScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Chat History'),
+        title: Text(context.tr.chatHistory),
       ),
       body: historyAsync.when(
         loading: () => const Center(
@@ -32,7 +33,7 @@ class ChatHistoryScreen extends ConsumerWidget {
                     size: 48, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(
-                  'Failed to load history',
+                  context.tr.chatFailedLoad,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppColors.textDark,
                       ),
@@ -50,7 +51,7 @@ class ChatHistoryScreen extends ConsumerWidget {
                 FilledButton.icon(
                   onPressed: () => ref.refresh(chatHistoryProvider.future),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Retry'),
+                  label: Text(context.tr.chatRetry),
                 ),
               ],
             ),
@@ -58,7 +59,7 @@ class ChatHistoryScreen extends ConsumerWidget {
         ),
         data: (conversations) {
           if (conversations.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(context);
           }
           return RefreshIndicator(
             onRefresh: () => ref.refresh(chatHistoryProvider.future),
@@ -86,7 +87,7 @@ class ChatHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -105,19 +106,19 @@ class ChatHistoryScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'No conversations yet',
-            style: TextStyle(
+          Text(
+            context.tr.chatNoConversations,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: AppColors.textDark,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Start a chat with the AI assistant\nand your history will appear here.',
+          Text(
+            context.tr.chatEmptySubtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSoft,
               height: 1.5,
@@ -148,21 +149,21 @@ class ChatHistoryScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.lgR),
-        title: const Text('Delete conversation?'),
+        title: Text(context.tr.chatDeleteTitle),
         content: Text(
-          'Are you sure you want to delete "${conv.title}"?',
+          context.tr.chatDeleteContent(conv.title),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.error,
             ),
-            child: const Text('Delete'),
+            child: Text(context.tr.delete),
           ),
         ],
       ),

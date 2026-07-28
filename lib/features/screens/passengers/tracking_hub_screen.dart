@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/utils/date_helpers.dart';
+import '../../../l10n/tr_extension.dart';
 import '../../../models/booking_model.dart';
 import '../../../supabase_config.dart';
 import 'live_tracking_screen.dart';
@@ -97,8 +98,8 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
-        title: const Text('Live Tracking',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(context.tr.liveTrackingAppBar,
+            style: const TextStyle(fontWeight: FontWeight.w700)),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF111827),
         elevation: 0,
@@ -131,16 +132,16 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
             Icon(Icons.pin_drop_rounded,
                 size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
-            const Text(
-              'No active trips',
-              style: TextStyle(
+            Text(
+              context.tr.trackingNoActiveTrips,
+              style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF374151)),
             ),
             const SizedBox(height: 8),
             Text(
-              'Your in-progress and upcoming\nbookings will show here.',
+              context.tr.trackingNoActiveSubtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 14,
@@ -151,7 +152,7 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
             TextButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Refresh'),
+              label: Text(context.tr.refresh),
             ),
           ],
         ),
@@ -165,7 +166,7 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
     final route = schedule?.route;
     final isInProgress = trip?.status == 'in_progress';
     final dateStr = trip?.tripDate != null
-        ? DateFormat('MMM d').format(DateTime.parse(trip!.tripDate))
+        ? DateHelpers.formatDayMonth(trip!.tripDate)
         : '';
 
     return Card(
@@ -229,7 +230,7 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                isInProgress ? 'LIVE' : 'Upcoming',
+                                isInProgress ? context.tr.liveBadge : context.tr.trackingUpcoming,
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -268,14 +269,14 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
                         color: const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.near_me_rounded,
+                          const Icon(Icons.near_me_rounded,
                               size: 14, color: Color(0xFF059669)),
-                          SizedBox(width: 4),
-                          Text('TRACK',
-                              style: TextStyle(
+                          const SizedBox(width: 4),
+                          Text(context.tr.trackingTrack,
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF059669),
