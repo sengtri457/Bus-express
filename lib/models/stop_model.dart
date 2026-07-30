@@ -15,8 +15,8 @@ class StopModel {
     return StopModel(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
-      lat: (json['lat'] as num?)?.toDouble(),
-      lng: (json['lng'] as num?)?.toDouble(),
+      lat: (json['lat'] ?? json['latitude'] as num?)?.toDouble(),
+      lng: (json['lng'] ?? json['longitude'] as num?)?.toDouble(),
     );
   }
 

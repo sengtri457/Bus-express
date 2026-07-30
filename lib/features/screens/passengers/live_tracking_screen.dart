@@ -4,19 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/error/result.dart';
 import '../../../l10n/tr_extension.dart';
+import '../../../models/route_stop_model.dart';
+import '../../../models/stop_model.dart';
+import '../../../repositories/stop_repository.dart';
 import '../../../supabase_config.dart';
 
 class LiveTrackingScreen extends StatefulWidget {
   final String tripId;
   final String origin;
   final String destination;
+  final String routeId;
 
   const LiveTrackingScreen({
     super.key,
     required this.tripId,
     required this.origin,
     required this.destination,
+    required this.routeId,
   });
 
   @override
@@ -25,9 +31,11 @@ class LiveTrackingScreen extends StatefulWidget {
 
 class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   final MapController _mapController = MapController();
+  final _stopRepo = StopRepository();
   Timer? _pollingTimer;
 
   LatLng? _busPosition;
+  double _busHeading = 0.0;
   String _tripStatus = 'scheduled';
   String? _departedAt;
   String? _scheduledDeparture;
@@ -37,14 +45,13 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   bool _followBus = true;
   bool _mapReady = false;
 
-  // Route details
   List<LatLng> _routePoints = [];
+  List<StopModel> _stops = [];
   LatLng? _originLatLng;
   LatLng? _destinationLatLng;
 
   List<Map<String, dynamic>> _activeIncidents = [];
 
-  // Default center: Phnom Penh
   static const LatLng _defaultCenter = LatLng(11.5564, 104.9282);
 
   static const Map<String, LatLng> _cityCoordinates = {
@@ -72,106 +79,152 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     'ratanakiri': LatLng(13.7333, 107.0000),
     'stung treng': LatLng(13.5250, 105.9667),
     'svay rieng': LatLng(11.0833, 105.8000),
+    'svay reang': LatLng(11.0833, 105.8000),
     'tboung khmum': LatLng(11.9167, 105.6667),
   };
 
-  Future<LatLng?> _resolveCoordinates(String cityName) async {
-    final nameClean = cityName.trim().toLowerCase();
-    if (_cityCoordinates.containsKey(nameClean)) {
-      return _cityCoordinates[nameClean];
+  LatLng? _resolveStopPosition(StopModel stop) {
+    if (stop.lat != null && stop.lng != null) {
+      return LatLng(stop.lat!, stop.lng!);
     }
-
-    try {
-      final query = Uri.encodeComponent('$cityName, Cambodia');
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=1',
-      );
-      final response = await http.get(
-        url,
-        headers: {'User-Agent': 'com.example.bus_express'},
-      );
-
-      if (response.statusCode == 200) {
-        final list = json.decode(response.body) as List;
-        if (list.isNotEmpty) {
-          final first = list.first;
-          final lat = double.parse(first['lat']);
-          final lon = double.parse(first['lon']);
-          return LatLng(lat, lon);
-        }
-      }
-    } catch (e) {
-      debugPrint('[Geocoder] Nominatim error for $cityName: $e');
-    }
-    return null;
+    final nameClean = stop.name.trim().toLowerCase();
+    return _cityCoordinates[nameClean];
   }
 
-  Future<List<LatLng>> _fetchRoutePolyline(
-    LatLng origin,
-    LatLng destination,
-  ) async {
+  Future<void> _loadStops() async {
+    debugPrint('[LiveTracking] Loading stops for route: ${widget.routeId}');
+    final result = await _stopRepo.getStopsByRoute(widget.routeId);
+    if (!mounted) return;
+    if (result is Success<List<RouteStopModel>>) {
+      debugPrint('[LiveTracking] Raw route_stops count: ${result.data.length}');
+      final extracted = <StopModel>[];
+      for (final rs in result.data) {
+        if (rs.stop != null) {
+          extracted.add(rs.stop!);
+        } else {
+          debugPrint('[LiveTracking] Stop is null for route_stop: ${rs.stopId} — trying direct fetch');
+        }
+      }
+      debugPrint('[LiveTracking] Stops extracted: ${extracted.length}');
+      if (extracted.isEmpty) {
+        final raw = await SupabaseConfig.client
+            .from('route_stops')
+            .select('*, stops(*)')
+            .eq('route_id', widget.routeId)
+            .order('stop_order');
+        debugPrint('[LiveTracking] Direct raw data: $raw');
+        for (final item in raw as List) {
+          final map = item as Map<String, dynamic>;
+          debugPrint('[LiveTracking] Row keys: ${map.keys}');
+          if (map['stops'] != null) {
+            extracted.add(StopModel.fromJson(map['stops'] as Map<String, dynamic>));
+          }
+        }
+      }
+      setState(() {
+        _stops = extracted;
+        if (extracted.isNotEmpty) {
+          final firstPos = _resolveStopPosition(extracted.first);
+          final lastPos = _resolveStopPosition(extracted.last);
+          if (firstPos != null) _originLatLng = firstPos;
+          if (lastPos != null) _destinationLatLng = lastPos;
+        }
+      });
+      _buildRouteFromStops();
+    } else {
+      final failure = result as Failure;
+      debugPrint('[LiveTracking] Failed to load stops: ${failure.message}');
+    }
+  }
+
+  void _buildRouteFromStops() {
+    final points = <LatLng>[];
+    for (final stop in _stops) {
+      final pos = _resolveStopPosition(stop);
+      if (pos != null) points.add(pos);
+    }
+    if (points.length >= 2) {
+      debugPrint('[LiveTracking] Route built from ${points.length} stops');
+      setState(() => _routePoints = points);
+    } else {
+      _fetchOsrmRoute();
+    }
+  }
+
+  Future<void> _fetchOsrmRoute() async {
+    final start = _originLatLng ?? _resolveByCityName(widget.origin);
+    final end = _destinationLatLng ?? _resolveByCityName(widget.destination);
+    debugPrint('[LiveTracking] OSRM fallback: start=$start, end=$end');
+    if (start == null || end == null) return;
     try {
       final url = Uri.parse(
         'https://router.project-osrm.org/route/v1/driving/'
-        '${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}'
+        '${start.longitude},${start.latitude};${end.longitude},${end.latitude}'
         '?overview=full&geometries=geojson',
       );
+      debugPrint('[LiveTracking] OSRM URL: $url');
       final response = await http.get(
         url,
         headers: {'User-Agent': 'com.example.bus_express'},
       );
-
+      debugPrint('[LiveTracking] OSRM status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final routes = data['routes'] as List?;
         if (routes != null && routes.isNotEmpty) {
           final geometry = routes.first['geometry'];
           final coordinates = geometry['coordinates'] as List?;
-          if (coordinates != null) {
-            return coordinates.map<LatLng>((coord) {
+          if (coordinates != null && coordinates.length >= 2) {
+            final pts = coordinates.map<LatLng>((coord) {
               return LatLng(
                 (coord[1] as num).toDouble(),
                 (coord[0] as num).toDouble(),
               );
             }).toList();
+            debugPrint('[LiveTracking] OSRM route points: ${pts.length}');
+            if (mounted) setState(() => _routePoints = pts);
           }
         }
       }
     } catch (e) {
-      debugPrint('[Routing] OSRM error: $e');
+      debugPrint('[LiveTracking] OSRM error: $e');
     }
-    return [];
+  }
+
+  LatLng? _resolveByCityName(String name) {
+    final clean = name.trim().toLowerCase();
+    debugPrint('[LiveTracking] Resolving city: "$name" → "$clean"');
+    if (_cityCoordinates.containsKey(clean)) {
+      final found = _cityCoordinates[clean]!;
+      debugPrint('[LiveTracking] Exact match for "$clean": ${found.latitude}, ${found.longitude}');
+      return found;
+    }
+    for (final entry in _cityCoordinates.entries) {
+      if (clean.contains(entry.key) || entry.key.contains(clean)) {
+        debugPrint('[LiveTracking] Fuzzy match: "$clean" → "${entry.key}": ${entry.value.latitude}, ${entry.value.longitude}');
+        return entry.value;
+      }
+    }
+    debugPrint('[LiveTracking] City not found in map: "$clean"');
+    return null;
   }
 
   Future<void> _loadRoutePath() async {
-    final originPos = await _resolveCoordinates(widget.origin);
-    final destPos = await _resolveCoordinates(widget.destination);
-
-    if (originPos != null && destPos != null) {
-      if (mounted) {
+    if (widget.routeId.isNotEmpty) {
+      await _loadStops();
+    }
+    if (_stops.isEmpty) {
+      debugPrint('[LiveTracking] No stops — using city name fallback');
+      final originPos = _resolveByCityName(widget.origin);
+      final destPos = _resolveByCityName(widget.destination);
+      if (originPos != null && destPos != null) {
         setState(() {
           _originLatLng = originPos;
           _destinationLatLng = destPos;
         });
-      }
-      await _updateRoutePath();
-    }
-  }
-
-  Future<void> _updateRoutePath() async {
-    // If the bus has departed and we have its live position, draw directions from the bus to the destination!
-    // Otherwise, draw from the origin station to the destination.
-    final startPos = (_tripStatus == 'in_progress' && _busPosition != null)
-        ? _busPosition
-        : (_originLatLng ?? _busPosition);
-    final destPos = _destinationLatLng;
-
-    if (startPos != null && destPos != null) {
-      final points = await _fetchRoutePolyline(startPos, destPos);
-      if (mounted && points.isNotEmpty) {
-        setState(() {
-          _routePoints = points;
-        });
+        _fetchOsrmRoute();
+      } else {
+        debugPrint('[LiveTracking] Cannot resolve origin or destination via city name');
       }
     }
   }
@@ -219,11 +272,17 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
             ''')
             .eq('id', widget.tripId)
             .maybeSingle(),
+        SupabaseConfig.client
+            .from('driver_locations')
+            .select('heading')
+            .eq('trip_id', widget.tripId)
+            .maybeSingle(),
         _fetchIncidents(),
       ]);
 
       final data = results[0] as Map<String, dynamic>?;
-      final incidents = results[1] as List<Map<String, dynamic>>;
+      final driverLocation = results[1] as Map<String, dynamic>?;
+      final incidents = results[2] as List<Map<String, dynamic>>;
 
       if (mounted) {
         setState(() {
@@ -246,11 +305,13 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
               (lng as num).toDouble(),
             );
           }
+          if (driverLocation != null && driverLocation['heading'] != null) {
+            _busHeading = (driverLocation['heading'] as num).toDouble();
+          } else {
+            _busHeading = 0.0;
+          }
           _isLoading = false;
         });
-
-        // Update route polyline to start from the bus's live position
-        _updateRoutePath();
 
         // Move map to bus position if map is ready
         if (_busPosition != null && _mapReady) {
@@ -294,11 +355,17 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
               ''')
               .eq('id', widget.tripId)
               .maybeSingle(),
+          SupabaseConfig.client
+              .from('driver_locations')
+              .select('heading')
+              .eq('trip_id', widget.tripId)
+              .maybeSingle(),
           _fetchIncidents(),
         ]);
 
         final data = results[0] as Map<String, dynamic>?;
-        final incidents = results[1] as List<Map<String, dynamic>>;
+        final driverLocation = results[1] as Map<String, dynamic>?;
+        final incidents = results[2] as List<Map<String, dynamic>>;
 
         if (mounted) {
           setState(() {
@@ -311,9 +378,6 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
           final lng = data['longitude'];
           final schedule = data['schedules'] as Map<String, dynamic>?;
 
-          final oldBusPosition = _busPosition;
-          final oldTripStatus = _tripStatus;
-
           setState(() {
             _tripStatus = data['status'] ?? _tripStatus;
             _departedAt = data['departed_at'] ?? _departedAt;
@@ -325,13 +389,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                 (lng as num).toDouble(),
               );
             }
+            if (driverLocation != null && driverLocation['heading'] != null) {
+              _busHeading = (driverLocation['heading'] as num).toDouble();
+            }
           });
-
-          // Recalculate route polyline if position changed OR trip status changed
-          // (e.g., scheduled→in_progress updates route from origin→dest to bus→dest)
-          if (_busPosition != oldBusPosition || _tripStatus != oldTripStatus) {
-            _updateRoutePath();
-          }
 
           // Auto-follow bus on map if ready
           if (_busPosition != null && _followBus && _mapReady) {
@@ -505,8 +566,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    initialCenter:
-                        _busPosition ?? _originLatLng ?? _defaultCenter,
+                    initialCenter: _busPosition ?? _originLatLng ?? _defaultCenter,
                     initialZoom: 12,
                     onTap: (_, _) => setState(() => _followBus = false),
                     onMapReady: () {
@@ -517,15 +577,15 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                     },
                   ),
                   children: [
-                    // OpenStreetMap tile layer (free, no API key)
+                    // CartoDB Voyager tile layer (clean, premium look)
                     TileLayer(
                       urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
                       userAgentPackageName: 'com.example.bus_booking',
                       maxZoom: 19,
                     ),
 
-                    // Route Polyline Layer (100% Free road-routing via OSRM!)
+                    // Route Polyline Layer
                     if (_routePoints.isNotEmpty)
                       PolylineLayer(
                         polylines: [
@@ -541,18 +601,28 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                         ],
                       ),
 
-                    // Origin and Destination markers
-                    MarkerLayer(
-                      markers: [
-                        // Origin City Departure Point
-                        if (_originLatLng != null)
-                          Marker(
-                            point: _originLatLng!,
+                    // Stop markers
+                    if (_stops.isNotEmpty)
+                      MarkerLayer(
+                        markers: List.generate(_stops.length, (i) {
+                          final stop = _stops[i];
+                          final pos = _resolveStopPosition(stop);
+                          if (pos == null) {
+                            return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
+                          }
+                          final isFirst = i == 0;
+                          final isLast = i == _stops.length - 1;
+                          return Marker(
+                            point: pos,
                             width: 36,
                             height: 36,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1A73E8),
+                                color: isFirst
+                                    ? const Color(0xFF059669)
+                                    : isLast
+                                        ? const Color(0xFFEF4444)
+                                        : const Color(0xFF1A73E8),
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: Colors.white,
@@ -566,45 +636,22 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.radio_button_checked_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                              child: isFirst
+                                  ? const Icon(Icons.radio_button_checked_rounded, color: Colors.white, size: 18)
+                                  : isLast
+                                      ? const Icon(Icons.flag_rounded, color: Colors.white, size: 18)
+                                      : Text(
+                                          '${i + 1}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
                             ),
-                          ),
-
-                        // Destination City Point
-                        if (_destinationLatLng != null)
-                          Marker(
-                            point: _destinationLatLng!,
-                            width: 36,
-                            height: 36,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEF4444),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.25),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.flag_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                          );
+                        }).where((m) => m.width > 0).toList(),
+                      ),
 
                     // Bus marker
                     if (_busPosition != null)
@@ -616,6 +663,59 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                             height: 60,
                             child: _BusMarker(
                               isMoving: _tripStatus == 'in_progress',
+                              heading: _busHeading,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    // Origin/destination markers (fallback when no stops)
+                    if (_stops.isEmpty && _originLatLng != null)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _originLatLng!,
+                            width: 36,
+                            height: 36,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF059669),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.radio_button_checked_rounded, color: Colors.white, size: 18),
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (_stops.isEmpty && _destinationLatLng != null)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _destinationLatLng!,
+                            width: 36,
+                            height: 36,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.flag_rounded, color: Colors.white, size: 18),
                             ),
                           ),
                         ],
@@ -753,7 +853,11 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
 
 class _BusMarker extends StatefulWidget {
   final bool isMoving;
-  const _BusMarker({required this.isMoving});
+  final double heading;
+  const _BusMarker({
+    required this.isMoving,
+    required this.heading,
+  });
 
   @override
   State<_BusMarker> createState() => _BusMarkerState();
@@ -806,10 +910,13 @@ class _BusMarkerState extends State<_BusMarker>
             ),
           ],
         ),
-        child: const Icon(
-          Icons.directions_bus_rounded,
-          color: Colors.white,
-          size: 30,
+        child: Transform.rotate(
+          angle: widget.heading * (3.141592653589793 / 180),
+          child: const Icon(
+            Icons.directions_bus_rounded,
+            color: Colors.white,
+            size: 30,
+          ),
         ),
       ),
     );

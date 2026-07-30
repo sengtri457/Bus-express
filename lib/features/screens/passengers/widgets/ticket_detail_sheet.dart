@@ -76,6 +76,7 @@ class _TicketDetailSheetState extends State<TicketDetailSheet>
           tripId: trip['id'] as String,
           origin: route?['origin'] as String? ?? '?',
           destination: route?['destination'] as String? ?? '?',
+          routeId: route?['id'] as String? ?? '',
         ),
       ),
     );

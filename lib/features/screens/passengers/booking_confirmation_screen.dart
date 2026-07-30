@@ -10,7 +10,9 @@ import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_helpers.dart';
 import '../../../l10n/tr_extension.dart';
+import '../../../models/route_stop_model.dart';
 import '../../../repositories/booking_repository.dart';
+import '../../../repositories/stop_repository.dart';
 import '../../../services/bakong_payment_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/receipt_service.dart';
@@ -49,7 +51,11 @@ class BookingConfirmationScreen extends StatefulWidget {
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _bookingRepo = BookingRepository();
+  final _stopRepo = StopRepository();
   bool _isLoading = false;
+
+  List<RouteStopModel> _routeStops = [];
+  bool _loadingStops = true;
 
   // Seat reservation countdown
   Timer? _holdTicker;
@@ -102,6 +108,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     super.initState();
     _loadUserInfo();
     _startHoldCountdown();
+    _loadRouteStops();
   }
 
   void _startHoldCountdown() {
@@ -123,6 +130,24 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     final m = _holdRemaining.inMinutes;
     final s = _holdRemaining.inSeconds % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _loadRouteStops() async {
+    final route = widget.schedule['routes'] as Map<String, dynamic>?;
+    final routeId = route?['id'] as String?;
+    if (routeId == null) {
+      if (mounted) setState(() => _loadingStops = false);
+      return;
+    }
+    final result = await _stopRepo.getStopsByRoute(routeId);
+    if (mounted) {
+      setState(() {
+        if (result is Success<List<RouteStopModel>>) {
+          _routeStops = result.data;
+        }
+        _loadingStops = false;
+      });
+    }
   }
 
   /// Maps a repository conflict code onto a localised, human message.
@@ -922,6 +947,19 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Route Stops Timeline
+              if (_routeStops.length >= 2)
+                _SectionCard(
+                  title: 'Stops',
+                  icon: Icons.route_rounded,
+                  child: _StopTimeline(
+                    stops: _routeStops,
+                    departureTime: widget.schedule['departure_time'] as String,
+                    loading: _loadingStops,
+                  ),
+                ),
+              if (_routeStops.length >= 2) const SizedBox(height: 16),
+
               // Passenger Info
               _SectionCard(
                 title: context.tr.bookingPassenger,
@@ -1665,6 +1703,178 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       'Sunday',
     ];
     return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+}
+
+class _StopTimeline extends StatelessWidget {
+  final List<RouteStopModel> stops;
+  final String departureTime;
+  final bool loading;
+
+  const _StopTimeline({
+    required this.stops,
+    required this.departureTime,
+    required this.loading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+
+    return Column(
+      children: List.generate(stops.length, (i) {
+        final stop = stops[i];
+        final isFirst = i == 0;
+        final isLast = i == stops.length - 1;
+
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 32,
+                child: Column(
+                  children: [
+                    if (isFirst)
+                      const SizedBox(height: 4)
+                    else
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          color: AppColors.border,
+                        ),
+                      ),
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: isFirst
+                            ? const Color(0xFF059669)
+                            : isLast
+                                ? const Color(0xFFEF4444)
+                                : AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                    if (isLast)
+                      const SizedBox(height: 4)
+                    else
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          color: AppColors.border,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              stop.stopName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            if (isFirst)
+                              Text(
+                                'Origin',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: const Color(0xFF059669),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            else if (isLast)
+                              Text(
+                                'Destination',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: const Color(0xFFEF4444),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (!isFirst)
+                            _TimeTag(
+                              label: 'Arr',
+                              time: stop.formatArrivalTime(departureTime),
+                            ),
+                          if (!isLast)
+                            _TimeTag(
+                              label: 'Dep',
+                              time: stop.formatDepartureTime(departureTime),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _TimeTag extends StatelessWidget {
+  final String label;
+  final String time;
+
+  const _TimeTag({required this.label, required this.time});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label ',
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textHint,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            time,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

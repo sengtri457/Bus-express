@@ -184,6 +184,7 @@ class _TrackingHubScreenState extends State<TrackingHubScreen>
               tripId: trip?.id ?? '',
               origin: route?.origin ?? '',
               destination: route?.destination ?? '',
+              routeId: route?.id ?? '',
             ),
           ),
         ),

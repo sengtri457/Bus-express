@@ -47,6 +47,11 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
     _computeSchedule();
     _loadIncidents();
     _startEndTripCheck();
+    if (_status == 'scheduled' || _status == 'in_progress') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startGPSTracking();
+      });
+    }
   }
 
   Future<void> _refreshTrip() async {
@@ -435,6 +440,9 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
   // ─── GPS ────────────────────────────────────────────────
 
   void _startGPSTracking() {
+    if (_gpsTimer != null && _gpsTimer!.isActive) {
+      return;
+    }
     setState(() => _isTrackingGPS = true);
     _gpsTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
       try {
