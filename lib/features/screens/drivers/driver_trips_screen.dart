@@ -674,12 +674,17 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
                         decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 10),
-                      Text(context.tr.driverTripGpsActive, style: const TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.w600, fontSize: 13)),
-                      const Spacer(),
+                      Expanded(
+                        child: Text(context.tr.driverTripGpsActive, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.w600, fontSize: 13)),
+                      ),
                       if (_currentPosition != null)
-                        Text(
-                          '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}',
-                          style: const TextStyle(color: Color(0xFF059669), fontSize: 11),
+                        Flexible(
+                          child: Text(
+                            '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Color(0xFF059669), fontSize: 11),
+                          ),
                         ),
                     ],
                   ),
@@ -689,7 +694,10 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(context.tr.driverTripPassengersTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                  Flexible(
+                    child: Text(context.tr.driverTripPassengersTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                  ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(20)),
@@ -974,9 +982,13 @@ class _InfoRow extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: const Color(0xFF6B7280)),
         const SizedBox(width: 10),
-        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
-        const Spacer(),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
+        Expanded(
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
+        ),
       ],
     );
   }

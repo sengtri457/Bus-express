@@ -697,16 +697,22 @@ class _IncidentTile extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      _typeLabelStatic(context, typeConfig['value'] as String),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: typeConfig['color'] as Color,
+                    Flexible(
+                      child: Text(
+                        _typeLabelStatic(context, typeConfig['value'] as String),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: typeConfig['color'] as Color,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       _formatTimestamp(incident['created_at'] as String),
+                      maxLines: 1,
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF6B7280),

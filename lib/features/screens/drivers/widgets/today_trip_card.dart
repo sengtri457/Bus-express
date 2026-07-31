@@ -66,8 +66,11 @@ class TodayTripCard extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Wrap(
                         spacing: 8,
@@ -78,6 +81,7 @@ class TodayTripCard extends StatelessWidget {
                         ],
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
                             Icons.touch_app_rounded,
@@ -85,11 +89,15 @@ class TodayTripCard extends StatelessWidget {
                             size: 14,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            context.tr.todayTripCardTapToManage,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 12,
+                          Flexible(
+                            child: Text(
+                              context.tr.todayTripCardTapToManage,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -99,27 +107,33 @@ class TodayTripCard extends StatelessWidget {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateHelpers.formatTime(
-                              schedule['departure_time'] ?? '',
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              DateHelpers.formatTime(
+                                schedule['departure_time'] ?? '',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                            Text(
+                              route?['origin'] ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
                             ),
-                          ),
-                          Text(
-                            route?['origin'] ?? '',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       Expanded(
                         child: Column(
@@ -161,27 +175,33 @@ class TodayTripCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            DateHelpers.formatTime(
-                              schedule['arrival_time'] ?? '',
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              DateHelpers.formatTime(
+                                schedule['arrival_time'] ?? '',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                            Text(
+                              route?['destination'] ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
                             ),
-                          ),
-                          Text(
-                            route?['destination'] ?? '',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -196,17 +216,21 @@ class TodayTripCard extends StatelessWidget {
                         size: 16,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        context.tr.todayTripCardBusInfo(
-                          '${bus?['model'] ?? ''}',
-                          '${bus?['plate_number'] ?? ''}',
-                        ),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          context.tr.todayTripCardBusInfo(
+                            '${bus?['model'] ?? ''}',
+                            '${bus?['plate_number'] ?? ''}',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       const Icon(
                         Icons.event_seat_outlined,
                         color: Colors.white70,

@@ -293,6 +293,21 @@ class AppLocalizationsKm extends AppLocalizations {
   String get navProfile => 'ប្រវត្តិរូប';
 
   @override
+  String get navTracking => 'តាមដាន';
+
+  @override
+  String get navHomeNew => 'ទំព័រដើម';
+
+  @override
+  String get navRecordsNew => 'កំណត់ត្រា';
+
+  @override
+  String get navChatNew => 'សន្ទនា';
+
+  @override
+  String get navMenuNew => 'ម៉ឺនុយ';
+
+  @override
   String get navDashboard => 'ផ្ទាំងគ្រប់គ្រង';
 
   @override

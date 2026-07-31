@@ -133,7 +133,7 @@ class _LlmChatScreenState extends ConsumerState<LlmChatScreen> {
               ),
               child: ClipRRect(
                 borderRadius: AppRadius.smR,
-                child: Image.asset('assets/images/aiLogo.png', width: 22, height: 22, fit: BoxFit.cover),
+                child: Image.asset('assets/images/AI.gif', width: 22, height: 22, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 12),
@@ -714,7 +714,7 @@ class _MessageBubbleState extends State<_MessageBubble>
       child: isUser
           ? const Icon(Icons.person_rounded, size: 18, color: Colors.white)
           : ClipOval(
-              child: Image.asset('assets/images/aiLogo.png',
+              child: Image.asset('assets/images/AI.gif',
                   width: 34, height: 34, fit: BoxFit.cover),
             ),
     );
@@ -769,7 +769,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
               border: Border.all(color: AppColors.border),
             ),
             child: ClipOval(
-              child: Image.asset('assets/images/aiLogo.png', width: 34, height: 34, fit: BoxFit.cover),
+              child: Image.asset('assets/images/AI.gif', width: 34, height: 34, fit: BoxFit.cover),
             ),
           ),
           const SizedBox(width: 10),

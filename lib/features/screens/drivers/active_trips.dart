@@ -559,18 +559,22 @@ class _StatusCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                context.tr.activeTripTripStatus,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
+              Expanded(
+                child: Text(
+                  context.tr.activeTripTripStatus,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827),
+                  ),
                 ),
               ),
               if (elapsed != null)
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
                       Icons.timer_outlined,
@@ -578,13 +582,17 @@ class _StatusCard extends StatelessWidget {
                       color: Color(0xFF1A73E8),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      elapsed!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A73E8),
-                        fontFeatures: [FontFeature.tabularFigures()],
+                    Flexible(
+                      child: Text(
+                        elapsed!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A73E8),
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ),
                   ],

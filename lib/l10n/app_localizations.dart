@@ -638,6 +638,36 @@ abstract class AppLocalizations {
   /// **'Profile'**
   String get navProfile;
 
+  /// No description provided for @navTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking'**
+  String get navTracking;
+
+  /// No description provided for @navHomeNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHomeNew;
+
+  /// No description provided for @navRecordsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Records'**
+  String get navRecordsNew;
+
+  /// No description provided for @navChatNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get navChatNew;
+
+  /// No description provided for @navMenuNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get navMenuNew;
+
   /// No description provided for @navDashboard.
   ///
   /// In en, this message translates to:

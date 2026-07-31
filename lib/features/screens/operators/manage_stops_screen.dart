@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/error/result.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../l10n/tr_extension.dart';
 import '../../../models/stop_model.dart';
 import '../../../repositories/stop_repository.dart';
 
@@ -111,7 +111,7 @@ class _ManageStopsScreenState extends State<ManageStopsScreen> {
                     labelText: 'Stop Name',
                     hintText: 'e.g. Phnom Penh Central',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.stops_rounded, size: 18),
+                    prefixIcon: Icon(Icons.airline_stops_rounded, size: 18),
                   ),
                   validator: (v) =>
                       v == null || v.trim().isEmpty ? 'Required' : null,
@@ -158,7 +158,7 @@ class _ManageStopsScreenState extends State<ManageStopsScreen> {
                       final lng = double.tryParse(lngCtrl.text.trim());
                       if (isEdit) {
                         await _repo.updateStop(
-                          id: existing!.id,
+                          id: existing.id,
                           name: name,
                           lat: lat,
                           lng: lng,
@@ -168,6 +168,8 @@ class _ManageStopsScreenState extends State<ManageStopsScreen> {
                       }
                       if (ctx.mounted) {
                         Navigator.pop(ctx);
+                      }
+                      if (mounted) {
                         _loadStops();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -294,7 +296,7 @@ class _ManageStopsScreenState extends State<ManageStopsScreen> {
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               child: const Icon(
-                                Icons.stops_rounded,
+                                Icons.airline_stops_rounded,
                                 size: 36,
                                 color: AppColors.primary,
                               ),
@@ -379,7 +381,7 @@ class _StopTile extends StatelessWidget {
           color: AppColors.primaryLight,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.stops_rounded, color: AppColors.primary, size: 22),
+        child: const Icon(Icons.airline_stops_rounded, color: AppColors.primary, size: 22),
       ),
       title: Text(
         stop.name,

@@ -292,6 +292,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navProfile => 'Profile';
 
   @override
+  String get navTracking => 'Tracking';
+
+  @override
+  String get navHomeNew => 'Home';
+
+  @override
+  String get navRecordsNew => 'Records';
+
+  @override
+  String get navChatNew => 'Chat';
+
+  @override
+  String get navMenuNew => 'Menu';
+
+  @override
   String get navDashboard => 'Dashboard';
 
   @override
