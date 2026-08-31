@@ -20,11 +20,10 @@ class ReceiptScreen extends StatefulWidget {
 class _ReceiptScreenState extends State<ReceiptScreen> {
   bool _isGenerating = false;
 
-  double get _totalPrice =>
-      widget.bookings.fold<double>(
-        0,
-        (s, b) => s + (b['total_price'] as num).toDouble(),
-      );
+  double get _totalPrice => widget.bookings.fold<double>(
+    0,
+    (s, b) => s + (b['total_price'] as num).toDouble(),
+  );
 
   Future<void> _generateAndShare() async {
     setState(() => _isGenerating = true);
@@ -38,7 +37,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         if (kIsWeb) {
           downloadBytes(data, 'BusExpress_Receipt.pdf');
         } else {
-          await ReceiptService.share(data, widget.bookings.first['id'] as String);
+          await ReceiptService.share(
+            data,
+            widget.bookings.first['id'] as String,
+          );
         }
       case Failure<Uint8List>(:final message):
         if (mounted) {
@@ -112,11 +114,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                _ReceiptLine(label: context.tr.receiptReceiptNo, value: bookingRef),
+                _ReceiptLine(
+                  label: context.tr.receiptReceiptNo,
+                  value: bookingRef,
+                ),
                 _ReceiptLine(
                   label: context.tr.receiptIssued,
                   value: DateHelpers.formatFullDate(
-                    (first['booked_at'] as String?) ?? DateTime.now().toIso8601String(),
+                    (first['booked_at'] as String?) ??
+                        DateTime.now().toIso8601String(),
                   ),
                 ),
                 const Divider(height: 24, color: AppColors.border),
@@ -142,7 +148,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 if (bus != null)
                   _ReceiptLine(
                     label: context.tr.bookingBus,
-                    value: '${bus['model'] ?? '?'} (${bus['plate_number'] ?? '?'})',
+                    value:
+                        '${bus['model'] ?? '?'} (${bus['plate_number'] ?? '?'})',
                   ),
                 const Divider(height: 24, color: AppColors.border),
                 Text(
@@ -162,12 +169,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   child: Column(
                     children: [
                       _TableHeader(),
-                      ...widget.bookings.map((b) => _TableRow(
-                            seat: b['seat_number'] as String,
-                            status: b['status'] as String,
-                            price:
-                                '\$${(b['total_price'] as num).toStringAsFixed(2)}',
-                          )),
+                      ...widget.bookings.map(
+                        (b) => _TableRow(
+                          seat: b['seat_number'] as String,
+                          status: b['status'] as String,
+                          price:
+                              '\$${(b['total_price'] as num).toStringAsFixed(2)}',
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -205,11 +214,17 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 const SizedBox(height: 24),
                 Text(
                   context.tr.receiptThankYou,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 Text(
                   context.tr.receiptKeepRecord,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                  ),
                 ),
               ],
             ),
@@ -230,7 +245,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     )
                   : const Icon(Icons.share_rounded, size: 18),
               label: Text(
-                _isGenerating ? context.tr.receiptGenerating : context.tr.receiptShare,
+                _isGenerating
+                    ? context.tr.receiptGenerating
+                    : context.tr.receiptShare,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -313,7 +330,7 @@ class _TableRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Row(
